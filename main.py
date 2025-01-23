@@ -23,7 +23,7 @@ def build_mac():
         else:
             script_path = f"./build_mac_signed_no_sign.sh"
 
-        subprocess.run(["sh", script_path], check=True)
+        subprocess.run(["sh", script_path, branch_name], check=True)
 
         return jsonify({
             "message": f"macOS build for branch {branch_name} {'with' if sign else 'without'} signing executed successfully!"}), 200
