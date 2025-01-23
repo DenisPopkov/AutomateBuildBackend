@@ -65,13 +65,24 @@ fi
 
 echo "APK built successfully: $APK_PATH"
 
-# Rename APK
-RENAMED_APK="/Users/denispopkov/Desktop/builds/neuro3-${VERSION_NAME}-${VERSION_CODE}-prod.apk"
-mv "$APK_PATH" "$RENAMED_APK" || { echo "Error renaming APK"; exit 1; }
-echo "APK renamed and moved to: $RENAMED_APK"
+# Rename APK with unique name if needed
+BASE_NAME="neuro3-${VERSION_NAME}-${VERSION_CODE}.apk"
+FINAL_DIR="/Users/denispopkov/Desktop/builds"
+FINAL_APK_PATH="$FINAL_DIR/$BASE_NAME"
+
+# Ensure unique filename in the builds folder
+INDEX=1
+while [ -f "$FINAL_APK_PATH" ]; do
+    FINAL_APK_PATH="$FINAL_DIR/neuro3-${VERSION_NAME}-${VERSION_CODE}_${INDEX}.apk"
+    INDEX=$((INDEX + 1))
+done
+
+# Move the APK file to the builds folder with the unique name
+mv "$APK_PATH" "$FINAL_APK_PATH" || { echo "Error renaming APK"; exit 1; }
+echo "APK renamed and moved to: $FINAL_APK_PATH"
 
 # Slack Upload
-FILE_PATH="$RENAMED_APK"
+FILE_PATH="$FINAL_APK_PATH"
 
 # Upload APK to Slack
 echo "Uploading APK to Slack..."

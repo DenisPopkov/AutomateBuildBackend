@@ -54,20 +54,24 @@ def build_android():
         return jsonify({"error": str(e)}), 500
 
 
-# @app.route('/build_ios', methods=['POST'])
-# def build_ios():
-#     try:
-#         branch_name = request.json.get('branchName')
-#
-#         if not branch_name:
-#             return jsonify({"error": "Missing required parameter: branchName"}), 400
-#
-#         return jsonify({"message": f"iOS build for branch {branch_name} executed successfully!"}), 200
-#
-#     except subprocess.CalledProcessError as e:
-#         return jsonify({"error": str(e)}), 500
-#     except Exception as e:
-#         return jsonify({"error": str(e)}), 500
+@app.route('/build_ios', methods=['POST'])
+def build_ios():
+    try:
+        branch_name = request.json.get('branchName')
+
+        if not branch_name:
+            return jsonify({"error": "Missing required parameter: branchName"}), 400
+
+        script_path = "./build_ios.sh"
+
+        subprocess.run(["sh", script_path, branch_name], check=True)
+
+        return jsonify({"message": f"iOS build for branch {branch_name} executed successfully!"}), 200
+
+    except subprocess.CalledProcessError as e:
+        return jsonify({"error": str(e)}), 500
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 @app.route('/builds', methods=['GET'])
 def get_builds():

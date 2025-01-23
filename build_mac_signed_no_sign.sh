@@ -82,3 +82,13 @@ else
     echo "Error sending Build to Slack."
     exit 1
 fi
+
+## Releasing after build
+DESKTOP_BUILD_PATH="$PROJECT_DIR/desktopApp/build/compose/binaries/main"
+
+if [ -d "$DESKTOP_BUILD_PATH" ]; then
+    rm -r "$DESKTOP_BUILD_PATH"
+    echo "Removed directory: $DESKTOP_BUILD_PATH"
+else
+    echo "Directory does not exist: $DESKTOP_BUILD_PATH"
+fi

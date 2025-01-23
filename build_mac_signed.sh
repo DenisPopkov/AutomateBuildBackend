@@ -157,13 +157,27 @@ else
 fi
 
 # Rename signed .pkg to final format
-RENAMED_PKG="/Users/denispopkov/Desktop/builds/neuro_desktop_${VERSION_CODE}_installer_mac.pkg"
-mv "$SIGNED_PKG_PATH" "$RENAMED_PKG" || { echo "Error renaming .pkg"; exit 1; }
-echo "Renamed .pkg and moved to: $RENAMED_PKG"
+BASE_NAME="neuro_desktop_${VERSION_CODE}_installer_mac.pkg"
+FINAL_DIR="/Users/denispopkov/Desktop/builds"
+FINAL_PKG_PATH="$FINAL_DIR/$BASE_NAME"
+
+# Check if the file already exists
+if [ -f "$FINAL_PKG_PATH" ]; then
+    echo "File with name $BASE_NAME already exists. Finding a unique name..."
+    INDEX=1
+    while [ -f "$FINAL_PKG_PATH" ]; do
+        FINAL_PKG_PATH="$FINAL_DIR/neuro_desktop_${VERSION_CODE}_installer_mac_${INDEX}.pkg"
+        INDEX=$((INDEX + 1))
+    done
+fi
+
+# Move the file to the builds folder with the final name
+mv "$SIGNED_PKG_PATH" "$FINAL_PKG_PATH" || { echo "Error renaming .pkg"; exit 1; }
+echo "Renamed .pkg and moved to: $FINAL_PKG_PATH"
 
 # Check the signature of the renamed .pkg
 echo "Checking signature of the renamed .pkg file..."
-SIGNATURE_CHECK=$(pkgutil --check-signature "$RENAMED_PKG")
+SIGNATURE_CHECK=$(pkgutil --check-signature "$FINAL_PKG_PATH")
 
 if [[ "$SIGNATURE_CHECK" == *"Developer ID Installer: Source Audio LLC"* ]]; then
   echo "Signature verified successfully!"
@@ -174,11 +188,38 @@ fi
 
 # Upload Renamed .pkg to Slack
 echo "Uploading renamed .pkg to Slack..."
-execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "macOS signed from $BRANCH_NAME" "${RENAMED_PKG}"
+execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "macOS signed from $BRANCH_NAME" "${FINAL_PKG_PATH}"
 
 if [ $? -eq 0 ]; then
     echo "Renamed .pkg sent to Slack successfully."
 else
     echo "Error sending renamed .pkg to Slack."
     exit 1
+fi
+
+if [ $? -eq 0 ]; then
+    echo "Renamed .pkg sent to Slack successfully."
+else
+    echo "Error sending renamed .pkg to Slack."
+    exit 1
+fi
+
+## Releasing after build
+DESKTOP_BUILD_PATH="$PROJECT_DIR/desktopApp/build/compose/binaries/main"
+
+if [ -d "$DESKTOP_BUILD_PATH" ]; then
+    rm -r "$DESKTOP_BUILD_PATH"
+    echo "Removed directory: $DESKTOP_BUILD_PATH"
+else
+    echo "Directory does not exist: $DESKTOP_BUILD_PATH"
+fi
+
+pkill -f "$PROCESS_NAME"
+
+if [ -f "$NOTARIZED_BUILD_PATH" ]; then
+    echo "Removing notarized build file at $NOTARIZED_BUILD_PATH..."
+    rm "$NOTARIZED_BUILD_PATH"
+    echo "File removed successfully."
+else
+    echo "File not found: $NOTARIZED_BUILD_PATH"
 fi
