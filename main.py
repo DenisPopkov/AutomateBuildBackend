@@ -100,14 +100,15 @@ def send_build():
         if not os.path.exists(builds_folder):
             return jsonify({"error": f"The 'builds' folder does not exist in {builds_folder}"}), 404
 
-        build_files = os.listdir(builds_folder)
+        # Filter files to only include .apk, .pkg, and .msi
+        valid_extensions = ['.apk', '.pkg', '.msi']
+        build_files = [f for f in os.listdir(builds_folder) if os.path.isfile(os.path.join(builds_folder, f)) and f.lower().endswith(tuple(valid_extensions))]
 
         if build_id <= 0 or build_id > len(build_files):
             return jsonify(
                 {"error": f"Invalid buildId: {build_id}. It should be between 1 and {len(build_files)}."}), 400
 
         selected_build_file = build_files[build_id - 1]
-
         build_file_path = os.path.join(builds_folder, selected_build_file)
 
         script_path = "./send.sh"
@@ -121,7 +122,6 @@ def send_build():
         return jsonify({"error": f"Failed to run send.sh: {str(e)}"}), 500
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-
 
 if __name__ == "__main__":
     app.run(debug=True, host='0.0.0.0', port=5001)
