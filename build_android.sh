@@ -47,11 +47,6 @@ if [ -z "$VERSION_CODE" ] || [ -z "$VERSION_NAME" ]; then
   exit 1
 fi
 
-# Echo extracted version details
-echo "Extracted version details:"
-echo "  Version Code: $VERSION_CODE"
-echo "  Version Name: $VERSION_NAME"
-
 # Build Signed APK
 echo "Building signed APK..."
 ./gradlew assembleRelease \
