@@ -54,6 +54,21 @@ def build_android():
         return jsonify({"error": str(e)}), 500
 
 
+# @app.route('/build_ios', methods=['POST'])
+# def build_ios():
+#     try:
+#         branch_name = request.json.get('branchName')
+#
+#         if not branch_name:
+#             return jsonify({"error": "Missing required parameter: branchName"}), 400
+#
+#         return jsonify({"message": f"iOS build for branch {branch_name} executed successfully!"}), 200
+#
+#     except subprocess.CalledProcessError as e:
+#         return jsonify({"error": str(e)}), 500
+#     except Exception as e:
+#         return jsonify({"error": str(e)}), 500
+
 @app.route('/builds', methods=['GET'])
 def get_builds():
     try:
@@ -102,7 +117,8 @@ def send_build():
 
         # Filter files to only include .apk, .pkg, and .msi
         valid_extensions = ['.apk', '.pkg', '.msi']
-        build_files = [f for f in os.listdir(builds_folder) if os.path.isfile(os.path.join(builds_folder, f)) and f.lower().endswith(tuple(valid_extensions))]
+        build_files = [f for f in os.listdir(builds_folder) if
+                       os.path.isfile(os.path.join(builds_folder, f)) and f.lower().endswith(tuple(valid_extensions))]
 
         if build_id <= 0 or build_id > len(build_files):
             return jsonify(
@@ -122,6 +138,7 @@ def send_build():
         return jsonify({"error": f"Failed to run send.sh: {str(e)}"}), 500
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
 
 if __name__ == "__main__":
     app.run(debug=True, host='0.0.0.0', port=5001)
