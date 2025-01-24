@@ -73,6 +73,7 @@ def build_ios():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+
 @app.route('/builds', methods=['GET'])
 def get_builds():
     try:
@@ -140,6 +141,51 @@ def send_build():
 
     except subprocess.CalledProcessError as e:
         return jsonify({"error": f"Failed to run send.sh: {str(e)}"}), 500
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/restart_server', methods=['POST'])
+def restart_server():
+    try:
+        subprocess.run(["./restart_server.sh"], check=True)
+        return jsonify({"message": "Server restart initiated successfully!"}), 200
+    except subprocess.CalledProcessError as e:
+        return jsonify({"error": f"Failed to run restart_server.sh: {str(e)}"}), 500
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/remote_branches', methods=['GET'])
+def get_remote_branches():
+    try:
+        repo_path = "/Users/denispopkov/AndroidStudioProjects/SA_Neuro_Multiplatform"
+
+        if not os.path.exists(repo_path):
+            return jsonify({"error": f"The repository does not exist at {repo_path}"}), 404
+
+        subprocess.run(["git", "-C", repo_path, "fetch", "--all"], check=True)
+
+        result = subprocess.run(
+            ["git", "-C", repo_path, "branch", "-r"],
+            check=True,
+            stdout=subprocess.PIPE,
+            text=True
+        )
+
+        branches = result.stdout.strip().split("\n")
+        branch_names = [branch.strip().replace("origin/", "") for branch in branches if
+                        branch.strip().startswith("origin/")]
+
+        return jsonify({"branches": branch_names}), 200
+
+    except subprocess.CalledProcessError as e:
+        return jsonify({"error": f"Failed to fetch branches: {str(e)}"}), 500
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+    except subprocess.CalledProcessError as e:
+        return jsonify({"error": f"Failed to fetch branches: {str(e)}"}), 500
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
