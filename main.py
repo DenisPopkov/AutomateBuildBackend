@@ -82,12 +82,22 @@ def get_builds():
         if not os.path.exists(builds_folder):
             return jsonify({"error": f"The 'builds' folder does not exist in {builds_folder}"}), 404
 
-        build_files = os.listdir(builds_folder)
+        build_files = [
+            {
+                "file_name": f,
+                "creation_time": os.path.getctime(os.path.join(builds_folder, f))
+            }
+            for f in os.listdir(builds_folder)
+            if os.path.isfile(os.path.join(builds_folder, f))
+        ]
+
+        build_files = sorted(build_files, key=lambda x: x["creation_time"], reverse=True)
 
         build_items = []
         build_id = 1
 
-        for file_name in build_files:
+        for file in build_files:
+            file_name = file["file_name"]
             if file_name.endswith(".pkg"):
                 version = extract_version(file_name)
                 build_items.append(BuildItem(id=build_id, version=version, platform_name="macOS"))
@@ -122,17 +132,29 @@ def send_build():
 
         # Filter files to only include .apk, .pkg, and .msi
         valid_extensions = ['.apk', '.pkg', '.msi']
-        build_files = [f for f in os.listdir(builds_folder) if
-                       os.path.isfile(os.path.join(builds_folder, f)) and f.lower().endswith(tuple(valid_extensions))]
+        build_files = [
+            f for f in os.listdir(builds_folder)
+            if os.path.isfile(os.path.join(builds_folder, f)) and f.lower().endswith(tuple(valid_extensions))
+        ]
+
+        # Sort the build files by modification time (most recent first)
+        build_files = sorted(build_files, key=lambda f: os.path.getmtime(os.path.join(builds_folder, f)), reverse=True)
 
         if build_id <= 0 or build_id > len(build_files):
             return jsonify(
                 {"error": f"Invalid buildId: {build_id}. It should be between 1 and {len(build_files)}."}), 400
 
+        # Get the file for the selected build_id
         selected_build_file = build_files[build_id - 1]
         build_file_path = os.path.join(builds_folder, selected_build_file)
 
+        # Log the selected build file for debugging
+        print(f"Selected Build File: {selected_build_file} at {build_file_path}")
+
+        # Run the script with the selected build file
         script_path = "./send.sh"
+
+        # Use subprocess to run the shell script with the build file path
         subprocess.run(["sh", script_path, build_file_path], check=True)
 
         return jsonify({

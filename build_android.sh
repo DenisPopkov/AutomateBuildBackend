@@ -66,14 +66,14 @@ fi
 echo "APK built successfully: $APK_PATH"
 
 # Rename APK with unique name if needed
-BASE_NAME="neuro3-${VERSION_NAME}-${VERSION_CODE}.apk"
+BASE_NAME="neuro3-${VERSION_NAME}-[${VERSION_CODE}].apk"
 FINAL_DIR="/Users/denispopkov/Desktop/builds"
 FINAL_APK_PATH="$FINAL_DIR/$BASE_NAME"
 
 # Ensure unique filename in the builds folder
 INDEX=1
 while [ -f "$FINAL_APK_PATH" ]; do
-    FINAL_APK_PATH="$FINAL_DIR/neuro3-${VERSION_NAME}-${VERSION_CODE}_${INDEX}.apk"
+    FINAL_APK_PATH="$FINAL_DIR/neuro3-${VERSION_NAME}-[${VERSION_CODE}]_${INDEX}.apk"
     INDEX=$((INDEX + 1))
 done
 
