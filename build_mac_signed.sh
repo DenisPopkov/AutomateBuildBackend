@@ -45,7 +45,6 @@ cd "$PROJECT_DIR" || { echo "Project directory not found!"; exit 1; }
 echo "Checking out branch: $BRANCH_NAME"
 git fetch && git checkout "$BRANCH_NAME" && git pull origin "$BRANCH_NAME"
 
-# Extract versionCode and versionName from gradle.properties
 VERSION_CODE=$(grep '^desktop\.version\s*=' "$PROJECT_DIR/gradle.properties" | sed 's/.*=\s*\(.*\)/\1/' | xargs)
 VERSION_NAME=$(grep '^desktop\.build\.number\s*=' "$PROJECT_DIR/gradle.properties" | sed 's/.*=\s*"\(.*\)"/\1/' | xargs)
 
@@ -96,15 +95,12 @@ else
   exit 1
 fi
 
-# Open the build tool and trigger cmd+B
-echo "Opening build tool..."
+
 open "$BUILD_TOOL"
 
-# Wait for the app to load (adjust the sleep duration as needed)
 sleep 5
 
-# Explicitly use the known process name (replace "Packages" with the actual name from Activity Monitor)
-PROCESS_NAME="Packages"  # Adjust this to match the name you see in Activity Monitor
+PROCESS_NAME="Packages"
 
 echo "Triggering cmd+B for $PROCESS_NAME..."
 
@@ -119,7 +115,6 @@ tell application "System Events"
 end tell
 EOF
 
-# Wait for the notarized build process to complete (adjust the sleep duration as needed)
 echo "Waiting for notarized build to complete..."
 NOTARIZED_BUILD_PATH="/Users/denispopkov/AndroidStudioProjects/SA_Neuro_release/build/Neuro_desktop.pkg"
 while [ ! -f "$NOTARIZED_BUILD_PATH" ]; do

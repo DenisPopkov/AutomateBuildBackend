@@ -29,7 +29,6 @@ if [ -z "$BRANCH_NAME" ]; then
   exit 1
 fi
 
-echo "Opening Android Studio..."
 open -a "Android Studio"
 
 PROJECT_DIR="/Users/denispopkov/AndroidStudioProjects/SA_Neuro_Multiplatform"
@@ -38,7 +37,6 @@ cd "$PROJECT_DIR" || { echo "Project directory not found!"; exit 1; }
 echo "Checking out branch: $BRANCH_NAME"
 git fetch && git checkout "$BRANCH_NAME" && git pull origin "$BRANCH_NAME"
 
-# Extract versionCode and versionName from build.gradle.kts
 VERSION_CODE=$(grep "versionCode =" "$PROJECT_DIR/androidApp/build.gradle.kts" | awk -F '=' '{print $2}' | xargs)
 VERSION_NAME=$(grep "versionName =" "$PROJECT_DIR/androidApp/build.gradle.kts" | awk -F '"' '{print $2}' | xargs)
 
@@ -81,7 +79,6 @@ done
 mv "$APK_PATH" "$FINAL_APK_PATH" || { echo "Error renaming APK"; exit 1; }
 echo "APK renamed and moved to: $FINAL_APK_PATH"
 
-# Slack Upload
 FILE_PATH="$FINAL_APK_PATH"
 
 # Upload APK to Slack

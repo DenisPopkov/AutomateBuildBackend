@@ -35,8 +35,6 @@ cd "$PROJECT_DIR" || { echo "Project directory not found!"; exit 1; }
 echo "Checking out branch: $BRANCH_NAME"
 git fetch && git checkout "$BRANCH_NAME" && git pull origin "$BRANCH_NAME"
 
-# Extract versionCode and versionName from gradle.properties
-
 VERSION_CODE=$(grep '^desktop\.version\s*=' "$PROJECT_DIR/gradle.properties" | sed 's/.*=\s*\(.*\)/\1/' | xargs)
 VERSION_NAME=$(grep '^desktop\.build\.number\s*=' "$PROJECT_DIR/gradle.properties" | sed 's/.*=\s*"\(.*\)"/\1/' | xargs)
 
@@ -44,11 +42,6 @@ if [ -z "$VERSION_CODE" ] || [ -z "$VERSION_NAME" ]; then
   echo "Error: Unable to extract versionCode or versionName from gradle.properties"
   exit 1
 fi
-
-# Echo extracted version details
-echo "Extracted version details:"
-echo "Version Code: $VERSION_CODE"
-echo "Version Name: $VERSION_NAME"
 
 # Building
 echo "Building no-signed build..."

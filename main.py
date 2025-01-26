@@ -148,13 +148,8 @@ def send_build():
         selected_build_file = build_files[build_id - 1]
         build_file_path = os.path.join(builds_folder, selected_build_file)
 
-        # Log the selected build file for debugging
-        print(f"Selected Build File: {selected_build_file} at {build_file_path}")
-
-        # Run the script with the selected build file
         script_path = "./send.sh"
 
-        # Use subprocess to run the shell script with the build file path
         subprocess.run(["sh", script_path, build_file_path], check=True)
 
         return jsonify({
@@ -163,17 +158,6 @@ def send_build():
 
     except subprocess.CalledProcessError as e:
         return jsonify({"error": f"Failed to run send.sh: {str(e)}"}), 500
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-
-@app.route('/restart_server', methods=['POST'])
-def restart_server():
-    try:
-        subprocess.run(["./restart_server.sh"], check=True)
-        return jsonify({"message": "Server restart initiated successfully!"}), 200
-    except subprocess.CalledProcessError as e:
-        return jsonify({"error": f"Failed to run restart_server.sh: {str(e)}"}), 500
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
