@@ -152,7 +152,7 @@ else
 fi
 
 # Rename signed .pkg to final format
-BASE_NAME="neuro_desktop_${VERSION_CODE}-[${VERSION_CODE}]_installer_mac.pkg"
+BASE_NAME="neuro_desktop_${VERSION_NAME}-[${VERSION_CODE}]_installer_mac.pkg"
 FINAL_DIR="/Users/denispopkov/Desktop/builds"
 FINAL_PKG_PATH="$FINAL_DIR/$BASE_NAME"
 
@@ -161,7 +161,7 @@ if [ -f "$FINAL_PKG_PATH" ]; then
     echo "File with name $BASE_NAME already exists. Finding a unique name..."
     INDEX=1
     while [ -f "$FINAL_PKG_PATH" ]; do
-        FINAL_PKG_PATH="$FINAL_DIR/neuro_desktop_${VERSION_CODE}-[${VERSION_CODE}]_installer_mac_${INDEX}.pkg"
+        FINAL_PKG_PATH="$FINAL_DIR/neuro_desktop_${VERSION_NAME}-[${VERSION_CODE}]_installer_mac_${INDEX}.pkg"
         INDEX=$((INDEX + 1))
     done
 fi
