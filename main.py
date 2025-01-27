@@ -38,7 +38,7 @@ def build_mac():
         sign = request.json.get('sign')
         if not branch_name or sign is None:
             return jsonify({"error": "Missing required parameters: branchName and sign"}), 400
-        script_path = f"./build_mac_signed.sh" if sign else f"./build_mac_signed_no_sign.sh"
+        script_path = f"./build_mac_signed.sh" if sign else f"./build_mac_no_sign.sh"
         subprocess.run(["sh", script_path, branch_name], check=True)
         return jsonify({
             "message": f"macOS build for branch {branch_name} {'with' if sign else 'without'} signing executed successfully!"}), 200

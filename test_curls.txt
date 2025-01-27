@@ -1,6 +1,6 @@
 curl -X POST http://localhost:5001/stop_process \
 -H "Content-Type: application/json" \
--d '{"processName": "android"}'
+-d '{"processName": "sh ./build_mac_signed.sh"}'
 
 curl -X POST http://localhost:5001/build_mac \
 -H "Content-Type: application/json" \
@@ -16,7 +16,7 @@ curl -X POST http://localhost:5001/build_android \
 
 curl -X POST http://localhost:5001/build_ios \
 -H "Content-Type: application/json" \
--d '{"branchName": "soundcheck_develop"}'
+-d '{"branchName": "sc_fastlane"}'
 
 curl -X GET http://localhost:5001/builds
 
