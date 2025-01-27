@@ -1,6 +1,7 @@
 import re
 import subprocess
 import subprocess as sub
+from typing import Union
 
 
 def extract_version(file_name):
@@ -28,7 +29,7 @@ def get_pid(process_name: str) -> list[int]:
     return list(map(int, result.splitlines()))
 
 
-def kill_process(pid: int | str) -> bool:
+def kill_process(pid: Union[int, str]) -> bool:
     cmd = ['kill', str(pid)]
     with subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE) as proc:
         err = proc.communicate()[1]
