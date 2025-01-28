@@ -1,8 +1,8 @@
-curl -X POST http://localhost:5001/stop_process \
+curl -X POST  https://dc8c-143-198-25-149.ngrok-free.app/stop_process \
 -H "Content-Type: application/json" \
--d '{"processName": "sh ./build_mac_signed.sh"}'
+-d '{"processName": "android"}'
 
-curl -X POST http://localhost:5001/build_mac \
+curl -X POST https://dc8c-143-198-25-149.ngrok-free.app/build_mac \
 -H "Content-Type: application/json" \
 -d '{"branchName": "soundcheck_develop", "sign": true}'
 
