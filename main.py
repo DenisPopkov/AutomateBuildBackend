@@ -1,11 +1,10 @@
 import os
 import subprocess
-from itertools import count
 
 from flask import Flask, jsonify, request
 
 from BuildItem import BuildItem
-from utils import extract_version, get_pid, kill_process
+from utils import extract_version
 
 app = Flask(__name__)
 
@@ -13,22 +12,9 @@ app = Flask(__name__)
 @app.route('/stop_process', methods=['POST'])
 def stop_process():
     try:
-        process_name = request.json.get("processName")
-
-        if not process_name:
-            return jsonify({"error": "Missing required parameter: processName"}), 400
-
-        pids = get_pid(process_name)
-
-        for pid in pids:
-            result = kill_process(pid)
-            if result != 0:
-                return jsonify({"message": f"Failed to stop process with PID {pid}"}), 500
-
-        return jsonify({"message": f"Successfully stopped all processes for {process_name}"}), 200
-
-    except ValueError as e:
-        return jsonify({"message": str(e)}), 404
+        subprocess.run(["sh", "./stop.sh"], check=True)
+    except subprocess.CalledProcessError as e:
+        return jsonify({"error": str(e)}), 500
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
