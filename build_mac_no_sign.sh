@@ -48,7 +48,7 @@ echo "Building no-signed build..."
 ./gradlew packageDmg
 
 # Find the build
-BUILD_PATH="$PROJECT_DIR/desktopApp/build/compose/binaries/main/dmg/Neuro Desktop-$VERSION_CODE.dmg"
+BUILD_PATH="$PROJECT_DIR/desktopApp/build/compose/binaries/main/dmg/Neuro Desktop-$VERSION_NAME.dmg"
 
 if [ ! -f "$BUILD_PATH" ]; then
   echo "Error: Signed Build not found at expected path: $BUILD_PATH"
