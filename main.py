@@ -1,5 +1,7 @@
 import os
 import subprocess
+from itertools import count
+
 from flask import Flask, jsonify, request
 
 from BuildItem import BuildItem
@@ -149,17 +151,29 @@ def get_remote_branches():
         repo_path = "/Users/denispopkov/AndroidStudioProjects/SA_Neuro_Multiplatform"
         if not os.path.exists(repo_path):
             return jsonify({"error": f"The repository does not exist at {repo_path}"}), 404
+
         subprocess.run(["git", "-C", repo_path, "fetch", "--all"], check=True)
+
         result = subprocess.run(
             ["git", "-C", repo_path, "branch", "-r"],
             check=True,
             stdout=subprocess.PIPE,
             text=True
         )
+
         branches = result.stdout.strip().split("\n")
         branch_names = [branch.strip().replace("origin/", "") for branch in branches if
                         branch.strip().startswith("origin/")]
-        return jsonify({"branches": branch_names}), 200
+
+        prioritized_branches = ["develop", "soundcheck_develop"]
+        sorted_branches = [b for b in prioritized_branches if b in branch_names] + [b for b in branch_names if
+                                                                                    b not in prioritized_branches]
+
+        # Append the size of the list as the last item
+        sorted_branches.append(str(len(sorted_branches)))
+
+        return jsonify({"branches": sorted_branches}), 200
+
     except subprocess.CalledProcessError as e:
         return jsonify({"error": f"Failed to fetch branches: {str(e)}"}), 500
     except Exception as e:
