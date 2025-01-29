@@ -124,6 +124,8 @@ done
 
 echo "Notarized build created successfully: $NOTARIZED_BUILD_PATH"
 
+sleep 20
+
 ## Signing the .pkg
 SIGNED_PKG_PATH="/Users/denispopkov/AndroidStudioProjects/SA_Neuro_release/build/Neuro_desktopS.pkg"
 echo "Signing the .pkg file..."
