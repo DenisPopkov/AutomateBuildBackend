@@ -25,3 +25,4 @@ curl -X POST http://localhost:5001/send_build \
 -d '{"buildId": 1}'
 
 curl -X GET http://localhost:5001/remote_branches
+curl -X POST http://localhost:5001/stop_process
