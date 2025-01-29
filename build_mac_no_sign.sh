@@ -67,7 +67,7 @@ echo "Renamed file: '$NEW_BUILD_PATH'"
 
 # Upload Build to Slack
 echo "Uploading build to Slack..."
-execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "macOS not signed from $BRANCH_NAME" "${NEW_BUILD_PATH}"
+execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "macOS not signed from $BRANCH_NAME" "upload" "${NEW_BUILD_PATH}"
 
 if [ $? -eq 0 ]; then
     echo "Build sent to Slack successfully."

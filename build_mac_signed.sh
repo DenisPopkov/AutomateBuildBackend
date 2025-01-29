@@ -183,7 +183,7 @@ fi
 
 # Upload Renamed .pkg to Slack
 echo "Uploading renamed .pkg to Slack..."
-execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "macOS signed from $BRANCH_NAME" "${FINAL_PKG_PATH}"
+execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "macOS signed from $BRANCH_NAME" "upload" "${FINAL_PKG_PATH}"
 
 if [ $? -eq 0 ]; then
     echo "Renamed .pkg sent to Slack successfully."

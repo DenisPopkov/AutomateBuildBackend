@@ -83,7 +83,7 @@ FILE_PATH="$FINAL_APK_PATH"
 
 # Upload APK to Slack
 echo "Uploading APK to Slack..."
-execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "Android from $BRANCH_NAME" "${FILE_PATH}"
+execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "Android from $BRANCH_NAME" "upload" "${FILE_PATH}"
 
 if [ $? -eq 0 ]; then
     echo "APK sent to Slack successfully."

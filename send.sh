@@ -17,7 +17,7 @@ done < "$SECRET_FILE"
 
 # Upload to Slack
 echo "Uploading file to Slack..."
-execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "Uploaded from builds" "${FILE_PATH}"
+execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "Uploaded from builds" "upload" "${FILE_PATH}"
 
 if [ $? -eq 0 ]; then
     echo "File sent to Slack successfully."

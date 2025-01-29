@@ -1,5 +1,7 @@
 #!/bin/bash
 
+source "/Users/denispopkov/PycharmProjects/AutomateBuildBackend/slack_upload.sh"
+
 # Set path variables
 IOS_APP_PATH="/Users/denispopkov/AndroidStudioProjects/SA_Neuro_Multiplatform/iosApp"
 PBXPROJ_PATH="$IOS_APP_PATH/iosApp.xcodeproj/project.pbxproj"
@@ -11,11 +13,30 @@ FILE_BACKUP_PATH="/Users/denispopkov/Desktop/SIGN/libdspmac.dylib"
 SWIFT_FILE_SOURCE="/Users/denispopkov/Desktop/SA_Neuro_Multiplatform_shared.swift"
 SWIFT_TARGET_DIR="/Users/denispopkov/AndroidStudioProjects/SA_Neuro_Multiplatform/shared/build/bin/iosArm64/podDebugFramework/sharedSwift"
 SWIFT_TARGET_FILE="$SWIFT_TARGET_DIR/SA_Neuro_Multiplatform_shared.swift"
+SECRET_FILE="/Users/denispopkov/Desktop/secret.txt"
+
+if [ ! -f "$SECRET_FILE" ]; then
+  echo "Error: secret.txt file not found at $SECRET_FILE"
+  exit 1
+fi
+
+while IFS='=' read -r key value; do
+  key=$(echo "$key" | xargs)
+  value=$(echo "$value" | xargs)
+
+  case "$key" in
+    "SLACK_BOT_TOKEN") SLACK_BOT_TOKEN="$value" ;;
+    "SLACK_CHANNEL") SLACK_CHANNEL="$value" ;;
+    "KEYFILE") KEYFILE="$value" ;;
+    "KEY_ALIAS") KEY_ALIAS="$value" ;;
+    "KEY_PASSWORD") KEY_PASSWORD="$value" ;;
+  esac
+done < "$SECRET_FILE"
 
 # Extract the current version from project.pbxproj
 if [ -f "$PBXPROJ_PATH" ]; then
   CURRENT_VERSION=$(grep -o 'CURRENT_PROJECT_VERSION = [0-9]\+;' "$PBXPROJ_PATH" | sed -E 's/.*= ([0-9]+);/\1/' | head -n 1)
-  CURRENT_VERSION=$(echo "$CURRENT_VERSION" | xargs)  # Remove any whitespace
+  CURRENT_VERSION=$(echo "$CURRENT_VERSION" | xargs)
   echo "Extracted CURRENT_PROJECT_VERSION: '$CURRENT_VERSION'"
 
   # Ensure CURRENT_VERSION is valid and increment
@@ -27,6 +48,17 @@ if [ -f "$PBXPROJ_PATH" ]; then
     echo "Error: Unable to extract a valid CURRENT_PROJECT_VERSION from project.pbxproj"
     exit 1
   fi
+
+  # Extract the MARKETING_VERSION and set VERSION_NUMBER
+  MARKETING_VERSION=$(grep -o 'MARKETING_VERSION = [^;]*' "$PBXPROJ_PATH" | sed -E 's/.*= (.*)/\1/' | head -n 1)
+  MARKETING_VERSION=$(echo "$MARKETING_VERSION" | xargs)
+  echo "Extracted MARKETING_VERSION: '$MARKETING_VERSION'"
+
+  if [ -z "$MARKETING_VERSION" ]; then
+    echo "Error: Unable to extract MARKETING_VERSION from project.pbxproj"
+    exit 1
+  fi
+  VERSION_NUMBER="$MARKETING_VERSION"
 else
   echo "project.pbxproj not found: $PBXPROJ_PATH"
   exit 1
@@ -39,12 +71,10 @@ if [ -f "$INFO_PLIST_PATH" ]; then
   echo "Extracted CFBundleVersion: '$CURRENT_CF_BUNDLE_VERSION'"
   echo "Extracted CFBundleVersion Placeholder: '$PLACEHOLDER_CF_BUNDLE_VERSION'"
 
-  # If CFBundleVersion is a placeholder $(CURRENT_PROJECT_VERSION), replace it with the new version
   if [[ "$PLACEHOLDER_CF_BUNDLE_VERSION" == "\$(CURRENT_PROJECT_VERSION)" ]]; then
     /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $NEW_VERSION" "$INFO_PLIST_PATH"
     echo "Replaced CFBundleVersion placeholder with $NEW_VERSION in Info.plist"
   elif [[ "$CURRENT_CF_BUNDLE_VERSION" =~ ^[0-9]+$ ]]; then
-    # Update CFBundleVersion with the new version if a valid number is found
     /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $NEW_VERSION" "$INFO_PLIST_PATH"
     echo "Updated CFBundleVersion to $NEW_VERSION in Info.plist"
   else
@@ -130,3 +160,7 @@ git fetch && git pull origin "$BRANCH_NAME"
 git add .
 git commit -m "add: iOS version bump to $NEW_VERSION"
 git push
+
+# Upload APK to Slack
+echo "Uploading APK to Slack..."
+execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "New iOS build uploaded to TestFlight\n\nv$VERSION_NUMBER ($NEW_VERSION) from $BRANCH_NAME" "message"
