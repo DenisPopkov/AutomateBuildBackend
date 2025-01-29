@@ -161,4 +161,4 @@ git add .
 git commit -m "add: iOS version bump to $NEW_VERSION"
 git push
 
-execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "New iOS build uploaded to TestFlight\n\nv$VERSION_NUMBER ($NEW_VERSION) from $BRANCH_NAME" "message"
+execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "New iOS build uploaded to TestFlight\\n\\nv$VERSION_NUMBER ($NEW_VERSION) from $BRANCH_NAME" "message"
