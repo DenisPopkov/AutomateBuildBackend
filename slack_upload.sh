@@ -129,8 +129,8 @@ function post_message() {
       -H \"Authorization: Bearer ${slack_token}\" \
       -H \"Content-Type: application/json\" \
       -d '{
-        \"channel_id\": \"${channel_id}\"
-        \"text\": \"${initial_comment}\",
+        \"channel\": \"${channel_id}\",
+        \"text\": \"${initial_comment}\"
       }' \
       'https://slack.com/api/chat.postMessage'"
     local response=$(eval "${command}")

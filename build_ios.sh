@@ -144,6 +144,9 @@ cd "$IOS_APP_PATH" || exit
 # Run Fastlane
 fastlane testflight_upload
 
+echo "Checking out branch: $BRANCH_NAME"
+git fetch && git pull origin "$BRANCH_NAME"
+
 # Restore dsp lib
 if [ -f "$FILE_BACKUP_PATH" ]; then
   cp "$FILE_BACKUP_PATH" "$FILE_TO_DELETE"
@@ -153,14 +156,9 @@ else
   exit 1
 fi
 
-echo "Checking out branch: $BRANCH_NAME"
-git fetch && git pull origin "$BRANCH_NAME"
-
 # Commit and push the changes
 git add .
 git commit -m "add: iOS version bump to $NEW_VERSION"
 git push
 
-# Upload APK to Slack
-echo "Uploading APK to Slack..."
 execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "New iOS build uploaded to TestFlight\n\nv$VERSION_NUMBER ($NEW_VERSION) from $BRANCH_NAME" "message"
