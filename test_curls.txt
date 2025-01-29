@@ -14,9 +14,9 @@ curl -X POST http://localhost:5001/build_android \
 -H "Content-Type: application/json" \
 -d '{"branchName": "soundcheck_develop"}'
 
-curl -X POST http://localhost:5001/build_ios \
+curl -X POST https://dc8c-143-198-25-149.ngrok-free.app/build_ios \
 -H "Content-Type: application/json" \
--d '{"branchName": "sc_fastlane"}'
+-d '{"branchName": "soundcheck_develop"}'
 
 curl -X GET http://localhost:5001/builds
 
