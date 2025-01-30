@@ -101,7 +101,7 @@ cp "$SWIFT_FILE_SOURCE" "$SWIFT_TARGET_FILE"
 cd "$IOS_APP_PATH" || exit
 
 # Run Fastlane with fallback
-if export DISABLE_SWIFTLINT=true && fastlane testflight_upload; then
+if fastlane testflight_upload; then
   git add .
   git commit -m "iOS version bump to $NEW_VERSION"
   git push

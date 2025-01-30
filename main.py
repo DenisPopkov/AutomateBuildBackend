@@ -1,3 +1,4 @@
+import datetime
 import os
 import subprocess
 
@@ -62,6 +63,7 @@ def get_builds():
         builds_folder = "/Users/denispopkov/Desktop/builds"
         if not os.path.exists(builds_folder):
             return jsonify({"error": f"The 'builds' folder does not exist in {builds_folder}"}), 404
+
         build_files = [
             {
                 "file_name": f,
@@ -70,23 +72,28 @@ def get_builds():
             for f in os.listdir(builds_folder)
             if os.path.isfile(os.path.join(builds_folder, f))
         ]
+
         build_files = sorted(build_files, key=lambda x: x["creation_time"], reverse=True)
         build_items = []
         build_id = 1
+
         for file in build_files:
             file_name = file["file_name"]
+            creation_timestamp = file["creation_time"]
+            creation_date = datetime.datetime.fromtimestamp(creation_timestamp).strftime("%d.%m.%y")
+
             if file_name.endswith(".pkg"):
                 version = extract_version(file_name)
-                build_items.append(BuildItem(id=build_id, version=version, platform_name="macOS"))
-                build_id += 1
+                build_items.append(BuildItem(id=build_id, version=version, platform_name="MacOS", date=creation_date))
             elif file_name.endswith(".apk"):
                 version = extract_version(file_name)
-                build_items.append(BuildItem(id=build_id, version=version, platform_name="Android"))
-                build_id += 1
+                build_items.append(BuildItem(id=build_id, version=version, platform_name="Android", date=creation_date))
             elif file_name.endswith(".msi"):
                 version = extract_version(file_name)
-                build_items.append(BuildItem(id=build_id, version=version, platform_name="Windows"))
-                build_id += 1
+                build_items.append(BuildItem(id=build_id, version=version, platform_name="Windows", date=creation_date))
+
+            build_id += 1
+
         return jsonify([item.to_dict() for item in build_items])
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -131,19 +138,17 @@ def get_remote_branches():
         subprocess.run(["git", "-C", repo_path, "fetch", "--all"], check=True)
 
         result = subprocess.run(
-            ["git", "-C", repo_path, "branch", "-r"],
+            ["git", "-C", repo_path, "for-each-ref", "--sort=-committerdate", "--format=%(refname:short)", "refs/remotes/origin/"],
             check=True,
             stdout=subprocess.PIPE,
             text=True
         )
 
         branches = result.stdout.strip().split("\n")
-        branch_names = [branch.strip().replace("origin/", "") for branch in branches if
-                        branch.strip().startswith("origin/")]
+        branch_names = [branch.replace("origin/", "") for branch in branches]
 
         prioritized_branches = ["develop", "soundcheck_develop"]
-        sorted_branches = [b for b in prioritized_branches if b in branch_names] + [b for b in branch_names if
-                                                                                    b not in prioritized_branches]
+        sorted_branches = [b for b in prioritized_branches if b in branch_names] + [b for b in branch_names if b not in prioritized_branches]
 
         return jsonify({"branches": sorted_branches}), 200
 
@@ -151,6 +156,7 @@ def get_remote_branches():
         return jsonify({"error": f"Failed to fetch branches: {str(e)}"}), 500
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
 
 
 if __name__ == "__main__":
