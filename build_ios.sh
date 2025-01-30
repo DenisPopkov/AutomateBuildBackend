@@ -100,6 +100,11 @@ cp "$SWIFT_FILE_SOURCE" "$SWIFT_TARGET_FILE"
 
 cd "$IOS_APP_PATH" || exit
 
+# Sync Gradle (if this is an Android project)
+echo "Running Gradle sync..."
+cd "/Users/denispopkov/AndroidStudioProjects/SA_Neuro_Multiplatform" || exit
+./gradlew sync
+
 # Run Fastlane with fallback
 if fastlane testflight_upload; then
   git add .
