@@ -145,9 +145,6 @@ def get_remote_branches():
         sorted_branches = [b for b in prioritized_branches if b in branch_names] + [b for b in branch_names if
                                                                                     b not in prioritized_branches]
 
-        # Append the size of the list as the last item
-        sorted_branches.append(str(len(sorted_branches)))
-
         return jsonify({"branches": sorted_branches}), 200
 
     except subprocess.CalledProcessError as e:
