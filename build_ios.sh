@@ -2,7 +2,6 @@
 
 source "/Users/denispopkov/PycharmProjects/AutomateBuildBackend/slack_upload.sh"
 
-# Set path variables
 IOS_APP_PATH="/Users/denispopkov/AndroidStudioProjects/SA_Neuro_Multiplatform/iosApp"
 PBXPROJ_PATH="$IOS_APP_PATH/iosApp.xcodeproj/project.pbxproj"
 INFO_PLIST_PATH="$IOS_APP_PATH/iosApp/app/Info.plist"
@@ -37,75 +36,43 @@ done < "$SECRET_FILE"
 if [ -f "$PBXPROJ_PATH" ]; then
   CURRENT_VERSION=$(grep -o 'CURRENT_PROJECT_VERSION = [0-9]\+;' "$PBXPROJ_PATH" | sed -E 's/.*= ([0-9]+);/\1/' | head -n 1)
   CURRENT_VERSION=$(echo "$CURRENT_VERSION" | xargs)
-  echo "Extracted CURRENT_PROJECT_VERSION: '$CURRENT_VERSION'"
 
-  # Ensure CURRENT_VERSION is valid and increment
   if [[ "$CURRENT_VERSION" =~ ^[0-9]+$ ]]; then
     NEW_VERSION=$((CURRENT_VERSION + 1))
     sed -i '' "s/CURRENT_PROJECT_VERSION = $CURRENT_VERSION;/CURRENT_PROJECT_VERSION = $NEW_VERSION;/" "$PBXPROJ_PATH"
-    echo "Updated project version from $CURRENT_VERSION to $NEW_VERSION in project.pbxproj"
   else
     echo "Error: Unable to extract a valid CURRENT_PROJECT_VERSION from project.pbxproj"
     exit 1
   fi
 
-  # Extract the MARKETING_VERSION and set VERSION_NUMBER
   MARKETING_VERSION=$(grep -o 'MARKETING_VERSION = [^;]*' "$PBXPROJ_PATH" | sed -E 's/.*= (.*)/\1/' | head -n 1)
   MARKETING_VERSION=$(echo "$MARKETING_VERSION" | xargs)
-  echo "Extracted MARKETING_VERSION: '$MARKETING_VERSION'"
-
-  if [ -z "$MARKETING_VERSION" ]; then
-    echo "Error: Unable to extract MARKETING_VERSION from project.pbxproj"
-    exit 1
-  fi
   VERSION_NUMBER="$MARKETING_VERSION"
 else
   echo "project.pbxproj not found: $PBXPROJ_PATH"
   exit 1
 fi
 
-# Extract and bump version in Info.plist
+# Update Info.plist
 if [ -f "$INFO_PLIST_PATH" ]; then
-  CURRENT_CF_BUNDLE_VERSION=$(grep -A 1 "<key>CFBundleVersion</key>" "$INFO_PLIST_PATH" | tail -n 1 | sed 's/^[[:space:]]*<string>\([0-9]*\)<\/string>/\1/')
-  PLACEHOLDER_CF_BUNDLE_VERSION=$(grep -A 1 "<key>CFBundleVersion</key>" "$INFO_PLIST_PATH" | tail -n 1 | sed 's/^[[:space:]]*<string>\(.*\)<\/string>/\1/')
-  echo "Extracted CFBundleVersion: '$CURRENT_CF_BUNDLE_VERSION'"
-  echo "Extracted CFBundleVersion Placeholder: '$PLACEHOLDER_CF_BUNDLE_VERSION'"
-
-  if [[ "$PLACEHOLDER_CF_BUNDLE_VERSION" == "\$(CURRENT_PROJECT_VERSION)" ]]; then
-    /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $NEW_VERSION" "$INFO_PLIST_PATH"
-    echo "Replaced CFBundleVersion placeholder with $NEW_VERSION in Info.plist"
-  elif [[ "$CURRENT_CF_BUNDLE_VERSION" =~ ^[0-9]+$ ]]; then
-    /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $NEW_VERSION" "$INFO_PLIST_PATH"
-    echo "Updated CFBundleVersion to $NEW_VERSION in Info.plist"
-  else
-    echo "Error: Unable to extract a valid CFBundleVersion from Info.plist"
-    exit 1
-  fi
+  /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $NEW_VERSION" "$INFO_PLIST_PATH"
 else
   echo "Info.plist not found: $INFO_PLIST_PATH"
   exit 1
 fi
 
-# Fetch and checkout the requested branch
+# Checkout branch
 BRANCH_NAME=$1
-
 if [ -z "$BRANCH_NAME" ]; then
   echo "Error: Branch name is required"
   exit 1
 fi
 
-open -a "Android Studio"
-
-PROJECT_DIR="/Users/denispopkov/AndroidStudioProjects/SA_Neuro_Multiplatform"
-cd "$PROJECT_DIR" || { echo "Project directory not found!"; exit 1; }
-
-echo "Checking out branch: $BRANCH_NAME"
 git fetch && git checkout "$BRANCH_NAME" && git pull origin "$BRANCH_NAME"
 
-# Update Fastfile with the new branch name
+# Update Fastfile
 if [ -f "$FASTFILE_PATH" ]; then
   sed -i '' "s/ensure_git_branch(branch: 'sc_fastlane')/ensure_git_branch(branch: '$BRANCH_NAME')/" "$FASTFILE_PATH"
-  echo "Updated Fastfile with branch: $BRANCH_NAME"
 else
   echo "Fastfile not found: $FASTFILE_PATH"
   exit 1
@@ -129,36 +96,20 @@ fi
 
 # Create Swift target directory
 mkdir -p "$SWIFT_TARGET_DIR"
-
-# Copy Swift file to target directory
-if [ -f "$SWIFT_FILE_SOURCE" ]; then
-  cp "$SWIFT_FILE_SOURCE" "$SWIFT_TARGET_FILE"
-  echo "Copied Swift file to: $SWIFT_TARGET_FILE"
-else
-  echo "Swift source file not found: $SWIFT_FILE_SOURCE"
-  exit 1
-fi
+cp "$SWIFT_FILE_SOURCE" "$SWIFT_TARGET_FILE"
 
 cd "$IOS_APP_PATH" || exit
 
-# Run Fastlane
-fastlane testflight_upload
+# Run Fastlane with fallback
+if fastlane testflight_upload; then
+  git add .
+  git commit -m "iOS version bump to $NEW_VERSION"
+  git push
 
-echo "Checking out branch: $BRANCH_NAME"
-git fetch && git pull origin "$BRANCH_NAME"
-
-# Restore dsp lib
-if [ -f "$FILE_BACKUP_PATH" ]; then
-  cp "$FILE_BACKUP_PATH" "$FILE_TO_DELETE"
-  echo "Restored file: $FILE_TO_DELETE from $FILE_BACKUP_PATH"
+  execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "New iOS build uploaded to TestFlight with v$VERSION_NUMBER ($NEW_VERSION) from $BRANCH_NAME" "message"
 else
-  echo "Backup file not found: $FILE_BACKUP_PATH"
-  exit 1
+  echo "Fastlane failed. Not committing changes or sending Slack message."
 fi
 
-# Commit and push the changes
-git add .
-git commit -m "add: iOS version bump to $NEW_VERSION"
-git push
-
-execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "New iOS build uploaded to TestFlight\\n\\nv$VERSION_NUMBER ($NEW_VERSION) from $BRANCH_NAME" "message"
+# Restore file
+cp "$FILE_BACKUP_PATH" "$FILE_TO_DELETE"

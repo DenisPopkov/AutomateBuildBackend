@@ -9,16 +9,6 @@ from utils import extract_version
 app = Flask(__name__)
 
 
-@app.route('/stop_process', methods=['POST'])
-def stop_process():
-    try:
-        subprocess.run(["sh", "./stop.sh"], check=True)
-    except subprocess.CalledProcessError as e:
-        return jsonify({"error": str(e)}), 500
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-
 @app.route('/build_mac', methods=['POST'])
 def build_mac():
     try:
