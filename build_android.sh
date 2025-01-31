@@ -57,6 +57,7 @@ echo "Building signed APK..."
 APK_PATH="$PROJECT_DIR/androidApp/build/outputs/apk/release/androidApp-release.apk"
 
 if [ ! -f "$APK_PATH" ]; then
+  execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "Android build failed :crycat:" "message"
   echo "Error: Signed APK not found at expected path: $APK_PATH"
   exit 1
 fi

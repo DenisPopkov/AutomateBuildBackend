@@ -62,6 +62,7 @@ BUILD_PATH="$PROJECT_DIR/desktopApp/build/compose/binaries/main/app/Neuro Deskto
 
 if [ ! -d "$BUILD_PATH" ]; then
   echo "Error: Signed Build not found at expected path: $BUILD_PATH"
+  execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "macOS build failed :crycat:" "message"
   exit 1
 fi
 
@@ -91,6 +92,7 @@ xcrun notarytool submit "$ZIP_PATH" \
 if [ $? -eq 0 ]; then
   echo "Notarization completed successfully."
 else
+  execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "macOS build failed :crycat:" "message"
   echo "Error during notarization."
   exit 1
 fi
@@ -147,6 +149,7 @@ echo "$USER_PASSWORD" | sudo -S productsign --sign "Developer ID Installer: Sour
 if [ $? -eq 0 ]; then
   echo "Notarized .pkg file signed successfully: $SIGNED_PKG_PATH"
 else
+  execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "macOS build failed :crycat:" "message"
   echo "Error signing .pkg file."
   exit 1
 fi
@@ -162,6 +165,7 @@ xcrun notarytool submit "$SIGNED_PKG_PATH" \
 if [ $? -eq 0 ]; then
   echo "Notarization of signed .pkg completed successfully."
 else
+  execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "macOS build failed :crycat:" "message"
   echo "Error during notarization of signed .pkg."
   exit 1
 fi
@@ -192,6 +196,7 @@ SIGNATURE_CHECK=$(pkgutil --check-signature "$FINAL_PKG_PATH")
 if [[ "$SIGNATURE_CHECK" == *"Developer ID Installer: Source Audio LLC"* ]]; then
   echo "Signature verified successfully!"
 else
+  execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "macOS build failed :crycat:" "message"
   echo "Error: Signature verification failed."
   exit 1
 fi

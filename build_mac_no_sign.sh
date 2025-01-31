@@ -51,6 +51,7 @@ echo "Building no-signed build..."
 BUILD_PATH="$PROJECT_DIR/desktopApp/build/compose/binaries/main/dmg/Neuro Desktop-$VERSION_NAME.dmg"
 
 if [ ! -f "$BUILD_PATH" ]; then
+  execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "macOS build failed :crycat:" "message"
   echo "Error: Signed Build not found at expected path: $BUILD_PATH"
   exit 1
 fi
