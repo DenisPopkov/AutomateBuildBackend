@@ -42,6 +42,8 @@ git fetch && git checkout "$BRANCH_NAME" && git pull origin "$BRANCH_NAME"
 VERSION_CODE=$(grep "versionCode =" "$PROJECT_DIR/androidApp/build.gradle.kts" | awk -F '=' '{print $2}' | xargs)
 VERSION_NAME=$(grep "versionName =" "$PROJECT_DIR/androidApp/build.gradle.kts" | awk -F '"' '{print $2}' | xargs)
 
+OLD_VERSION=$VERSION_CODE
+
 if [ -z "$VERSION_CODE" ] || [ -z "$VERSION_NAME" ]; then
   echo "Error: Unable to extract versionCode or versionName from build.gradle.kts"
   exit 1
@@ -65,6 +67,12 @@ if [ ! -f "$APK_PATH" ]; then
 fi
 
 echo "APK built successfully: $APK_PATH"
+
+if [ "$BUMP_VERSION" == "true" ]; then
+    VERSION_CODE=$((VERSION_CODE + 1))
+else
+   echo "Bump is false"
+fi
 
 # Rename APK with unique name if needed
 BASE_NAME="neuro3-${VERSION_NAME}-[${VERSION_CODE}].apk"
@@ -96,16 +104,14 @@ else
 fi
 
 if [ "$BUMP_VERSION" == "true" ]; then
-    NEW_VERSION_CODE=$((VERSION_CODE + 1))
-    echo "Updating versionCode to $NEW_VERSION_CODE..."
-    sed -i '' "s/versionCode = $VERSION_CODE/versionCode = $NEW_VERSION_CODE/" "$PROJECT_DIR/androidApp/build.gradle.kts"
+    sed -i '' "s/versionCode = $OLD_VERSION/versionCode = $VERSION_CODE/" "$PROJECT_DIR/androidApp/build.gradle.kts"
 
     git fetch && git pull origin "$BRANCH_NAME"
     git add .
-    git commit -m "Android version bump to $NEW_VERSION_CODE"
+    git commit -m "Android version bump to $VERSION_CODE"
     git push origin "$BRANCH_NAME"
 
-    echo "Version bump completed successfully. New versionCode: $NEW_VERSION_CODE"
+    echo "Version bump completed successfully. New versionCode: $VERSION_CODE"
 else
     echo "Skipping version bump as bumpVersion is false."
 fi

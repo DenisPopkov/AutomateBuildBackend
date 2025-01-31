@@ -172,6 +172,12 @@ else
   exit 1
 fi
 
+if [ "$BUMP_VERSION" == "true" ]; then
+    VERSION_CODE=$((VERSION_CODE + 1))
+else
+   echo "Bump is false"
+fi
+
 # Rename signed .pkg to final format
 BASE_NAME="neuro_desktop_${VERSION_NAME}-[${VERSION_CODE}]_installer_mac.pkg"
 FINAL_DIR="/Users/denispopkov/Desktop/builds"
@@ -243,16 +249,14 @@ else
 fi
 
 if [ "$BUMP_VERSION" == "true" ]; then
-    NEW_VERSION_CODE=$((VERSION_CODE + 1))
-    echo "Updating versionCode to $NEW_VERSION_CODE..."
-    sed -i '' "s/^desktop\.build\.number\s*=\s*[0-9]*$/desktop.build.number=$NEW_VERSION_CODE/" "$PROJECT_DIR/gradle.properties"
+    sed -i '' "s/^desktop\.build\.number\s*=\s*[0-9]*$/desktop.build.number=$VERSION_CODE/" "$PROJECT_DIR/gradle.properties"
 
     git fetch && git pull origin "$BRANCH_NAME"
     git add .
-    git commit -m "macOS version bump to $NEW_VERSION_CODE"
+    git commit -m "macOS version bump to $VERSION_CODE"
     git push origin "$BRANCH_NAME"
 
-    echo "Version bump completed successfully. New versionCode: $NEW_VERSION_CODE"
+    echo "Version bump completed successfully. New versionCode: $VERSION_CODE"
 else
     echo "Skipping version bump as bumpVersion is false."
 fi
