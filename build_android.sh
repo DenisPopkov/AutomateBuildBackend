@@ -23,6 +23,7 @@ while IFS='=' read -r key value; do
 done < "$SECRET_FILE"
 
 BRANCH_NAME=$1
+BUMP_VERSION=$2
 
 if [ -z "$BRANCH_NAME" ]; then
   echo "Error: Branch name is required"
@@ -37,6 +38,7 @@ cd "$PROJECT_DIR" || { echo "Project directory not found!"; exit 1; }
 echo "Checking out branch: $BRANCH_NAME"
 git fetch && git checkout "$BRANCH_NAME" && git pull origin "$BRANCH_NAME"
 
+# Extract versionCode and versionName
 VERSION_CODE=$(grep "versionCode =" "$PROJECT_DIR/androidApp/build.gradle.kts" | awk -F '=' '{print $2}' | xargs)
 VERSION_NAME=$(grep "versionName =" "$PROJECT_DIR/androidApp/build.gradle.kts" | awk -F '"' '{print $2}' | xargs)
 
@@ -91,4 +93,19 @@ if [ $? -eq 0 ]; then
 else
     echo "Error sending APK to Slack."
     exit 1
+fi
+
+if [ "$BUMP_VERSION" == "true" ]; then
+    NEW_VERSION_CODE=$((VERSION_CODE + 1))
+    echo "Updating versionCode to $NEW_VERSION_CODE..."
+    sed -i '' "s/versionCode = $VERSION_CODE/versionCode = $NEW_VERSION_CODE/" "$PROJECT_DIR/androidApp/build.gradle.kts"
+
+    git fetch && git pull origin "$BRANCH_NAME"
+    git add .
+    git commit -m "Android version bump to $NEW_VERSION_CODE"
+    git push origin "$BRANCH_NAME"
+
+    echo "Version bump completed successfully. New versionCode: $NEW_VERSION_CODE"
+else
+    echo "Skipping version bump as bumpVersion is false."
 fi

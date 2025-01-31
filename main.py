@@ -13,33 +13,52 @@ app = Flask(__name__)
 @app.route('/build_mac', methods=['POST'])
 def build_mac():
     try:
-        branch_name = request.json.get('branchName')
-        sign = request.json.get('sign')
+        data = request.json
+        branch_name = data.get('branchName')
+        sign = data.get('sign')
+        bump_version = data.get('bumpVersion', False)
+
         if not branch_name or sign is None:
             return jsonify({"error": "Missing required parameters: branchName and sign"}), 400
-        script_path = f"./build_mac_signed.sh" if sign else f"./build_mac_no_sign.sh"
-        subprocess.run(["sh", script_path, branch_name], check=True)
+
+        script_path = "./build_mac_signed.sh" if sign else "./build_mac_no_sign.sh"
+        bump_version_flag = "true" if bump_version else "false"
+
+        subprocess.run(["sh", script_path, branch_name, bump_version_flag], check=True)
+
         return jsonify({
-            "message": f"macOS build for branch {branch_name} {'with' if sign else 'without'} signing executed successfully!"}), 200
+            "message": f"macOS build for branch {branch_name} {'with' if sign else 'without'} signing executed successfully with bumpVersion={bump_version_flag}!"
+        }), 200
+
     except subprocess.CalledProcessError as e:
         return jsonify({"error": str(e)}), 500
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
 
 
 @app.route('/build_android', methods=['POST'])
 def build_android():
     try:
-        branch_name = request.json.get('branchName')
+        data = request.json
+        branch_name = data.get('branchName')
+        bump_version = data.get('bumpVersion', False)
+
         if not branch_name:
             return jsonify({"error": "Missing required parameter: branchName"}), 400
+
         script_path = "./build_android.sh"
-        subprocess.run(["sh", script_path, branch_name], check=True)
-        return jsonify({"message": f"Android build for branch {branch_name} executed successfully!"}), 200
+        bump_version_flag = "true" if bump_version else "false"
+
+        subprocess.run(["sh", script_path, branch_name, bump_version_flag], check=True)
+
+        return jsonify({"message": f"Android build for branch {branch_name} executed successfully with bumpVersion={bump_version_flag}!"}), 200
+
     except subprocess.CalledProcessError as e:
         return jsonify({"error": str(e)}), 500
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
 
 
 @app.route('/build_ios', methods=['POST'])

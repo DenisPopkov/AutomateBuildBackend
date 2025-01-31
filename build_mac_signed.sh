@@ -30,6 +30,7 @@ if [ -z "$TEAM_ID" ] || [ -z "$APPLE_ID" ] || [ -z "$NOTARY_PASSWORD" ] || [ -z 
 fi
 
 BRANCH_NAME=$1
+BUMP_VERSION=$2
 
 if [ -z "$BRANCH_NAME" ]; then
   echo "Error: Branch name is required"
@@ -208,6 +209,7 @@ execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "macOS signed from $
 if [ $? -eq 0 ]; then
     echo "Renamed .pkg sent to Slack successfully."
 else
+    execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "macOS build failed :crycat:" "message"
     echo "Error sending renamed .pkg to Slack."
     exit 1
 fi
@@ -215,6 +217,7 @@ fi
 if [ $? -eq 0 ]; then
     echo "Renamed .pkg sent to Slack successfully."
 else
+    execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "macOS build failed :crycat:" "message"
     echo "Error sending renamed .pkg to Slack."
     exit 1
 fi
@@ -237,4 +240,19 @@ if [ -f "$NOTARIZED_BUILD_PATH" ]; then
     echo "File removed successfully."
 else
     echo "File not found: $NOTARIZED_BUILD_PATH"
+fi
+
+if [ "$BUMP_VERSION" == "true" ]; then
+    NEW_VERSION_CODE=$((VERSION_CODE + 1))
+    echo "Updating versionCode to $NEW_VERSION_CODE..."
+    sed -i '' "s/^desktop\.build\.number\s*=\s*[0-9]*$/desktop.build.number=$NEW_VERSION_CODE/" "$PROJECT_DIR/gradle.properties"
+
+    git fetch && git pull origin "$BRANCH_NAME"
+    git add .
+    git commit -m "macOS version bump to $NEW_VERSION_CODE"
+    git push origin "$BRANCH_NAME"
+
+    echo "Version bump completed successfully. New versionCode: $NEW_VERSION_CODE"
+else
+    echo "Skipping version bump as bumpVersion is false."
 fi

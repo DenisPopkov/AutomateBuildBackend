@@ -102,6 +102,7 @@ cd "$IOS_APP_PATH" || exit
 
 # Run Fastlane with fallback
 if fastlane testflight_upload; then
+  git fetch && git pull origin "$BRANCH_NAME"
   git add .
   git commit -m "iOS version bump to $NEW_VERSION"
   git push
