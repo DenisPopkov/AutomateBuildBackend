@@ -8,7 +8,7 @@ INFO_PLIST_PATH="$IOS_APP_PATH/iosApp/app/Info.plist"
 FASTFILE_PATH="/Users/denispopkov/AndroidStudioProjects/SA_Neuro_Multiplatform/iosApp/fastlane/Fastfile"
 CACHE_PATH="/Users/denispopkov/AndroidStudioProjects/SA_Neuro_Multiplatform/shared/build"
 FILE_TO_DELETE="/Users/denispopkov/AndroidStudioProjects/SA_Neuro_Multiplatform/shared/src/commonMain/resources/MR/files/libdspmac.dylib"
-FILE_BACKUP_PATH="/Users/denispopkov/Desktop/SIGN/libdspmac.dylib"
+FILE_BACKUP_PATH="/Users/denispopkov/Desktop/libdspmac.dylib"
 SWIFT_FILE_SOURCE="/Users/denispopkov/Desktop/SA_Neuro_Multiplatform_shared.swift"
 SWIFT_TARGET_DIR="/Users/denispopkov/AndroidStudioProjects/SA_Neuro_Multiplatform/shared/build/bin/iosArm64/podDebugFramework/sharedSwift"
 SWIFT_TARGET_FILE="$SWIFT_TARGET_DIR/SA_Neuro_Multiplatform_shared.swift"
@@ -78,12 +78,12 @@ else
   exit 1
 fi
 
-# Delete dsp lib
+# Move file to backup location
 if [ -f "$FILE_TO_DELETE" ]; then
-  rm "$FILE_TO_DELETE"
-  echo "Deleted file: $FILE_TO_DELETE"
+  mv "$FILE_TO_DELETE" "$FILE_BACKUP_PATH"
+  echo "Moved file from $FILE_TO_DELETE to $FILE_BACKUP_PATH"
 else
-  echo "File not found: $FILE_TO_DELETE"
+  echo "File not found at $FILE_TO_DELETE, skipping move"
 fi
 
 # Delete cache directory
@@ -108,8 +108,20 @@ if fastlane testflight_upload; then
 
   execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "New iOS build uploaded to TestFlight with v$VERSION_NUMBER ($NEW_VERSION) from $BRANCH_NAME" "message"
 else
+  execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "iOS build failed :crycat:" "message"
   echo "Fastlane failed. Not committing changes or sending Slack message."
 fi
 
-# Restore file
-cp "$FILE_BACKUP_PATH" "$FILE_TO_DELETE"
+# Restore the file after Fastlane execution
+if [ -f "$FILE_BACKUP_PATH" ]; then
+  mv "$FILE_BACKUP_PATH" "$FILE_TO_DELETE"
+  echo "Restored file from $FILE_BACKUP_PATH to $FILE_TO_DELETE"
+
+  # Delete the backup file after restoration
+  if [ -f "$FILE_BACKUP_PATH" ]; then
+    rm "$FILE_BACKUP_PATH"
+    echo "Deleted backup file: $FILE_BACKUP_PATH"
+  fi
+else
+  echo "Backup file not found at $FILE_BACKUP_PATH, skipping restore"
+fi

@@ -104,25 +104,40 @@ PROCESS_NAME="Packages"
 
 echo "Triggering cmd+B for $PROCESS_NAME..."
 
-osascript <<EOF
-tell application "System Events"
-  if exists application process "$PROCESS_NAME" then
-    set frontmost of application process "$PROCESS_NAME" to true
-    keystroke "b" using {command down}
-  else
-    error "Error: Could not find the process for $PROCESS_NAME. Verify the application name."
-  end if
-end tell
+TIMEOUT=60  # Total time to wait before retrying in seconds (1 minute)
+INTERVAL=10  # Interval between checks in seconds
+
+echo "Triggering cmd+B for $PROCESS_NAME..."
+
+trigger_build() {
+  osascript <<EOF
+  tell application "System Events"
+    if exists application process "$PROCESS_NAME" then
+      set frontmost of application process "$PROCESS_NAME" to true
+      keystroke "b" using {command down}
+    else
+      error "Error: Could not find the process for $PROCESS_NAME. Verify the application name."
+    end if
+  end tell
 EOF
+}
+
+trigger_build
 
 echo "Waiting for notarized build to complete..."
-NOTARIZED_BUILD_PATH="/Users/denispopkov/AndroidStudioProjects/SA_Neuro_release/build/Neuro_desktop.pkg"
-while [ ! -f "$NOTARIZED_BUILD_PATH" ]; do
-  sleep 30
-  echo "Checking for notarized build..."
-done
 
-echo "Notarized build created successfully: $NOTARIZED_BUILD_PATH"
+elapsed_time=0
+while [ ! -f "$NOTARIZED_BUILD_PATH" ]; do
+  sleep $INTERVAL
+  elapsed_time=$((elapsed_time + INTERVAL))
+  echo "Checking for notarized build..."
+
+  if [ $elapsed_time -ge $TIMEOUT ]; then
+    echo "Build not found after $TIMEOUT seconds. Retrying..."
+    trigger_build
+    elapsed_time=0
+  fi
+done
 
 ## Signing the .pkg
 SIGNED_PKG_PATH="/Users/denispopkov/AndroidStudioProjects/SA_Neuro_release/build/Neuro_desktopS.pkg"
