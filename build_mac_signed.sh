@@ -107,8 +107,8 @@ PROCESS_NAME="Packages"
 
 echo "Triggering cmd+B for $PROCESS_NAME..."
 
-TIMEOUT=60  # Total time to wait before retrying in seconds (1 minute)
-INTERVAL=10  # Interval between checks in seconds
+TIMEOUT=60
+INTERVAL=10
 
 echo "Triggering cmd+B for $PROCESS_NAME..."
 
@@ -129,6 +129,7 @@ trigger_build
 
 echo "Waiting for notarized build to complete..."
 
+NOTARIZED_BUILD_PATH="/Users/denispopkov/AndroidStudioProjects/SA_Neuro_release/build/Neuro_desktop.pkg"
 elapsed_time=0
 while [ ! -f "$NOTARIZED_BUILD_PATH" ]; do
   sleep $INTERVAL
@@ -202,7 +203,6 @@ else
   exit 1
 fi
 
-# Upload Renamed .pkg to Slack
 echo "Uploading renamed .pkg to Slack..."
 execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "macOS signed from $BRANCH_NAME" "upload" "${FINAL_PKG_PATH}"
 
