@@ -54,6 +54,13 @@ if [ -z "$VERSION_CODE" ] || [ -z "$VERSION_NAME" ]; then
   exit 1
 fi
 
+if [ "$BUMP_VERSION" == "true" ]; then
+  VERSION_CODE=$((VERSION_CODE + 1))
+  sed -i '' "s/^desktop\.build\.number\s*=\s*[0-9]*$/desktop.build.number=$VERSION_CODE/" "$PROJECT_DIR/gradle.properties"
+else
+  echo "Nothing to bump"
+fi
+
 # Building
 echo "Building signed build..."
 ./gradlew packageDmg
@@ -249,8 +256,6 @@ else
 fi
 
 if [ "$BUMP_VERSION" == "true" ]; then
-    sed -i '' "s/^desktop\.build\.number\s*=\s*[0-9]*$/desktop.build.number=$VERSION_CODE/" "$PROJECT_DIR/gradle.properties"
-
     git fetch && git pull origin "$BRANCH_NAME"
     git add .
     git commit -m "macOS version bump to $VERSION_CODE"

@@ -49,6 +49,13 @@ if [ -z "$VERSION_CODE" ] || [ -z "$VERSION_NAME" ]; then
   exit 1
 fi
 
+if [ "$BUMP_VERSION" == "true" ]; then
+  VERSION_CODE=$((VERSION_CODE + 1))
+  sed -i '' "s/versionCode = $OLD_VERSION/versionCode = $VERSION_CODE/" "$PROJECT_DIR/androidApp/build.gradle.kts"
+else
+  echo "Nothing to bump"
+fi
+
 # Build Signed APK
 echo "Building signed APK..."
 ./gradlew assembleRelease \
@@ -61,18 +68,12 @@ echo "Building signed APK..."
 APK_PATH="$PROJECT_DIR/androidApp/build/outputs/apk/release/androidApp-release.apk"
 
 if [ ! -f "$APK_PATH" ]; then
-  execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "Android build failed :crycat:" "message"
+  execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "Android build failed :crycat: - signed APK not found at expected path: $APK_PATH" "message"
   echo "Error: Signed APK not found at expected path: $APK_PATH"
   exit 1
 fi
 
 echo "APK built successfully: $APK_PATH"
-
-if [ "$BUMP_VERSION" == "true" ]; then
-    VERSION_CODE=$((VERSION_CODE + 1))
-else
-   echo "Bump is false"
-fi
 
 # Rename APK with unique name if needed
 BASE_NAME="neuro3-${VERSION_NAME}-[${VERSION_CODE}].apk"
@@ -104,8 +105,6 @@ else
 fi
 
 if [ "$BUMP_VERSION" == "true" ]; then
-    sed -i '' "s/versionCode = $OLD_VERSION/versionCode = $VERSION_CODE/" "$PROJECT_DIR/androidApp/build.gradle.kts"
-
     git fetch && git pull origin "$BRANCH_NAME"
     git add .
     git commit -m "Android version bump to $VERSION_CODE"
