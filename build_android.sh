@@ -4,11 +4,13 @@ source "/Users/denispopkov/PycharmProjects/AutomateBuildBackend/slack_upload.sh"
 
 SECRET_FILE="/Users/denispopkov/Desktop/secret.txt"
 
+# Validate secret.txt file existence
 if [ ! -f "$SECRET_FILE" ]; then
   echo "Error: secret.txt file not found at $SECRET_FILE"
   exit 1
 fi
 
+# Read secret.txt for configuration values
 while IFS='=' read -r key value; do
   key=$(echo "$key" | xargs)
   value=$(echo "$value" | xargs)
@@ -25,6 +27,7 @@ done < "$SECRET_FILE"
 BRANCH_NAME=$1
 BUMP_VERSION=$2
 
+# Validate branch name input
 if [ -z "$BRANCH_NAME" ]; then
   echo "Error: Branch name is required"
   exit 1
@@ -38,23 +41,78 @@ cd "$PROJECT_DIR" || { echo "Project directory not found!"; exit 1; }
 echo "Checking out branch: $BRANCH_NAME"
 git fetch && git checkout "$BRANCH_NAME" && git pull origin "$BRANCH_NAME"
 
-# Extract versionCode and versionName
+# Replace build.gradle.kts for Android with arm_target/build.gradle.kts
+ANDROID_BUILD_FILE="$PROJECT_DIR/androidApp/build.gradle.kts"
+ARM_BUILD_FILE="/Users/denispopkov/Desktop/arm_target/build.gradle.kts"
+ALL_BUILD_FILE="/Users/denispopkov/Desktop/all_target/build.gradle.kts"
+
+# Extract versionCode and versionName from build.gradle.kts
 VERSION_CODE=$(grep "versionCode =" "$PROJECT_DIR/androidApp/build.gradle.kts" | awk -F '=' '{print $2}' | xargs)
 VERSION_NAME=$(grep "versionName =" "$PROJECT_DIR/androidApp/build.gradle.kts" | awk -F '"' '{print $2}' | xargs)
-
-OLD_VERSION=$VERSION_CODE
 
 if [ -z "$VERSION_CODE" ] || [ -z "$VERSION_NAME" ]; then
   echo "Error: Unable to extract versionCode or versionName from build.gradle.kts"
   exit 1
 fi
 
+OLD_VERSION=$VERSION_CODE
+
+# Increment versionCode if required
 if [ "$BUMP_VERSION" == "true" ]; then
   VERSION_CODE=$((VERSION_CODE + 1))
   sed -i '' "s/versionCode = $OLD_VERSION/versionCode = $VERSION_CODE/" "$PROJECT_DIR/androidApp/build.gradle.kts"
 else
   echo "Nothing to bump"
 fi
+
+rm -f "$ALL_BUILD_FILE"
+cp "$ANDROID_BUILD_FILE" "$ALL_BUILD_FILE"
+
+echo "Replacing $ANDROID_BUILD_FILE with $ARM_BUILD_FILE"
+rm -f "$ANDROID_BUILD_FILE"
+cp "$ARM_BUILD_FILE" "$ANDROID_BUILD_FILE"
+
+# Clean up old jniLibs
+JNI_LIBS_PATH="$PROJECT_DIR/androidApp/src/main/jniLibs"
+BUILD_PATH="$PROJECT_DIR/androidApp/build"
+RELEASE_PATH="$PROJECT_DIR/androidApp/release"
+rm -rf "$JNI_LIBS_PATH"
+rm -rf "$BUILD_PATH"
+rm -rf "$RELEASE_PATH"
+
+# Build APK
+./gradlew assembleRelease \
+  -Pandroid.injected.signing.store.file="$KEYFILE" \
+  -Pandroid.injected.signing.store.password="$KEY_PASSWORD" \
+  -Pandroid.injected.signing.key.alias="$KEY_ALIAS" \
+  -Pandroid.injected.signing.key.password="$KEY_PASSWORD"
+
+APK_PATH="$PROJECT_DIR/androidApp/build/outputs/apk/release/androidApp-release.apk"
+echo "path to APK = $APK_PATH"
+
+if [ ! -f "$APK_PATH" ]; then
+  echo "Error: APK not found"
+  exit 1
+fi
+
+# Rename the APK to .zip (no zipping necessary)
+APK_ZIP_PATH="${APK_PATH%.apk}.zip"
+mv "$APK_PATH" "$APK_ZIP_PATH"
+
+# Unzip the APK (which is a zip file) directly
+unzip -o "$APK_ZIP_PATH" -d "$PROJECT_DIR/androidApp/build/outputs/apk/release/"
+
+# Copy libraries to jniLibs
+mkdir -p "$JNI_LIBS_PATH/arm64-v8a" "$JNI_LIBS_PATH/x86_64"
+cp "$PROJECT_DIR/androidApp/build/outputs/apk/release/lib/arm64-v8a/libdspandroid.so" "$JNI_LIBS_PATH/x86_64/"
+cp "$PROJECT_DIR/androidApp/build/outputs/apk/release/lib/arm64-v8a/libdspandroid.so" "$JNI_LIBS_PATH/arm64-v8a/"
+
+# Cleanup after the build
+rm -rf "$BUILD_PATH"
+rm -rf "$RELEASE_PATH"
+
+rm -f "$ANDROID_BUILD_FILE"
+cp "$ALL_BUILD_FILE" "$ANDROID_BUILD_FILE"
 
 # Build Signed APK
 echo "Building signed APK..."
@@ -68,7 +126,7 @@ echo "Building signed APK..."
 APK_PATH="$PROJECT_DIR/androidApp/build/outputs/apk/release/androidApp-release.apk"
 
 if [ ! -f "$APK_PATH" ]; then
-  execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "Android build failed :crycat: - signed APK not found at expected path: $APK_PATH" "message"
+  execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "Android build failed :crycat:" "message"
   echo "Error: Signed APK not found at expected path: $APK_PATH"
   exit 1
 fi
