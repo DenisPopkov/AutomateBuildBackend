@@ -91,6 +91,7 @@ APK_PATH="$PROJECT_DIR/androidApp/build/outputs/apk/release/androidApp-release.a
 echo "path to APK = $APK_PATH"
 
 if [ ! -f "$APK_PATH" ]; then
+  execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "Android build failed :crycat:" "message"
   echo "Error: APK not found"
   exit 1
 fi
@@ -157,7 +158,12 @@ execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "Android from $BRANC
 
 if [ $? -eq 0 ]; then
     echo "APK sent to Slack successfully."
+    git fetch && git pull origin "$BRANCH_NAME"
+    git add .
+    git commit -m "Update hardcoded libs"
+    git push origin "$BRANCH_NAME"
 else
+    execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "Android build failed :crycat:" "message"
     echo "Error sending APK to Slack."
     exit 1
 fi
