@@ -106,6 +106,9 @@ def get_builds():
             elif file_name.endswith(".apk"):
                 version = extract_version(file_name)
                 build_items.append(BuildItem(id=build_id, version=version, platform_name="Android", date=creation_date))
+            elif file_name.endswith(".aab"):
+                version = extract_version(file_name)
+                build_items.append(BuildItem(id=build_id, version=version, platform_name="Android", date=creation_date))
             elif file_name.endswith(".msi"):
                 version = extract_version(file_name)
                 build_items.append(BuildItem(id=build_id, version=version, platform_name="Windows", date=creation_date))
