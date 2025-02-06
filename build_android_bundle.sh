@@ -98,11 +98,37 @@ if [ ! -f "$AAB_PATH" ]; then
   exit 1
 fi
 
+AAB_PATH="$PROJECT_DIR/androidApp/build/outputs/bundle/release/androidApp-release.aab"
+
+echo "Checking for built AAB..."
+if [ ! -f "$AAB_PATH" ]; then
+  execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "Android AAB build failed :crycat:" "message"
+  echo "Error: AAB not found"
+  exit 1
+fi
+
 echo "AAB built successfully: $AAB_PATH"
+
+# Rename AAB with unique name if needed
+BASE_NAME_AAB="neuro3-${VERSION_NAME}-[${VERSION_CODE}].aab"
+FINAL_AAB_PATH="$FINAL_DIR/$BASE_NAME_AAB"
+
+# Ensure unique filename for AAB in the builds folder
+INDEX_AAB=1
+while [ -f "$FINAL_AAB_PATH" ]; do
+    FINAL_AAB_PATH="$FINAL_DIR/neuro3-${VERSION_NAME}-[${VERSION_CODE}]_${INDEX_AAB}.aab"
+    INDEX_AAB=$((INDEX_AAB + 1))
+done
+
+# Move the AAB file to the builds folder with the unique name
+mv "$AAB_PATH" "$FINAL_AAB_PATH" || { echo "Error renaming AAB"; exit 1; }
+echo "AAB renamed and moved to: $FINAL_AAB_PATH"
+
+FILE_PATH_AAB="$FINAL_AAB_PATH"
 
 # Upload AAB to Slack
 echo "Uploading AAB to Slack..."
-execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "Android App Bundle from $BRANCH_NAME" "upload" "${AAB_PATH}"
+execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "Android App Bundle from $BRANCH_NAME" "upload" "${FILE_PATH_AAB}"
 
 if [ $? -eq 0 ]; then
   echo "AAB sent to Slack successfully."
@@ -111,11 +137,12 @@ if [ $? -eq 0 ]; then
   git commit -m "Update hardcoded libs"
   git push origin "$BRANCH_NAME"
 else
-  execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "Android build failed :crycat:" "message"
+  execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "Android AAB build failed :crycat:" "message"
   echo "Error sending AAB to Slack."
   exit 1
 fi
 
+# Version bump if required
 if [ "$BUMP_VERSION" == "true" ]; then
   git fetch && git pull origin "$BRANCH_NAME"
   git add .
