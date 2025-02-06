@@ -43,11 +43,12 @@ def build_android():
         data = request.json
         branch_name = data.get('branchName')
         bump_version = data.get('bumpVersion', False)
+        is_bundle_to_build = data.get('isBundleToBuild', False)  # New param
 
         if not branch_name:
             return jsonify({"error": "Missing required parameter: branchName"}), 400
 
-        script_path = "./build_android.sh"
+        script_path = "./build_android_bundle.sh" if is_bundle_to_build else "./build_android.sh"
         bump_version_flag = "true" if bump_version else "false"
 
         subprocess.run(["sh", script_path, branch_name, bump_version_flag], check=True)
@@ -58,8 +59,6 @@ def build_android():
         return jsonify({"error": str(e)}), 500
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-
-
 
 @app.route('/build_ios', methods=['POST'])
 def build_ios():
