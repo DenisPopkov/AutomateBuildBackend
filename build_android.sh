@@ -163,8 +163,7 @@ if [ $? -eq 0 ]; then
     git commit -m "Update hardcoded libs"
     git push origin "$BRANCH_NAME"
 else
-    execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "Android build failed :crycat:" "message"
-    echo "Error sending APK to Slack."
+    echo "Error commit hardcoded lib."
     exit 1
 fi
 

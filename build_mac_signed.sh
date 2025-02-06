@@ -61,6 +61,33 @@ else
   echo "Nothing to bump"
 fi
 
+DESKTOP_BUILD_FILE="$PROJECT_DIR/desktopApp/build.gradle.kts"
+DESKTOP_DSP_BUILD_FILE="/Users/denispopkov/Desktop/build_dsp/build.gradle.kts"
+DESKTOP_N0_DSP_BUILD_FILE="/Users/denispopkov/Desktop/no_dsp/build.gradle.kts"
+BUILD_PATH="$PROJECT_DIR/desktopApp/build"
+SET_UPDATED_LIB_PATH="$PROJECT_DIR/shared/src/commonMain/resources/MR/files/libdspmac.dylib"
+CACHE_UPDATED_LIB_PATH="$PROJECT_DIR/desktopApp/build/native/libdspmac.dylib"
+
+rm -f "$DESKTOP_N0_DSP_BUILD_FILE"
+rm -f "$DESKTOP_N0_DSP_BUILD_FILE"
+cp "$DESKTOP_BUILD_FILE" "$DESKTOP_N0_DSP_BUILD_FILE"
+
+echo "Replacing $DESKTOP_BUILD_FILE with $DESKTOP_DSP_BUILD_FILE"
+rm -f "$DESKTOP_BUILD_FILE"
+cp "$DESKTOP_DSP_BUILD_FILE" "$DESKTOP_BUILD_FILE"
+
+rm -rf "$BUILD_PATH"
+
+cp "$DESKTOP_DSP_BUILD_FILE" "$DESKTOP_BUILD_FILE"
+
+./gradlew compileKotlin
+
+rm -f "$DESKTOP_BUILD_FILE"
+cp "$DESKTOP_N0_DSP_BUILD_FILE" "$DESKTOP_BUILD_FILE"
+
+rm -f "$SET_UPDATED_LIB_PATH"
+cp "$CACHE_UPDATED_LIB_PATH" "$SET_UPDATED_LIB_PATH"
+
 # Building
 echo "Building signed build..."
 ./gradlew packageDmg
@@ -218,6 +245,17 @@ fi
 
 echo "Uploading renamed .pkg to Slack..."
 execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "macOS signed from $BRANCH_NAME" "upload" "${FINAL_PKG_PATH}"
+
+if [ $? -eq 0 ]; then
+    echo "PKG sent to Slack successfully."
+    git fetch && git pull origin "$BRANCH_NAME"
+    git add .
+    git commit -m "Update hardcoded libs"
+    git push origin "$BRANCH_NAME"
+else
+    echo "Error commit hardcoded lib."
+    exit 1
+fi
 
 if [ $? -eq 0 ]; then
     echo "Renamed .pkg sent to Slack successfully."
