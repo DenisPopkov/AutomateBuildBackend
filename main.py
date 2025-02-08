@@ -48,10 +48,11 @@ def build_android():
         if not branch_name:
             return jsonify({"error": "Missing required parameter: branchName"}), 400
 
-        script_path = "./build_android_bundle.sh" if is_bundle_to_build else "./build_android.sh"
+        script_path = "./build_android.sh"
         bump_version_flag = "true" if bump_version else "false"
+        is_bundle_to_build_flag = "true" if is_bundle_to_build else "false"
 
-        subprocess.run(["sh", script_path, branch_name, bump_version_flag], check=True)
+        subprocess.run(["sh", script_path, branch_name, bump_version_flag, is_bundle_to_build_flag], check=True)
 
         return jsonify({"message": f"Android build for branch {branch_name} executed successfully with bumpVersion={bump_version_flag}!"}), 200
 

@@ -26,6 +26,7 @@ done < "$SECRET_FILE"
 
 BRANCH_NAME=$1
 BUMP_VERSION=$2
+isBundleToBuild=$3
 
 # Validate branch name input
 if [ -z "$BRANCH_NAME" ]; then
@@ -76,6 +77,7 @@ cp "$ARM_BUILD_FILE" "$ANDROID_BUILD_FILE"
 JNI_LIBS_PATH="$PROJECT_DIR/androidApp/src/main/jniLibs"
 BUILD_PATH="$PROJECT_DIR/androidApp/build"
 RELEASE_PATH="$PROJECT_DIR/androidApp/release"
+
 rm -rf "$JNI_LIBS_PATH"
 rm -rf "$BUILD_PATH"
 rm -rf "$RELEASE_PATH"
@@ -115,56 +117,112 @@ rm -rf "$RELEASE_PATH"
 rm -f "$ANDROID_BUILD_FILE"
 cp "$ALL_BUILD_FILE" "$ANDROID_BUILD_FILE"
 
-# Build Signed APK
-echo "Building signed APK..."
-./gradlew assembleRelease \
-  -Pandroid.injected.signing.store.file="$KEYFILE" \
-  -Pandroid.injected.signing.store.password="$KEY_PASSWORD" \
-  -Pandroid.injected.signing.key.alias="$KEY_ALIAS" \
-  -Pandroid.injected.signing.key.password="$KEY_PASSWORD"
+if [ "$isBundleToBuild" == "true" ]; then
+  echo "Building AAB (Android App Bundle)..."
 
-# Find the signed APK
-APK_PATH="$PROJECT_DIR/androidApp/build/outputs/apk/release/androidApp-release.apk"
+  # Build AAB
+  ./gradlew bundleRelease \
+    -Pandroid.injected.signing.store.file="$KEYFILE" \
+    -Pandroid.injected.signing.store.password="$KEY_PASSWORD" \
+    -Pandroid.injected.signing.key.alias="$KEY_ALIAS" \
+    -Pandroid.injected.signing.key.password="$KEY_PASSWORD"
 
-if [ ! -f "$APK_PATH" ]; then
-  execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "Android build failed :crycat:" "message"
-  echo "Error: Signed APK not found at expected path: $APK_PATH"
-  exit 1
-fi
+  AAB_PATH="$PROJECT_DIR/androidApp/build/outputs/bundle/release/androidApp-release.aab"
 
-echo "APK built successfully: $APK_PATH"
+  echo "Checking for built AAB..."
+  if [ ! -f "$AAB_PATH" ]; then
+    execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "Android AAB build failed :crycat:" "message"
+    echo "Error: AAB not found"
+    exit 1
+  fi
 
-# Rename APK with unique name if needed
-BASE_NAME="neuro3-${VERSION_NAME}-[${VERSION_CODE}].apk"
-FINAL_DIR="/Users/denispopkov/Desktop/builds"
-FINAL_APK_PATH="$FINAL_DIR/$BASE_NAME"
+  echo "AAB built successfully: $AAB_PATH"
 
-# Ensure unique filename in the builds folder
-INDEX=1
-while [ -f "$FINAL_APK_PATH" ]; do
-    FINAL_APK_PATH="$FINAL_DIR/neuro3-${VERSION_NAME}-[${VERSION_CODE}]_${INDEX}.apk"
-    INDEX=$((INDEX + 1))
-done
+  # Rename AAB with unique name if needed
+  BASE_NAME_AAB="neuro3-${VERSION_NAME}-[${VERSION_CODE}].aab"
+  FINAL_AAB_PATH="$FINAL_DIR/$BASE_NAME_AAB"
 
-# Move the APK file to the builds folder with the unique name
-mv "$APK_PATH" "$FINAL_APK_PATH" || { echo "Error renaming APK"; exit 1; }
-echo "APK renamed and moved to: $FINAL_APK_PATH"
+  # Ensure unique filename for AAB in the builds folder
+  INDEX_AAB=1
+  while [ -f "$FINAL_AAB_PATH" ]; do
+      FINAL_AAB_PATH="$FINAL_DIR/neuro3-${VERSION_NAME}-[${VERSION_CODE}]_${INDEX_AAB}.aab"
+      INDEX_AAB=$((INDEX_AAB + 1))
+  done
 
-FILE_PATH="$FINAL_APK_PATH"
+  # Move the AAB file to the builds folder with the unique name
+  mv "$AAB_PATH" "$FINAL_AAB_PATH" || { echo "Error renaming AAB"; exit 1; }
+  echo "AAB renamed and moved to: $FINAL_AAB_PATH"
 
-# Upload APK to Slack
-echo "Uploading APK to Slack..."
-execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "Android from $BRANCH_NAME" "upload" "${FILE_PATH}"
+  FILE_PATH_AAB="$FINAL_AAB_PATH"
 
-if [ $? -eq 0 ]; then
+  # Upload AAB to Slack
+  echo "Uploading AAB to Slack..."
+  execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "Android App Bundle from $BRANCH_NAME" "upload" "${FILE_PATH_AAB}"
+
+  if [ $? -eq 0 ]; then
+    echo "AAB sent to Slack successfully."
+    git fetch && git pull origin "$BRANCH_NAME"
+    git add .
+    git commit -m "Update hardcoded libs"
+    git push origin "$BRANCH_NAME"
+  else
+    echo "Error sending AAB to Slack."
+    exit 1
+  fi
+
+else
+  # If not building AAB, then build APK
+  echo "Building APK..."
+
+  # Build APK
+  ./gradlew assembleRelease \
+    -Pandroid.injected.signing.store.file="$KEYFILE" \
+    -Pandroid.injected.signing.store.password="$KEY_PASSWORD" \
+    -Pandroid.injected.signing.key.alias="$KEY_ALIAS" \
+    -Pandroid.injected.signing.key.password="$KEY_PASSWORD"
+
+  APK_PATH="$PROJECT_DIR/androidApp/build/outputs/apk/release/androidApp-release.apk"
+
+  echo "Checking for built APK..."
+  if [ ! -f "$APK_PATH" ]; then
+    execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "Android APK build failed :crycat:" "message"
+    echo "Error: APK not found"
+    exit 1
+  fi
+
+  echo "APK built successfully: $APK_PATH"
+
+  # Rename APK with unique name if needed
+  BASE_NAME_APK="neuro3-${VERSION_NAME}-[${VERSION_CODE}].apk"
+  FINAL_APK_PATH="$FINAL_DIR/$BASE_NAME_APK"
+
+  # Ensure unique filename for APK in the builds folder
+  INDEX_APK=1
+  while [ -f "$FINAL_APK_PATH" ]; do
+      FINAL_APK_PATH="$FINAL_DIR/neuro3-${VERSION_NAME}-[${VERSION_CODE}]_${INDEX_APK}.apk"
+      INDEX_APK=$((INDEX_APK + 1))
+  done
+
+  # Move the APK file to the builds folder with the unique name
+  mv "$APK_PATH" "$FINAL_APK_PATH" || { echo "Error renaming APK"; exit 1; }
+  echo "APK renamed and moved to: $FINAL_APK_PATH"
+
+  FILE_PATH_APK="$FINAL_APK_PATH"
+
+  # Upload APK to Slack
+  echo "Uploading APK to Slack..."
+  execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "Android APK from $BRANCH_NAME" "upload" "${FILE_PATH_APK}"
+
+  if [ $? -eq 0 ]; then
     echo "APK sent to Slack successfully."
     git fetch && git pull origin "$BRANCH_NAME"
     git add .
     git commit -m "Update hardcoded libs"
     git push origin "$BRANCH_NAME"
-else
-    echo "Error commit hardcoded lib."
+  else
+    echo "Error sending APK to Slack."
     exit 1
+  fi
 fi
 
 if [ "$BUMP_VERSION" == "true" ]; then
