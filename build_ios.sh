@@ -26,11 +26,15 @@ while IFS='=' read -r key value; do
   case "$key" in
     "SLACK_BOT_TOKEN") SLACK_BOT_TOKEN="$value" ;;
     "SLACK_CHANNEL") SLACK_CHANNEL="$value" ;;
-    "KEYFILE") KEYFILE="$value" ;;
-    "KEY_ALIAS") KEY_ALIAS="$value" ;;
-    "KEY_PASSWORD") KEY_PASSWORD="$value" ;;
   esac
 done < "$SECRET_FILE"
+
+# Checkout branch
+BRANCH_NAME=$1
+if [ -z "$BRANCH_NAME" ]; then
+  echo "Error: Branch name is required"
+  exit 1
+fi
 
 # Extract the current version from project.pbxproj
 if [ -f "$PBXPROJ_PATH" ]; then
@@ -58,13 +62,6 @@ if [ -f "$INFO_PLIST_PATH" ]; then
   /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $NEW_VERSION" "$INFO_PLIST_PATH"
 else
   echo "Info.plist not found: $INFO_PLIST_PATH"
-  exit 1
-fi
-
-# Checkout branch
-BRANCH_NAME=$1
-if [ -z "$BRANCH_NAME" ]; then
-  echo "Error: Branch name is required"
   exit 1
 fi
 
