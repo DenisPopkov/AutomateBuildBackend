@@ -36,6 +36,8 @@ if [ -z "$BRANCH_NAME" ]; then
   exit 1
 fi
 
+git fetch && git checkout "$BRANCH_NAME" && git pull origin "$BRANCH_NAME"
+
 # Extract the current version from project.pbxproj
 if [ -f "$PBXPROJ_PATH" ]; then
   CURRENT_VERSION=$(grep -o 'CURRENT_PROJECT_VERSION = [0-9]\+;' "$PBXPROJ_PATH" | sed -E 's/.*= ([0-9]+);/\1/' | head -n 1)
@@ -64,8 +66,6 @@ else
   echo "Info.plist not found: $INFO_PLIST_PATH"
   exit 1
 fi
-
-git fetch && git checkout "$BRANCH_NAME" && git pull origin "$BRANCH_NAME"
 
 # Update Fastfile
 if [ -f "$FASTFILE_PATH" ]; then
