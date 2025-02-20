@@ -4,13 +4,13 @@ curl -X POST  https://dc8c-143-198-25-149.ngrok-free.app/stop_process \
 
 curl -X POST http://localhost:5001/build_mac \
 -H "Content-Type: application/json" \
--d '{"branchName": "soundcheck_develop", "sign": false }'
+-d '{"branchName": "soundcheck_develop", "sign": true }'
 
 curl -X POST http://localhost:5001/build_android \
 -H "Content-Type: application/json" \
 -d '{"branchName": "soundcheck_develop"}'
 
-curl -X POST https://dc8c-143-198-25-149.ngrok-free.app/build_ios \
+curl -X POST localhost:5001/build_ios \
 -H "Content-Type: application/json" \
 -d '{"branchName": "soundcheck_develop"}'
 
