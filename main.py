@@ -1,7 +1,6 @@
 import datetime
 import os
 import subprocess
-
 from flask import Flask, jsonify, request
 
 from BuildItem import BuildItem
@@ -36,6 +35,30 @@ def build_mac():
         return jsonify({"error": str(e)}), 500
 
 
+@app.route('/build_win', methods=['POST'])
+def build_win():
+    try:
+        data = request.json
+        branch_name = data.get('branchName')
+        bump_version = data.get('bumpVersion', False)
+
+        if not branch_name or sign is None:
+            return jsonify({"error": "Missing required parameters: branchName and sign"}), 400
+
+        script_path = "./build_win.sh"
+        bump_version_flag = "true" if bump_version else "false"
+
+        subprocess.run(["sh", script_path, branch_name, bump_version_flag], check=True)
+
+        return jsonify({
+            "message": f"macOS build for branch {branch_name} {'with' if sign else 'without'} signing executed successfully with bumpVersion={bump_version_flag}!"
+        }), 200
+
+    except subprocess.CalledProcessError as e:
+        return jsonify({"error": str(e)}), 500
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 
 @app.route('/build_android', methods=['POST'])
 def build_android():
@@ -54,12 +77,14 @@ def build_android():
 
         subprocess.run(["sh", script_path, branch_name, bump_version_flag, is_bundle_to_build_flag], check=True)
 
-        return jsonify({"message": f"Android build for branch {branch_name} executed successfully with bumpVersion={bump_version_flag}!"}), 200
+        return jsonify({
+            "message": f"Android build for branch {branch_name} executed successfully with bumpVersion={bump_version_flag}!"}), 200
 
     except subprocess.CalledProcessError as e:
         return jsonify({"error": str(e)}), 500
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
 
 @app.route('/build_ios', methods=['POST'])
 def build_ios():
@@ -160,7 +185,8 @@ def get_remote_branches():
         subprocess.run(["git", "-C", repo_path, "fetch", "--all"], check=True)
 
         result = subprocess.run(
-            ["git", "-C", repo_path, "for-each-ref", "--sort=-committerdate", "--format=%(refname:short)", "refs/remotes/origin/"],
+            ["git", "-C", repo_path, "for-each-ref", "--sort=-committerdate", "--format=%(refname:short)",
+             "refs/remotes/origin/"],
             check=True,
             stdout=subprocess.PIPE,
             text=True
@@ -170,7 +196,8 @@ def get_remote_branches():
         branch_names = [branch.replace("origin/", "") for branch in branches]
 
         prioritized_branches = ["develop", "soundcheck_develop"]
-        sorted_branches = [b for b in prioritized_branches if b in branch_names] + [b for b in branch_names if b not in prioritized_branches]
+        sorted_branches = [b for b in prioritized_branches if b in branch_names] + [b for b in branch_names if
+                                                                                    b not in prioritized_branches]
 
         return jsonify({"branches": sorted_branches}), 200
 
@@ -178,7 +205,6 @@ def get_remote_branches():
         return jsonify({"error": f"Failed to fetch branches: {str(e)}"}), 500
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-
 
 
 if __name__ == "__main__":

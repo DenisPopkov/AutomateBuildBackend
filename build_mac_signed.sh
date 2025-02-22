@@ -264,14 +264,6 @@ else
     exit 1
 fi
 
-if [ $? -eq 0 ]; then
-    echo "Renamed .pkg sent to Slack successfully."
-else
-    execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "macOS build failed :crycat:" "message"
-    echo "Error sending renamed .pkg to Slack."
-    exit 1
-fi
-
 ## Releasing after build
 DESKTOP_BUILD_PATH="$PROJECT_DIR/desktopApp/build/compose/binaries/main"
 
