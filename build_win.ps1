@@ -142,18 +142,19 @@ if (Test-Path $FINAL_MSI_PATH) {
     exit 1
 }
 
-Write-Host "Built successfully: $FINAL_MSI_PATH"
+# Path to the shell script
+$SLACK_UPLOAD_SCRIPT = "/Users/denispopkov/PycharmProjects/AutomateBuildBackend/slack_upload.sh"
 
-## Upload to Slack using the script
-#Write-Host "Uploading renamed .msi to Slack..."
-#execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "Windows from $BRANCH_NAME" "upload" "${NEW_MSI_PATH}"
-#
-#if ($?) {
-#    Write-Host "MSI sent to Slack successfully."
-#    git add .
-#    git commit -m "Update hardcoded libs"
-#    git push origin $BRANCH_NAME
-#} else {
-#    Write-Host "Error committing hardcoded lib."
-#    exit 1
-#}
+# Execute the shell script using bash (you need bash to be installed, such as Git Bash or WSL on Windows)
+$bashCommand = "bash $SLACK_UPLOAD_SCRIPT"
+Invoke-Expression $bashCommand
+
+if ($?) {
+    Write-Host "MSI sent to Slack successfully."
+    git add .
+    git commit -m "Update hardcoded libs"
+    git push origin $BRANCH_NAME
+} else {
+    Write-Host "Error committing hardcoded lib."
+    exit 1
+}
