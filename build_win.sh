@@ -1,6 +1,6 @@
 #!/bin/bash
 
-source "C:\Users\BlackBricks\PycharmProjects\AutomateBuildBackend\slack_upload.sh"
+source "slack_upload.sh"
 
 SECRET_FILE="C:\Users\BlackBricks\Desktop\secret.txt"
 
@@ -52,8 +52,8 @@ DESKTOP_BUILD_FILE="$PROJECT_DIR\desktopApp\build.gradle.kts"
 DESKTOP_DSP_BUILD_FILE="C:\Users\BlackBricks\Desktop\build_dsp\build.gradle.kts"
 DESKTOP_N0_DSP_BUILD_FILE="C:\Users\BlackBricks\Desktop\no_dsp\build.gradle.kts"
 BUILD_PATH="$PROJECT_DIR\desktopApp\build"
-SET_UPDATED_LIB_PATH="$PROJECT_DIR\shared\src\commonMain\resources\MR\files\libdspmac.dll"
-CACHE_UPDATED_LIB_PATH="$PROJECT_DIR\desktopApp\build\native\libdspmac.dll"
+SET_UPDATED_LIB_PATH="$PROJECT_DIR\shared\src\commonMain\resources\MR\files\libdspmac.dylib"
+CACHE_UPDATED_LIB_PATH="$PROJECT_DIR\desktopApp\build\native\libdspmac.dylib"
 
 rm -f "$DESKTOP_N0_DSP_BUILD_FILE"
 cp "$DESKTOP_BUILD_FILE" "$DESKTOP_N0_DSP_BUILD_FILE"
@@ -79,26 +79,33 @@ echo "Building..."
 ./gradlew packageReleaseMsi
 
 DESKTOP_BUILD_PATH="$PROJECT_DIR\desktopApp\build\compose\binaries\main-release\msi"
-FINAL_MSI_PATH="$DESKTOP_BUILD_PATH\Neuro Desktop-3.0.25.msi"
+FINAL_MSI_PATH="$DESKTOP_BUILD_PATH\Neuro_Desktop-$VERSION_NAME-$VERSION_CODE.msi"
 
-if [ "$BUMP_VERSION" == "true" ]; then
-    VERSION_CODE=$((VERSION_CODE + 1))
-else
-   echo "Bump is false"
+if [ ! -f "$FINAL_MSI_PATH" ]; then
+  execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "Windows build failed :crycat:" "message"
+  echo "Error: Build not found at expected path: $FINAL_MSI_PATH"
+  exit 1
 fi
+
+echo "Built successfully: $FINAL_MSI_PATH"
+
+NEW_MSI_PATH="${FINAL_MSI_PATH// /_}"
+mv "$FINAL_MSI_PATH" "$NEW_MSI_PATH"
+
+echo "Renamed file: '$NEW_MSI_PATH'"
 
 echo "Uploading renamed .msi to Slack..."
-execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "Windows MSI signed from $BRANCH_NAME" "upload" "${FINAL_MSI_PATH}"
+execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "Windows MSI from $BRANCH_NAME" "upload" "${NEW_MSI_PATH}"
 
-if [ $? -eq 0 ]; then
-    echo "MSI sent to Slack successfully."
-    git add .
-    git commit -m "Update hardcoded libs"
-    git push origin "$BRANCH_NAME"
-else
-    echo "Error committing hardcoded lib."
-    exit 1
-fi
+# if [ $? -eq 0 ]; then
+#    echo "MSI sent to Slack successfully."
+#    git add .
+#    git commit -m "Update hardcoded libs"
+#    git push origin "$BRANCH_NAME"
+# else
+#    echo "Error committing hardcoded lib."
+#    exit 1
+# fi
 
 if [ -d "$DESKTOP_BUILD_PATH" ]; then
     rm -r "$DESKTOP_BUILD_PATH"
@@ -107,13 +114,13 @@ else
     echo "Directory does not exist: $DESKTOP_BUILD_PATH"
 fi
 
-if [ "$BUMP_VERSION" == "true" ]; then
-    git fetch && git pull origin "$BRANCH_NAME"
-    git add .
-    git commit -m "win version bump to $VERSION_CODE"
-    git push origin "$BRANCH_NAME"
-
-    echo "Version bump completed successfully. New versionCode: $VERSION_CODE"
-else
-    echo "Skipping version bump as bumpVersion is false."
-fi
+# if [ "$BUMP_VERSION" == "true" ]; then
+#    git fetch && git pull origin "$BRANCH_NAME"
+#    git add .
+#    git commit -m "win version bump to $VERSION_CODE"
+#    git push origin "$BRANCH_NAME"
+#
+#    echo "Version bump completed successfully. New versionCode: $VERSION_CODE"
+# else
+#    echo "Skipping version bump as bumpVersion is false."
+# fi
