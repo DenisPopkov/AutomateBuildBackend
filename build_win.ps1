@@ -139,11 +139,176 @@ if (Test-Path $FINAL_MSI_PATH) {
     exit 1
 }
 
-# Path to the shell script
-$SLACK_UPLOAD_SCRIPT = "/Users/denispopkov/PycharmProjects/AutomateBuildBackend/slack_upload.sh"
+function Execute-FileUpload {
+    param (
+        [string]$slackToken,
+        [string]$channelId,
+        [string]$initialComment,
+        [string]$action,
+        [string[]]$files
+    )
 
-$bashCommand = "bash $SLACK_UPLOAD_SCRIPT"
-Invoke-Expression $bashCommand
+    if (-not $slackToken) {
+        Write-Host "slackToken is required"
+        exit 1
+    }
+
+    if (-not $channelId) {
+        Write-Host "channelId is required"
+        exit 1
+    }
+
+    if ($action -eq "upload") {
+        # Handle file upload
+        $fileList = @()
+        $comma = ""
+
+        foreach ($file in $files) {
+            if (-not (Test-Path $file)) {
+                Write-Host "File not found: $file"
+                exit 1
+            }
+
+            Write-Host "Uploading file: $file"
+
+            $uploadResult = Upload-File -slackToken $slackToken -filePath $file
+            Write-Host "Upload result: $uploadResult"
+
+            $uploadUrl = ($uploadResult | ConvertFrom-Json).upload_url
+            $fileId = ($uploadResult | ConvertFrom-Json).file_id
+
+            if (-not $uploadUrl -or -not $fileId) {
+                Write-Host "Error: Failed to parse upload URL or file ID."
+                exit 1
+            }
+
+            Write-Host "Posting file: $file to $uploadUrl"
+            $postResult = Post-File -uploadUrl $uploadUrl -filePath $file
+            Write-Host "$postResult"
+
+            $fileName = [System.IO.Path]::GetFileName($file)
+            $fileList += "{`"id`":`"$fileId`",`"title`":`"$fileName`"}"
+        }
+
+        Write-Host "File list: $fileList"
+        $completeResult = Complete-Upload -slackToken $slackToken -channelId $channelId -initialComment $initialComment -fileList $fileList
+        Write-Host "$completeResult"
+
+        Write-Host "File upload completed"
+    } elseif ($action -eq "message") {
+        # Post a simple message without file upload
+        Post-Message -slackToken $slackToken -channelId $channelId -initialComment $initialComment
+    } else {
+        Write-Host "Invalid action specified. Use 'upload' to upload files or 'message' to post a message."
+        exit 1
+    }
+}
+
+function Upload-File {
+    param (
+        [string]$slackToken,
+        [string]$filePath
+    )
+
+    $fileName = [System.IO.Path]::GetFileName($filePath)
+    $fileSize = (Get-Content $filePath -AsByteStream).Length
+
+    $uri = "https://slack.com/api/files.getUploadURLExternal"
+    $headers = @{
+        "Authorization" = "Bearer $slackToken"
+    }
+
+    $body = @{
+        "length" = $fileSize
+        "filename" = $fileName
+        "token" = $slackToken
+    }
+
+    $response = Invoke-RestMethod -Uri $uri -Method Post -Headers $headers -Body $body -ContentType "application/x-www-form-urlencoded"
+
+    if ($response.ok -ne $true) {
+        Write-Host "Failed to get upload url: $response"
+        exit 1
+    }
+
+    return $response
+}
+
+function Post-File {
+    param (
+        [string]$uploadUrl,
+        [string]$filePath
+    )
+
+    $response = Invoke-RestMethod -Uri $uploadUrl -Method Post -InFile $filePath -ContentType "application/octet-stream"
+
+    if ($response -notcontains "OK") {
+        Write-Host "Failed to post file: $response"
+        exit 1
+    }
+
+    return $response
+}
+
+function Complete-Upload {
+    param (
+        [string]$slackToken,
+        [string]$channelId,
+        [string]$initialComment,
+        [string[]]$fileList
+    )
+
+    $uri = "https://slack.com/api/files.completeUploadExternal"
+    $headers = @{
+        "Authorization" = "Bearer $slackToken"
+        "Content-Type" = "application/json"
+    }
+
+    $body = @{
+        "files" = $fileList
+        "initial_comment" = $initialComment
+        "channel_id" = $channelId
+    } | ConvertTo-Json
+
+    $response = Invoke-RestMethod -Uri $uri -Method Post -Headers $headers -Body $body
+
+    if ($response.ok -ne $true) {
+        Write-Host "Failed to complete upload: $response"
+        exit 1
+    }
+
+    return $response
+}
+
+function Post-Message {
+    param (
+        [string]$slackToken,
+        [string]$channelId,
+        [string]$initialComment
+    )
+
+    $uri = "https://slack.com/api/chat.postMessage"
+    $headers = @{
+        "Authorization" = "Bearer $slackToken"
+        "Content-Type" = "application/json"
+    }
+
+    $body = @{
+        "channel" = $channelId
+        "text" = $initialComment
+    } | ConvertTo-Json
+
+    $response = Invoke-RestMethod -Uri $uri -Method Post -Headers $headers -Body $body
+
+    if ($response.ok -ne $true) {
+        Write-Host "Failed to post message: $response"
+        exit 1
+    }
+
+    return $response
+}
+
+Execute-FileUpload -slackToken $SLACK_BOT_TOKEN -channelId $SLACK_CHANNEL -initialComment "Windows from $BRANCH_NAME" -action "upload" -files $NEW_MSI_PATH
 
 if ($?) {
     Write-Host "MSI sent to Slack successfully."
