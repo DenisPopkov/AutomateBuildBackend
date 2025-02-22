@@ -1,33 +1,28 @@
 $SECRET_FILE = "C:\Users\BlackBricks\Desktop\secret.txt"
+$BRANCH_NAME = "build_win_soundcheck"
+$BUMP_VERSION = "false"
 
 if (!(Test-Path $SECRET_FILE)) {
     Write-Host "Error: secret.txt file not found at $SECRET_FILE"
     exit 1
 }
 
-$SLACK_BOT_TOKEN = ""
-$SLACK_CHANNEL = ""
-
+# Read Slack credentials from secret.txt
+$secrets = @{}
 Get-Content $SECRET_FILE | ForEach-Object {
-    $key, $value = $_ -split '=', 2
+    $key, $value = $_ -split '='
     $key = $key.Trim()
     $value = $value.Trim()
-    
-    switch ($key) {
-        "SLACK_BOT_TOKEN" { $SLACK_BOT_TOKEN = $value }
-        "SLACK_CHANNEL" { $SLACK_CHANNEL = $value }
-    }
+    $secrets[$key] = $value
 }
 
-param (
-    [string]$BRANCH_NAME,
-    [bool]$BUMP_VERSION
-)
-
-if (-not $BRANCH_NAME) {
-    Write-Host "Error: Branch name is required"
+if (-not $secrets["SLACK_BOT_TOKEN"] -or -not $secrets["SLACK_CHANNEL"]) {
+    Write-Host "Error: Missing Slack credentials in secret.txt"
     exit 1
 }
+
+$SLACK_BOT_TOKEN = $secrets["SLACK_BOT_TOKEN"]
+$SLACK_CHANNEL = $secrets["SLACK_CHANNEL"]
 
 $PROJECT_DIR = "C:\Users\BlackBricks\StudioProjects\SA_Neuro_Multiplatform"
 Set-Location -Path $PROJECT_DIR -ErrorAction Stop
@@ -46,11 +41,11 @@ if (-not $VERSION_CODE -or -not $VERSION_NAME) {
     exit 1
 }
 
-if ($BUMP_VERSION) {
+if ($BUMP_VERSION -eq "true") {
     $VERSION_CODE = [int]$VERSION_CODE + 1
     (Get-Content $gradlePropsPath) -replace 'desktop\.build\.number\s*=\s*\d+', "desktop.build.number=$VERSION_CODE" | Set-Content $gradlePropsPath
 } else {
-    Write-Host "Nothing to bump"
+    Write-Host "Version bump skipped (BUMP_VERSION is false)"
 }
 
 $DESKTOP_BUILD_FILE = "$PROJECT_DIR\desktopApp\build.gradle.kts"
@@ -92,6 +87,22 @@ if (!(Test-Path $FINAL_MSI_PATH)) {
 
 Write-Host "Built successfully: $FINAL_MSI_PATH"
 
+# Rename the file with version code in brackets
 $NEW_MSI_PATH = $FINAL_MSI_PATH -replace ' ', '_'
+$NEW_MSI_PATH = $NEW_MSI_PATH -replace "$VERSION_CODE", "[$VERSION_CODE]"
 Move-Item -Path $FINAL_MSI_PATH -Destination $NEW_MSI_PATH
 Write-Host "Renamed file: '$NEW_MSI_PATH'"
+
+# Upload MSI to Slack using external bash script
+$slackUploadScript = "C:\Users\BlackBricks\PycharmProjects\AutomateBuildBackend\slack_upload.sh"
+
+if (Test-Path $slackUploadScript) {
+    Write-Host "Running Slack upload script..."
+    $uploadCommand = "bash -c ""source '$slackUploadScript'; execute_file_upload '$SLACK_BOT_TOKEN' '$SLACK_CHANNEL' 'Windows MSI signed from $BRANCH_NAME' 'upload' '$NEW_MSI_PATH'"""
+    Invoke-Expression $uploadCommand
+} else {
+    Write-Host "Error: Slack upload script not found at $slackUploadScript"
+    exit 1
+}
+
+Write-Host "Process completed."
