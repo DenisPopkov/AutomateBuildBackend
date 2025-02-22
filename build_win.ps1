@@ -87,9 +87,9 @@ if (!(Test-Path $FINAL_MSI_PATH)) {
 
 Write-Host "Built successfully: $FINAL_MSI_PATH"
 
-# Rename the file with version code in brackets
+# Renaming MSI to include version code in brackets
 $NEW_MSI_PATH = $FINAL_MSI_PATH -replace ' ', '_'
-$NEW_MSI_PATH = $NEW_MSI_PATH -replace "$VERSION_CODE", "[$VERSION_CODE]"
+$NEW_MSI_PATH = $NEW_MSI_PATH -replace "($VERSION_NAME)-($VERSION_CODE)\.msi", "$VERSION_NAME-[$VERSION_CODE].msi"
 Move-Item -Path $FINAL_MSI_PATH -Destination $NEW_MSI_PATH
 Write-Host "Renamed file: '$NEW_MSI_PATH'"
 
