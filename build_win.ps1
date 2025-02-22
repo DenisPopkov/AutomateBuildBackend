@@ -5,6 +5,8 @@ param(
     [string]$BUMP_VERSION
 )
 
+Write-Host "Branch name '$BRANCH_NAME'"
+
 # Check if the secret file exists
 if (!(Test-Path $SECRET_FILE)) {
     Write-Host "Error: secret.txt file not found at $SECRET_FILE"
@@ -142,16 +144,6 @@ if (Test-Path $FINAL_MSI_PATH) {
     exit 1
 }
 
-$bashScriptPath = "C:\\Users\\BlackBricks\\PycharmProjects\\AutomateBuildBackend\\slack_upload.sh"
+$bashScriptPath = "C:\Users\BlackBricks\PycharmProjects\AutomateBuildBackend\slack_upload.sh"
 $command = "bash -c 'source ""$bashScriptPath"" && execute_file_upload ""$SLACK_BOT_TOKEN"" ""$SLACK_CHANNEL"" ""Windows from $BRANCH_NAME"" ""upload"" ""$NEW_BUILD_PATH""'"
 Invoke-Expression $command
-
-if ($?) {
-    Write-Host "MSI sent to Slack successfully."
-    git add .
-    git commit -m "Update hardcoded libs"
-    git push origin $BRANCH_NAME
-} else {
-    Write-Host "Error committing hardcoded lib."
-    exit 1
-}
