@@ -45,13 +45,20 @@ def build_win():
         if not branch_name:
             return jsonify({"error": "Missing required parameter: branchName"}), 400
 
-        script_path = "build_win.ps1"
+        # Define the script path and flags
+        script_path = ".\\build_win.ps1"
         bump_version_flag = "true" if bump_version else "false"
 
-        subprocess.run(["sh", script_path, branch_name, bump_version_flag], check=True)
+        # Change the directory to the specified path
+        os.chdir("C:\\Users\\BlackBricks\\PycharmProjects\\AutomateBuildBackend")
+
+        # Run the PowerShell script with the parameters
+        subprocess.run(
+            ["powershell", "-ExecutionPolicy", "Bypass", "-File", script_path, branch_name, bump_version_flag],
+            check=True)
 
         return jsonify({
-            "message": f"macOS build for branch {branch_name} executed successfully with bumpVersion={bump_version_flag}!"
+            "message": f"Windows build for branch {branch_name} executed successfully with bumpVersion={bump_version_flag}!"
         }), 200
 
     except subprocess.CalledProcessError as e:
