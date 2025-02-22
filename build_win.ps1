@@ -105,10 +105,10 @@ Write-Host "Building..."
 $DESKTOP_BUILD_PATH = "$PROJECT_DIR\desktopApp\build\compose\binaries\main-release\msi"
 
 # Original MSI path after build (before renaming)
-$FINAL_MSI_PATH = "$DESKTOP_BUILD_PATH\Neuro_Desktop-$VERSION_NAME.msi"
+$FINAL_MSI_PATH = "$DESKTOP_BUILD_PATH\Neuro Desktop-$VERSION_NAME.msi"
 
 # Construct the new MSI path with version code in square brackets
-$NEW_MSI_PATH = "$DESKTOP_BUILD_PATH\Neuro_Desktop-$VERSION_NAME-[$VERSION_CODE].msi"
+$NEW_MSI_PATH = "$DESKTOP_BUILD_PATH\Neuro Desktop-$VERSION_NAME-[$VERSION_CODE].msi"
 
 # Check if the original file exists (before renaming)
 if (Test-Path $FINAL_MSI_PATH) {
@@ -130,27 +130,9 @@ if (Test-Path $FINAL_MSI_PATH) {
 
 Write-Host "Built successfully: $FINAL_MSI_PATH"
 
-# Define paths
-$MSI_DIR = "C:\Users\BlackBricks\StudioProjects\SA_Neuro_Multiplatform\desktopApp\build\compose\binaries\main-release\msi"
-$FINAL_MSI_PATH = "$MSI_DIR\Neuro_Desktop-$VERSION_NAME.msi"
-
-# Check if the build file exists
-if (!(Test-Path $FINAL_MSI_PATH)) {
-    Write-Host "Error: Build not found at expected path: $FINAL_MSI_PATH"
-    exit 1
-}
-
-# Construct the new MSI file name with the version code in square brackets
-$NEW_MSI_PATH = "$MSI_DIR\Neuro_Desktop-$VERSION_NAME-[$VERSION_CODE].msi"
-
-# Rename the file
-Move-Item -Path $FINAL_MSI_PATH -Destination $NEW_MSI_PATH
-
-Write-Host "Renamed file: '$NEW_MSI_PATH'"
-
 ## Upload to Slack using the script
 #Write-Host "Uploading renamed .msi to Slack..."
-#execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "Windows MSI signed from $BRANCH_NAME" "upload" "${NEW_MSI_PATH}"
+#execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "Windows from $BRANCH_NAME" "upload" "${NEW_MSI_PATH}"
 #
 #if ($?) {
 #    Write-Host "MSI sent to Slack successfully."
