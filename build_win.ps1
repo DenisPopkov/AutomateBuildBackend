@@ -74,9 +74,8 @@ $DESKTOP_DSP_BUILD_FILE = "C:\Users\BlackBricks\Desktop\build_dsp\build.gradle.k
 $DESKTOP_N0_DSP_BUILD_FILE = "C:\Users\BlackBricks\Desktop\no_dsp\build.gradle.kts"
 $BUILD_PATH = "$PROJECT_DIR\desktopApp\build"
 $SET_UPDATED_LIB_PATH = "$PROJECT_DIR\shared\src\commonMain\resources\MR\files\libdspmac.dylib"
-$CACHE_UPDATED_LIB_PATH = "$PROJECT_DIR\desktopApp\build\native\libdspmac.dylib"
+$CACHE_UPDATED_LIB_PATH = "$PROJECT_DIR\shared\build\resources\MR\files\libdspmac.dylib"
 
-# Replace files for build
 Remove-Item -Force $DESKTOP_N0_DSP_BUILD_FILE -ErrorAction Ignore
 Copy-Item -Path $DESKTOP_BUILD_FILE -Destination $DESKTOP_N0_DSP_BUILD_FILE
 
@@ -92,18 +91,19 @@ $NEURO_WINDOW_FILE_PATH = "$PROJECT_DIR\desktopApp\src\main\kotlin\presentation\
 $NEURO_WINDOW_DSP_FILE = "C:\Users\BlackBricks\Desktop\build_dsp\NeuroWindow.kt"
 $NEURO_WINDOW_N0_DSP_FILE = "C:\Users\BlackBricks\Desktop\no_dsp\NeuroWindow.kt"
 
-Write-Host "Replacing $NEURO_WINDOW_FILE_PATH with $NEURO_WINDOW_DSP_FILE"
 Remove-Item -Force $NEURO_WINDOW_FILE_PATH -ErrorAction Ignore
-Copy-Item -Path $NEURO_WINDOW_DSP_FILE -Destination $NEURO_WINDOW_FILE_PATH
+Copy-Item -Path $NEURO_WINDOW_N0_DSP_FILE -Destination $NEURO_WINDOW_FILE_PATH
 
 # Compile Kotlin
 Set-Location -Path $PROJECT_DIR
 ./gradlew compileKotlin
 
+Write-Host "Building..."
+./gradlew packageReleaseMsi
+
 # Restore original NeuroWindow.kt file
-Write-Host "Restoring original NeuroWindow.kt from $NEURO_WINDOW_N0_DSP_FILE"
 Remove-Item -Force $NEURO_WINDOW_FILE_PATH
-Copy-Item -Path $NEURO_WINDOW_N0_DSP_FILE -Destination $NEURO_WINDOW_FILE_PATH
+Copy-Item -Path $NEURO_WINDOW_DSP_FILE -Destination $NEURO_WINDOW_FILE_PATH
 
 # Restore original build file and lib
 Remove-Item -Force $DESKTOP_BUILD_FILE
@@ -111,9 +111,6 @@ Copy-Item -Path $DESKTOP_N0_DSP_BUILD_FILE -Destination $DESKTOP_BUILD_FILE
 
 Remove-Item -Force $SET_UPDATED_LIB_PATH
 Copy-Item -Path $CACHE_UPDATED_LIB_PATH -Destination $SET_UPDATED_LIB_PATH
-
-Write-Host "Building..."
-./gradlew packageReleaseMsi
 
 # Path to the build output
 $DESKTOP_BUILD_PATH = "$PROJECT_DIR\desktopApp\build\compose\binaries\main-release\msi"
@@ -145,7 +142,6 @@ if (Test-Path $FINAL_MSI_PATH) {
 # Path to the shell script
 $SLACK_UPLOAD_SCRIPT = "/Users/denispopkov/PycharmProjects/AutomateBuildBackend/slack_upload.sh"
 
-# Execute the shell script using bash (you need bash to be installed, such as Git Bash or WSL on Windows)
 $bashCommand = "bash $SLACK_UPLOAD_SCRIPT"
 Invoke-Expression $bashCommand
 
