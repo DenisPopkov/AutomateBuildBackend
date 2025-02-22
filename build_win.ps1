@@ -2,6 +2,11 @@ $SECRET_FILE = "C:\Users\BlackBricks\Desktop\secret.txt"
 $BRANCH_NAME = "build_win_soundcheck"
 $BUMP_VERSION = "false"
 
+#param(
+#    [string]$BRANCH_NAME,
+#    [string]$BUMP_VERSION
+#)
+
 # Check if the secret file exists
 if (!(Test-Path $SECRET_FILE)) {
     Write-Host "Error: secret.txt file not found at $SECRET_FILE"
@@ -119,7 +124,7 @@ $DESKTOP_BUILD_PATH = "$PROJECT_DIR\desktopApp\build\compose\binaries\main-relea
 $FINAL_MSI_PATH = "$DESKTOP_BUILD_PATH\Neuro Desktop-$VERSION_NAME.msi"
 
 # Construct the new MSI path with version code in square brackets
-$NEW_MSI_PATH = "$DESKTOP_BUILD_PATH\Neuro Desktop-$VERSION_NAME-[$VERSION_CODE].msi"
+$NEW_MSI_PATH = "$DESKTOP_BUILD_PATH\Neuro_Desktop-$VERSION_NAME-[$VERSION_CODE].msi"
 
 # Check if the original file exists (before renaming)
 if (Test-Path $FINAL_MSI_PATH) {
@@ -164,11 +169,6 @@ function Execute-FileUpload {
         $comma = ""
 
         foreach ($file in $files) {
-            if (-not (Test-Path $file)) {
-                Write-Host "File not found: $file"
-                exit 1
-            }
-
             Write-Host "Uploading file: $file"
 
             $uploadResult = Upload-File -slackToken $slackToken -filePath $file
