@@ -45,7 +45,7 @@ def build_win():
         if not branch_name:
             return jsonify({"error": "Missing required parameter: branchName"}), 400
 
-        script_path = "./build_win.sh"
+        script_path = "build_win.ps1"
         bump_version_flag = "true" if bump_version else "false"
 
         subprocess.run(["sh", script_path, branch_name, bump_version_flag], check=True)
