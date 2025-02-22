@@ -48,14 +48,38 @@ else
   echo "Nothing to bump"
 fi
 
+DESKTOP_BUILD_FILE="$PROJECT_DIR\desktopApp\build.gradle.kts"
+DESKTOP_DSP_BUILD_FILE="C:\Users\BlackBricks\Desktop\build_dsp\build.gradle.kts"
+DESKTOP_N0_DSP_BUILD_FILE="C:\Users\BlackBricks\Desktop\no_dsp\build.gradle.kts"
 BUILD_PATH="$PROJECT_DIR\desktopApp\build"
-DESKTOP_BUILD_PATH="$PROJECT_DIR\desktopApp\build\compose\binaries\main-release\msi"
-FINAL_MSI_PATH="$DESKTOP_BUILD_PATH\Neuro Desktop-3.0.25.msi"
+SET_UPDATED_LIB_PATH="$PROJECT_DIR\shared\src\commonMain\resources\MR\files\libdspmac.dll"
+CACHE_UPDATED_LIB_PATH="$PROJECT_DIR\desktopApp\build\native\libdspmac.dll"
+
+rm -f "$DESKTOP_N0_DSP_BUILD_FILE"
+cp "$DESKTOP_BUILD_FILE" "$DESKTOP_N0_DSP_BUILD_FILE"
+
+echo "Replacing $DESKTOP_BUILD_FILE with $DESKTOP_DSP_BUILD_FILE"
+rm -f "$DESKTOP_BUILD_FILE"
+cp "$DESKTOP_DSP_BUILD_FILE" "$DESKTOP_BUILD_FILE"
 
 rm -rf "$BUILD_PATH"
 
+cp "$DESKTOP_DSP_BUILD_FILE" "$DESKTOP_BUILD_FILE"
+
+cd "$PROJECT_DIR" || exit 1
+./gradlew compileKotlin
+
+rm -f "$DESKTOP_BUILD_FILE"
+cp "$DESKTOP_N0_DSP_BUILD_FILE" "$DESKTOP_BUILD_FILE"
+
+rm -f "$SET_UPDATED_LIB_PATH"
+cp "$CACHE_UPDATED_LIB_PATH" "$SET_UPDATED_LIB_PATH"
+
 echo "Building..."
 ./gradlew packageReleaseMsi
+
+DESKTOP_BUILD_PATH="$PROJECT_DIR\desktopApp\build\compose\binaries\main-release\msi"
+FINAL_MSI_PATH="$DESKTOP_BUILD_PATH\Neuro Desktop-3.0.25.msi"
 
 if [ "$BUMP_VERSION" == "true" ]; then
     VERSION_CODE=$((VERSION_CODE + 1))
