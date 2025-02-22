@@ -211,7 +211,10 @@ function Upload-File {
     )
 
     $fileName = [System.IO.Path]::GetFileName($filePath)
-    $fileSize = (Get-Content $filePath -AsByteStream).Length
+
+    # Calculate the file size using FileInfo
+    $fileInfo = New-Object System.IO.FileInfo($filePath)
+    $fileSize = $fileInfo.Length
 
     $uri = "https://slack.com/api/files.getUploadURLExternal"
     $headers = @{
@@ -227,7 +230,7 @@ function Upload-File {
     $response = Invoke-RestMethod -Uri $uri -Method Post -Headers $headers -Body $body -ContentType "application/x-www-form-urlencoded"
 
     if ($response.ok -ne $true) {
-        Write-Host "Failed to get upload url: $response"
+        Write-Host "Failed to get upload URL: $response"
         exit 1
     }
 
