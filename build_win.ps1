@@ -101,12 +101,30 @@ Copy-Item -Path $CACHE_UPDATED_LIB_PATH -Destination $SET_UPDATED_LIB_PATH
 Write-Host "Building..."
 ./gradlew packageReleaseMsi
 
-# MSI path and final file
+# Path to the build output
 $DESKTOP_BUILD_PATH = "$PROJECT_DIR\desktopApp\build\compose\binaries\main-release\msi"
-$FINAL_MSI_PATH = "$DESKTOP_BUILD_PATH\Neuro_Desktop-$VERSION_NAME-$VERSION_CODE.msi"
 
-if (!(Test-Path $FINAL_MSI_PATH)) {
-    Write-Host "Error: Build not found at expected path: $FINAL_MSI_PATH"
+# Original MSI path after build (before renaming)
+$FINAL_MSI_PATH = "$DESKTOP_BUILD_PATH\Neuro_Desktop-$VERSION_NAME.msi"
+
+# Construct the new MSI path with version code in square brackets
+$NEW_MSI_PATH = "$DESKTOP_BUILD_PATH\Neuro_Desktop-$VERSION_NAME-[$VERSION_CODE].msi"
+
+# Check if the original file exists (before renaming)
+if (Test-Path $FINAL_MSI_PATH) {
+    # If the destination file already exists, we delete it to avoid conflicts
+    if (Test-Path $NEW_MSI_PATH) {
+        Remove-Item $NEW_MSI_PATH -Force
+        Write-Host "Deleted existing file: $NEW_MSI_PATH"
+    }
+
+    # Rename the file (Move-Item also renames it)
+    Move-Item -Path $FINAL_MSI_PATH -Destination $NEW_MSI_PATH
+
+    # Confirm the renaming
+    Write-Host "Renamed file: '$NEW_MSI_PATH'"
+} else {
+    Write-Host "Error: Build file '$FINAL_MSI_PATH' not found."
     exit 1
 }
 
