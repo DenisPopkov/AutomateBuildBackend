@@ -42,10 +42,6 @@ foreach ($line in $secrets) {
     }
 }
 
-# Output the values (for debugging purposes)
-Write-Host "SLACK_BOT_TOKEN: $SLACK_BOT_TOKEN"
-Write-Host "SLACK_CHANNEL: $SLACK_CHANNEL"
-
 $PROJECT_DIR = "C:\Users\BlackBricks\StudioProjects\SA_Neuro_Multiplatform"
 Set-Location -Path $PROJECT_DIR -ErrorAction Stop
 
@@ -116,17 +112,23 @@ if (!(Test-Path $FINAL_MSI_PATH)) {
 
 Write-Host "Built successfully: $FINAL_MSI_PATH"
 
-# Renaming MSI file with version code in square brackets
-$NEW_MSI_PATH = $FINAL_MSI_PATH -replace ' ', '_'
-$NEW_MSI_PATH = $NEW_MSI_PATH -replace "($VERSION_NAME)-($VERSION_CODE)\.msi", "$VERSION_NAME-[$VERSION_CODE].msi"
+# Define paths
+$MSI_DIR = "C:\Users\BlackBricks\StudioProjects\SA_Neuro_Multiplatform\desktopApp\build\compose\binaries\main-release\msi"
+$FINAL_MSI_PATH = "$MSI_DIR\Neuro_Desktop-$VERSION_NAME.msi"
 
-# Make sure the final MSI file is not being overwritten, and move it to the correct location
-if ($FINAL_MSI_PATH -ne $NEW_MSI_PATH) {
-    Move-Item -Path $FINAL_MSI_PATH -Destination $NEW_MSI_PATH
-    Write-Host "Renamed file: '$NEW_MSI_PATH'"
-} else {
-    Write-Host "No renaming needed, file already named as: '$NEW_MSI_PATH'"
+# Check if the build file exists
+if (!(Test-Path $FINAL_MSI_PATH)) {
+    Write-Host "Error: Build not found at expected path: $FINAL_MSI_PATH"
+    exit 1
 }
+
+# Construct the new MSI file name with the version code in square brackets
+$NEW_MSI_PATH = "$MSI_DIR\Neuro_Desktop-$VERSION_NAME-[$VERSION_CODE].msi"
+
+# Rename the file
+Move-Item -Path $FINAL_MSI_PATH -Destination $NEW_MSI_PATH
+
+Write-Host "Renamed file: '$NEW_MSI_PATH'"
 
 ## Upload to Slack using the script
 #Write-Host "Uploading renamed .msi to Slack..."
