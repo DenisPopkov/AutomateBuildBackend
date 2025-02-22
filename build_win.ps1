@@ -145,5 +145,7 @@ if (Test-Path $FINAL_MSI_PATH) {
 }
 
 $bashScriptPath = "C:\Users\BlackBricks\PycharmProjects\AutomateBuildBackend\slack_upload.sh"
-$command = "bash -c 'source ""$bashScriptPath"" && execute_file_upload ""$SLACK_BOT_TOKEN"" ""$SLACK_CHANNEL"" ""Windows from $BRANCH_NAME"" ""upload"" ""$NEW_BUILD_PATH""'"
+$bashScriptPathUnix = $bashScriptPath -replace "\\", "/" -replace "C:", "/c"
+
+$command = "bash -c 'source ""$bashScriptPathUnix"" && execute_file_upload ""$SLACK_BOT_TOKEN"" ""$SLACK_CHANNEL"" ""Windows from $BRANCH_NAME"" ""upload"" ""$NEW_BUILD_PATH""'"
 Invoke-Expression $command
