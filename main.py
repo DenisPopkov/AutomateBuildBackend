@@ -42,7 +42,7 @@ def build_win():
         branch_name = data.get('branchName')
         bump_version = data.get('bumpVersion', False)
 
-        if not branch_name or sign is None:
+        if not branch_name is None:
             return jsonify({"error": "Missing required parameters: branchName and sign"}), 400
 
         script_path = "./build_win.sh"
@@ -51,7 +51,7 @@ def build_win():
         subprocess.run(["sh", script_path, branch_name, bump_version_flag], check=True)
 
         return jsonify({
-            "message": f"macOS build for branch {branch_name} {'with' if sign else 'without'} signing executed successfully with bumpVersion={bump_version_flag}!"
+            "message": f"macOS build for branch {branch_name} executed successfully with bumpVersion={bump_version_flag}!"
         }), 200
 
     except subprocess.CalledProcessError as e:

@@ -6,6 +6,10 @@ curl -X POST http://localhost:5001/build_mac \
 -H "Content-Type: application/json" \
 -d '{"branchName": "soundcheck_develop", "sign": true }'
 
+curl -X POST http://localhost:5001/build_win \
+-H "Content-Type: application/json" \
+-d '{"branchName": "build_win_soundcheck"}'
+
 curl -X POST http://localhost:5001/build_android \
 -H "Content-Type: application/json" \
 -d '{"branchName": "soundcheck_develop"}'
