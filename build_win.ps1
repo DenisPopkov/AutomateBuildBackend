@@ -87,9 +87,23 @@ Copy-Item -Path $DESKTOP_DSP_BUILD_FILE -Destination $DESKTOP_BUILD_FILE
 Remove-Item -Recurse -Force $BUILD_PATH -ErrorAction Ignore
 Copy-Item -Path $DESKTOP_DSP_BUILD_FILE -Destination $DESKTOP_BUILD_FILE
 
+# Replace NeuroWindow.kt just before building the MSI
+$NEURO_WINDOW_FILE_PATH = "$PROJECT_DIR\desktopApp\src\main\kotlin\presentation\neuro_window\NeuroWindow.kt"
+$NEURO_WINDOW_DSP_FILE = "C:\Users\BlackBricks\Desktop\build_dsp\NeuroWindow.kt"
+$NEURO_WINDOW_N0_DSP_FILE = "C:\Users\BlackBricks\Desktop\no_dsp\NeuroWindow.kt"
+
+Write-Host "Replacing $NEURO_WINDOW_FILE_PATH with $NEURO_WINDOW_DSP_FILE"
+Remove-Item -Force $NEURO_WINDOW_FILE_PATH -ErrorAction Ignore
+Copy-Item -Path $NEURO_WINDOW_DSP_FILE -Destination $NEURO_WINDOW_FILE_PATH
+
 # Compile Kotlin
 Set-Location -Path $PROJECT_DIR
 ./gradlew compileKotlin
+
+# Restore original NeuroWindow.kt file
+Write-Host "Restoring original NeuroWindow.kt from $NEURO_WINDOW_N0_DSP_FILE"
+Remove-Item -Force $NEURO_WINDOW_FILE_PATH
+Copy-Item -Path $NEURO_WINDOW_N0_DSP_FILE -Destination $NEURO_WINDOW_FILE_PATH
 
 # Restore original build file and lib
 Remove-Item -Force $DESKTOP_BUILD_FILE
