@@ -119,8 +119,14 @@ Write-Host "Built successfully: $FINAL_MSI_PATH"
 # Renaming MSI file with version code in square brackets
 $NEW_MSI_PATH = $FINAL_MSI_PATH -replace ' ', '_'
 $NEW_MSI_PATH = $NEW_MSI_PATH -replace "($VERSION_NAME)-($VERSION_CODE)\.msi", "$VERSION_NAME-[$VERSION_CODE].msi"
-Move-Item -Path $FINAL_MSI_PATH -Destination $NEW_MSI_PATH
-Write-Host "Renamed file: '$NEW_MSI_PATH'"
+
+# Make sure the final MSI file is not being overwritten, and move it to the correct location
+if ($FINAL_MSI_PATH -ne $NEW_MSI_PATH) {
+    Move-Item -Path $FINAL_MSI_PATH -Destination $NEW_MSI_PATH
+    Write-Host "Renamed file: '$NEW_MSI_PATH'"
+} else {
+    Write-Host "No renaming needed, file already named as: '$NEW_MSI_PATH'"
+}
 
 ## Upload to Slack using the script
 #Write-Host "Uploading renamed .msi to Slack..."
