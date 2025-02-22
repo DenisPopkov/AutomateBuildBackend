@@ -54,7 +54,7 @@ def build_win():
 
         # Run the PowerShell script with the parameters
         subprocess.run(
-            ["powershell", "-ExecutionPolicy", "Bypass", "-File", script_path, branch_name, bump_version_flag],
+            ["powershell", "-ExecutionPolicy", "Bypass", "-File", script_path, "-BRANCH_NAME", branch_name, "-BUMP_VERSION", bump_version_flag],
             check=True)
 
         return jsonify({

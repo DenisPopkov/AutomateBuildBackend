@@ -1,9 +1,9 @@
-$SECRET_FILE = "C:\Users\BlackBricks\Desktop\secret.txt"
-
 param(
     [string]$BRANCH_NAME,
     [string]$BUMP_VERSION
 )
+
+$SECRET_FILE = "C:\Users\BlackBricks\Desktop\secret.txt"
 
 Write-Host "Branch name '$BRANCH_NAME'"
 
