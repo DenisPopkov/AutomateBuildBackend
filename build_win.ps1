@@ -142,8 +142,9 @@ if (Test-Path $FINAL_MSI_PATH) {
     exit 1
 }
 
-$bashScriptPath = "C:\Users\BlackBricks\PycharmProjects\AutomateBuildBackend\slack_upload.sh"
+$bashScriptPath = "C:\\Users\\BlackBricks\\PycharmProjects\\AutomateBuildBackend\\slack_upload.sh"
 $command = "bash -c 'source $bashScriptPath && execute_file_upload \"$SLACK_BOT_TOKEN\" \"$SLACK_CHANNEL\" \"Windows from $BRANCH_NAME\" \"upload\" \"$NEW_BUILD_PATH\"'"
+Invoke-Expression $command
 
 if ($?) {
     Write-Host "MSI sent to Slack successfully."
