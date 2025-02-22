@@ -42,8 +42,8 @@ def build_win():
         branch_name = data.get('branchName')
         bump_version = data.get('bumpVersion', False)
 
-        if not branch_name is None:
-            return jsonify({"error": "Missing required parameters: branchName and sign"}), 400
+        if not branch_name:
+            return jsonify({"error": "Missing required parameter: branchName"}), 400
 
         script_path = "./build_win.sh"
         bump_version_flag = "true" if bump_version else "false"
