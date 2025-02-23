@@ -7,36 +7,24 @@ $SECRET_FILE = "C:\Users\BlackBricks\Desktop\secret.txt"
 
 Write-Host "Branch name '$BRANCH_NAME'"
 
-# Check if the secret file exists
-if (!(Test-Path $SECRET_FILE)) {
-    Write-Host "Error: secret.txt file not found at $SECRET_FILE"
-    exit 1
-}
-
-# Read secrets from the file
 $secrets = Get-Content $SECRET_FILE
 
 foreach ($line in $secrets) {
-    # Ignore empty lines or lines starting with # (comment lines)
     if ([string]::IsNullOrWhiteSpace($line) -or $line.StartsWith("#")) {
         continue
     }
 
-    # Split each line by '=' to get key-value pairs
     $splitLine = $line -split '=', 2
 
-    # Check if the line has exactly two parts: key and value
     if ($splitLine.Length -eq 2) {
         $key = $splitLine[0].Trim()
         $value = $splitLine[1].Trim()
 
-        # Check if the value is null or empty
         if ([string]::IsNullOrEmpty($value)) {
             Write-Host "Warning: Value for '$key' is empty or null"
             continue
         }
 
-        # Assign values based on keys
         switch ($key) {
             "SLACK_BOT_TOKEN" { $SLACK_BOT_TOKEN = $value }
             "SLACK_CHANNEL" { $SLACK_CHANNEL = $value }
@@ -81,15 +69,15 @@ $BUILD_PATH = "$PROJECT_DIR\desktopApp\build"
 $SET_UPDATED_LIB_PATH = "$PROJECT_DIR\shared\src\commonMain\resources\MR\files\libdspmac.dylib"
 $CACHE_UPDATED_LIB_PATH = "$PROJECT_DIR\shared\build\resources\MR\files\libdspmac.dylib"
 
-#Remove-Item -Force $DESKTOP_N0_DSP_BUILD_FILE -ErrorAction Ignore
-#Copy-Item -Path $DESKTOP_BUILD_FILE -Destination $DESKTOP_N0_DSP_BUILD_FILE
-#
-#Write-Host "Replacing $DESKTOP_BUILD_FILE with $DESKTOP_DSP_BUILD_FILE"
-#Remove-Item -Force $DESKTOP_BUILD_FILE -ErrorAction Ignore
-#Copy-Item -Path $DESKTOP_DSP_BUILD_FILE -Destination $DESKTOP_BUILD_FILE
-#
-#Remove-Item -Recurse -Force $BUILD_PATH -ErrorAction Ignore
-#Copy-Item -Path $DESKTOP_DSP_BUILD_FILE -Destination $DESKTOP_BUILD_FILE
+Remove-Item -Force $DESKTOP_N0_DSP_BUILD_FILE -ErrorAction Ignore
+Copy-Item -Path $DESKTOP_BUILD_FILE -Destination $DESKTOP_N0_DSP_BUILD_FILE
+
+Write-Host "Replacing $DESKTOP_BUILD_FILE with $DESKTOP_DSP_BUILD_FILE"
+Remove-Item -Force $DESKTOP_BUILD_FILE -ErrorAction Ignore
+Copy-Item -Path $DESKTOP_DSP_BUILD_FILE -Destination $DESKTOP_BUILD_FILE
+
+Remove-Item -Recurse -Force $BUILD_PATH -ErrorAction Ignore
+Copy-Item -Path $DESKTOP_DSP_BUILD_FILE -Destination $DESKTOP_BUILD_FILE
 
 # Replace NeuroWindow.kt just before building the MSI
 $NEURO_WINDOW_FILE_PATH = "$PROJECT_DIR\desktopApp\src\main\kotlin\presentation\neuro_window\NeuroWindow.kt"
@@ -100,8 +88,8 @@ Remove-Item -Force $NEURO_WINDOW_FILE_PATH -ErrorAction Ignore
 Copy-Item -Path $NEURO_WINDOW_N0_DSP_FILE -Destination $NEURO_WINDOW_FILE_PATH
 
 # Compile Kotlin
-#Set-Location -Path $PROJECT_DIR
-#./gradlew compileKotlin
+Set-Location -Path $PROJECT_DIR
+./gradlew compileKotlin
 
 Write-Host "Building..."
 ./gradlew packageReleaseMsi
@@ -111,11 +99,11 @@ Remove-Item -Force $NEURO_WINDOW_FILE_PATH
 Copy-Item -Path $NEURO_WINDOW_DSP_FILE -Destination $NEURO_WINDOW_FILE_PATH
 
 # Restore original build file and lib
-#Remove-Item -Force $DESKTOP_BUILD_FILE
-#Copy-Item -Path $DESKTOP_N0_DSP_BUILD_FILE -Destination $DESKTOP_BUILD_FILE
-#
-#Remove-Item -Force $SET_UPDATED_LIB_PATH
-#Copy-Item -Path $CACHE_UPDATED_LIB_PATH -Destination $SET_UPDATED_LIB_PATH
+Remove-Item -Force $DESKTOP_BUILD_FILE
+Copy-Item -Path $DESKTOP_N0_DSP_BUILD_FILE -Destination $DESKTOP_BUILD_FILE
+
+Remove-Item -Force $SET_UPDATED_LIB_PATH
+Copy-Item -Path $CACHE_UPDATED_LIB_PATH -Destination $SET_UPDATED_LIB_PATH
 
 # Path to the build output
 $DESKTOP_BUILD_PATH = "$PROJECT_DIR\desktopApp\build\compose\binaries\main-release\msi"
@@ -124,7 +112,7 @@ $DESKTOP_BUILD_PATH = "$PROJECT_DIR\desktopApp\build\compose\binaries\main-relea
 $FINAL_MSI_PATH = "$DESKTOP_BUILD_PATH\Neuro Desktop-$VERSION_NAME.msi"
 
 # Construct the new MSI path with version code in square brackets
-$NEW_MSI_PATH = "$DESKTOP_BUILD_PATH\Neuro_Desktop-$VERSION_NAME-[$VERSION_CODE].msi"
+$NEW_MSI_PATH = "$DESKTOP_BUILD_PATH\Neuro_Desktop-$VERSION_NAME-$VERSION_CODE.msi"
 
 # Check if the original file exists (before renaming)
 if (Test-Path $FINAL_MSI_PATH) {
@@ -136,17 +124,199 @@ if (Test-Path $FINAL_MSI_PATH) {
 
     # Rename the file (Move-Item also renames it)
     Move-Item -Path $FINAL_MSI_PATH -Destination $NEW_MSI_PATH
-
-    # Confirm the renaming
     Write-Host "Renamed file: '$NEW_MSI_PATH'"
 } else {
     Write-Host "Error: Build file '$FINAL_MSI_PATH' not found."
     exit 1
 }
 
-$bashScriptPath = "slack_upload.sh"
+function Execute-FileUpload {
+    param (
+        [string]$SlackToken,
+        [string]$ChannelId,
+        [string]$InitialComment,
+        [string]$Action,
+        [string[]]$Files
+    )
 
-$command = "bash -c 'source ""$bashScriptPath"" && execute_file_upload ""$SLACK_BOT_TOKEN"" ""$SLACK_CHANNEL"" ""Windows from $BRANCH_NAME"" ""upload"" ""$NEW_MSI_PATH""'"
+    if (-not $SlackToken) {
+        Write-Host "SlackToken is required"
+        exit 1
+    }
 
-Write-Host "Executing command: $command"
-Invoke-Expression $command
+    if (-not $ChannelId) {
+        Write-Host "ChannelId is required"
+        exit 1
+    }
+
+    if ($Action -eq "upload") {
+        # Handle file upload
+        $filelist = @()
+        $comma = ""
+
+        foreach ($file in $Files) {
+            if (-not (Test-Path $file)) {
+                Write-Host "File not found: $file"
+                exit 1
+            }
+            Write-Host "Uploading file: $file"
+
+            $uploadResult = Upload-File -SlackToken $SlackToken -FilePath $file
+            Write-Host "Upload result: $uploadResult"
+
+            $uploadUrl = $uploadResult.upload_url
+            $fileId = $uploadResult.file_id
+
+            if (-not $uploadUrl -or -not $fileId) {
+                Write-Host "Error: Failed to parse upload URL or file ID."
+                exit 1
+            }
+
+            Write-Host "Posting file: $file to $uploadUrl"
+            $postResult = Post-File -UploadUrl $uploadUrl -FilePath $file
+            Write-Host "$postResult"
+
+            $fileName = [System.IO.Path]::GetFileName($file)
+            $filelist += @{id = $fileId; title = $fileName}
+        }
+
+        Write-Host "File list: $($filelist | ConvertTo-Json)"
+        $completeResult = Complete-Upload -SlackToken $SlackToken -ChannelId $ChannelId -InitialComment $InitialComment -FileId $fileId
+        Write-Host "$completeResult"
+
+        Write-Host "File upload completed"
+    } elseif ($Action -eq "message") {
+        # Post a simple message without file upload
+        Post-Message -SlackToken $SlackToken -ChannelId $ChannelId -InitialComment $InitialComment
+    } else {
+        Write-Host "Invalid action specified. Use 'upload' to upload files or 'message' to post a message."
+        exit 1
+    }
+}
+
+function Upload-File {
+    param (
+        [string]$SlackToken,
+        [string]$FilePath
+    )
+
+    $fileName = [System.IO.Path]::GetFileName($FilePath)
+    $fileSize = (Get-Item $FilePath).length
+
+    $url = "https://slack.com/api/files.getUploadURLExternal"
+
+    $headers = @{
+        "Authorization" = "Bearer $SlackToken"
+    }
+
+    $body = @{
+        "length"   = $fileSize
+        "filename" = $fileName
+    }
+
+    try {
+        $response = Invoke-WebRequest -Uri $url -Method Post -Headers $headers -Body $body -ContentType "application/x-www-form-urlencoded"
+        $responseContent = $response.Content | ConvertFrom-Json
+
+        if ($responseContent.ok -ne $true) {
+            Write-Host "Failed to get upload URL: $($responseContent | ConvertTo-Json)"
+            exit 1
+        }
+
+        return $responseContent
+    } catch {
+        Write-Host "Error during file upload: $_"
+        exit 1
+    }
+}
+
+function Post-File {
+    param (
+        [string]$UploadUrl,
+        [string]$FilePath
+    )
+
+    if (-not (Test-Path -Path $FilePath)) {
+        Write-Host "File not found: $FilePath"
+        exit 1
+    }
+
+    $escapedFilePath = "`"$FilePath`""
+    $escapedUploadUrl = "`"$UploadUrl`""
+
+    $command = "curl -s -X POST $escapedUploadUrl --data-binary @$escapedFilePath"
+
+    try {
+        $process = Start-Process -FilePath "cmd.exe" -ArgumentList "/c $command" -PassThru -Wait
+
+        if ($process.ExitCode -ne 0) {
+            Write-Host "Error during file post. Exit code: $($process.ExitCode)"
+            exit 1
+        }
+
+        Write-Host "File posted successfully"
+    } catch {
+        Write-Host "Error during file post: $_"
+        exit 1
+    }
+}
+
+function Complete-Upload {
+    param(
+        [string]$slackToken,
+        [string]$channelId,
+        [string]$initialComment,
+        [string]$fileId
+    )
+
+    $url = "https://slack.com/api/files.completeUploadExternal"
+    $headers = @{
+        "Authorization" = "Bearer $slackToken"
+        "Content-Type"  = "application/json; charset=utf-8"
+    }
+
+    $body = @{
+        "files" = @(
+            @{
+                "id" = $fileId
+            }
+        )
+        "initial_comment" = $initialComment
+        "channel_id"      = $channelId
+    } | ConvertTo-Json
+
+    $response = Invoke-RestMethod -Uri $url -Method Post -Headers $headers -Body $body
+
+    if ($response.ok -ne $true) {
+        Write-Host "Failed to complete upload: $($response | ConvertTo-Json)"
+        exit 1
+    }
+
+    return $response
+}
+
+function Post-Message {
+    param (
+        [string]$SlackToken,
+        [string]$ChannelId,
+        [string]$InitialComment
+    )
+
+    $command = "curl -s -X POST -H 'Authorization: Bearer $SlackToken' -H 'Content-Type: application/json' -d @{
+        channel = $ChannelId
+        text = $InitialComment
+    } 'https://slack.com/api/chat.postMessage'"
+
+    $response = Invoke-Expression $command | ConvertFrom-Json
+
+    if ($response.ok -ne $true) {
+        Write-Host "Failed to complete message post: $($response | ConvertTo-Json)"
+        exit 1
+    }
+
+    Write-Host "$response"
+}
+
+Start-Sleep -Seconds 20
+
+Execute-FileUpload -SlackToken $SLACK_BOT_TOKEN -ChannelId $SLACK_CHANNEL -InitialComment "Windows from $BRANCH_NAME" -Action "upload" -Files $NEW_MSI_PATH
