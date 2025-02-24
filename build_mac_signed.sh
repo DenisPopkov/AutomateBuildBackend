@@ -39,6 +39,7 @@ PROJECT_DIR="/Users/denispopkov/AndroidStudioProjects/SA_Neuro_Multiplatform"
 cd "$PROJECT_DIR" || { echo "Project directory not found!"; exit 1; }
 
 echo "Checking out branch: $BRANCH_NAME"
+git stash push -m "Pre-build stash"
 git fetch && git checkout "$BRANCH_NAME" && git pull origin "$BRANCH_NAME"
 
 VERSION_CODE=$(grep '^desktop\.build\.number\s*=' "$PROJECT_DIR/gradle.properties" | sed 's/.*=\s*\([0-9]*\)/\1/' | xargs)
@@ -127,6 +128,7 @@ else
   exit 1
 fi
 
+sleep 20
 
 open "$BUILD_TOOL"
 
@@ -172,10 +174,14 @@ while [ ! -f "$NOTARIZED_BUILD_PATH" ]; do
   fi
 done
 
+sleep 20
+
 ## Signing the .pkg
 SIGNED_PKG_PATH="/Users/denispopkov/AndroidStudioProjects/SA_Neuro_release/build/Neuro_desktopS.pkg"
 echo "Signing the .pkg file..."
 echo "$USER_PASSWORD" | sudo -S productsign --sign "Developer ID Installer: Source Audio LLC (Z2JAQC4DXV)" "$NOTARIZED_BUILD_PATH" "$SIGNED_PKG_PATH"
+
+sleep 20
 
 # Final Notarization of Signed .pkg
 echo "Submitting the signed .pkg for notarization..."

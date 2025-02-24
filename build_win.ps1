@@ -39,6 +39,7 @@ $PROJECT_DIR = "C:\Users\BlackBricks\StudioProjects\SA_Neuro_Multiplatform"
 Set-Location -Path $PROJECT_DIR -ErrorAction Stop
 
 Write-Host "Checking out branch: $BRANCH_NAME"
+git stash push -m "Pre-build stash"
 git fetch
 if (!(git checkout $BRANCH_NAME)) { exit 1 }
 git pull origin $BRANCH_NAME
