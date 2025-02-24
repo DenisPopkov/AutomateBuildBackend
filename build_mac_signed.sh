@@ -5,11 +5,6 @@ source "/Users/denispopkov/PycharmProjects/AutomateBuildBackend/slack_upload.sh"
 SECRET_FILE="/Users/denispopkov/Desktop/secret.txt"
 BUILD_TOOL="/Users/denispopkov/AndroidStudioProjects/SA_Neuro_release/Neuro_desktop.pkgproj"
 
-if [ ! -f "$SECRET_FILE" ]; then
-  echo "Error: secret.txt file not found at $SECRET_FILE"
-  exit 1
-fi
-
 while IFS='=' read -r key value; do
   key=$(echo "$key" | xargs)
   value=$(echo "$value" | xargs)
@@ -182,14 +177,6 @@ SIGNED_PKG_PATH="/Users/denispopkov/AndroidStudioProjects/SA_Neuro_release/build
 echo "Signing the .pkg file..."
 echo "$USER_PASSWORD" | sudo -S productsign --sign "Developer ID Installer: Source Audio LLC (Z2JAQC4DXV)" "$NOTARIZED_BUILD_PATH" "$SIGNED_PKG_PATH"
 
-if [ $? -eq 0 ]; then
-  echo "Notarized .pkg file signed successfully: $SIGNED_PKG_PATH"
-else
-  execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "macOS build failed :crycat:" "message"
-  echo "Error signing .pkg file."
-  exit 1
-fi
-
 # Final Notarization of Signed .pkg
 echo "Submitting the signed .pkg for notarization..."
 xcrun notarytool submit "$SIGNED_PKG_PATH" \
@@ -197,14 +184,6 @@ xcrun notarytool submit "$SIGNED_PKG_PATH" \
   --team-id "$TEAM_ID" \
   --password "$NOTARY_PASSWORD" \
   --wait
-
-if [ $? -eq 0 ]; then
-  echo "Notarization of signed .pkg completed successfully."
-else
-  execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "macOS build failed :crycat:" "message"
-  echo "Error during notarization of signed .pkg."
-  exit 1
-fi
 
 if [ "$BUMP_VERSION" == "true" ]; then
     VERSION_CODE=$((VERSION_CODE + 1))
