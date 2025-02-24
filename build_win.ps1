@@ -130,6 +130,18 @@ if (Test-Path $FINAL_MSI_PATH) {
     exit 1
 }
 
+if ($BUMP_VERSION -eq "true") {
+    git fetch
+    git pull origin "$BRANCH_NAME"
+    git add .
+    git commit -m "Windows version bump to $VERSION_CODE"
+    git push origin "$BRANCH_NAME"
+
+    Write-Output "Version bump completed successfully. New versionCode: $VERSION_CODE"
+} else {
+    Write-Output "Skipping version bump as bumpVersion is false."
+}
+
 function Execute-FileUpload {
     param (
         [string]$SlackToken,
@@ -320,3 +332,9 @@ function Post-Message {
 Start-Sleep -Seconds 20
 
 Execute-FileUpload -SlackToken $SLACK_BOT_TOKEN -ChannelId $SLACK_CHANNEL -InitialComment "Windows from $BRANCH_NAME" -Action "upload" -Files $NEW_MSI_PATH
+
+git fetch
+git pull origin "$BRANCH_NAME"
+git add .
+git commit -m "Windows hardcoded lib updated"
+git push origin "$BRANCH_NAME"
