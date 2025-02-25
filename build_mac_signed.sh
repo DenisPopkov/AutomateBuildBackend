@@ -233,7 +233,6 @@ execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "macOS signed from $
 
 if [ $? -eq 0 ]; then
     echo "PKG sent to Slack successfully."
-    git fetch && git pull origin "$BRANCH_NAME"
     git add .
     git commit -m "Update hardcoded libs"
     git push origin "$BRANCH_NAME"
