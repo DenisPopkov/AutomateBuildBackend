@@ -333,7 +333,7 @@ Start-Sleep -Seconds 20
 
 Execute-FileUpload -SlackToken $SLACK_BOT_TOKEN -ChannelId $SLACK_CHANNEL -InitialComment "Windows from $BRANCH_NAME" -Action "upload" -Files $NEW_MSI_PATH
 
-git pull origin "$BRANCH_NAME"
+git pull origin "$BRANCH_NAME"  --no-rebase
 git add .
 git commit -m "Windows hardcoded lib updated"
 git push origin "$BRANCH_NAME"

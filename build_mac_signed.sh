@@ -233,6 +233,7 @@ execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "macOS signed from $
 
 if [ $? -eq 0 ]; then
     echo "PKG sent to Slack successfully."
+    git pull origin "$BRANCH_NAME" --no-rebase
     git add .
     git commit -m "Update hardcoded libs"
     git push origin "$BRANCH_NAME"
@@ -278,7 +279,7 @@ else
 fi
 
 if [ "$BUMP_VERSION" == "true" ]; then
-    git fetch && git pull origin "$BRANCH_NAME"
+    git pull origin "$BRANCH_NAME" --no-rebase
     git add .
     git commit -m "macOS version bump to $VERSION_CODE"
     git push origin "$BRANCH_NAME"

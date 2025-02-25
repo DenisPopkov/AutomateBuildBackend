@@ -216,6 +216,7 @@ else
 
   if [ $? -eq 0 ]; then
     echo "APK sent to Slack successfully."
+    git pull origin "$BRANCH_NAME" --no-rebase
     git add .
     git commit -m "Update hardcoded libs"
     git push origin "$BRANCH_NAME"
@@ -226,6 +227,7 @@ else
 fi
 
 if [ "$BUMP_VERSION" == "true" ]; then
+    git pull origin "$BRANCH_NAME" --no-rebase
     git add .
     git commit -m "Android version bump to $VERSION_CODE"
     git push origin "$BRANCH_NAME"
