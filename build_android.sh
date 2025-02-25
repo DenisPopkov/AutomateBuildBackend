@@ -162,7 +162,6 @@ if [ "$isBundleToBuild" == "true" ]; then
 
   if [ $? -eq 0 ]; then
     echo "AAB sent to Slack successfully."
-    git fetch && git pull origin "$BRANCH_NAME"
     git add .
     git commit -m "Update hardcoded libs"
     git push origin "$BRANCH_NAME"
@@ -217,7 +216,6 @@ else
 
   if [ $? -eq 0 ]; then
     echo "APK sent to Slack successfully."
-    git fetch && git pull origin "$BRANCH_NAME"
     git add .
     git commit -m "Update hardcoded libs"
     git push origin "$BRANCH_NAME"
@@ -228,7 +226,6 @@ else
 fi
 
 if [ "$BUMP_VERSION" == "true" ]; then
-    git fetch && git pull origin "$BRANCH_NAME"
     git add .
     git commit -m "Android version bump to $VERSION_CODE"
     git push origin "$BRANCH_NAME"

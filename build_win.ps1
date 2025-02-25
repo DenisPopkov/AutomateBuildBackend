@@ -132,7 +132,6 @@ if (Test-Path $FINAL_MSI_PATH) {
 }
 
 if ($BUMP_VERSION -eq "true") {
-    git fetch
     git pull origin "$BRANCH_NAME"
     git add .
     git commit -m "Windows version bump to $VERSION_CODE"
@@ -334,7 +333,6 @@ Start-Sleep -Seconds 20
 
 Execute-FileUpload -SlackToken $SLACK_BOT_TOKEN -ChannelId $SLACK_CHANNEL -InitialComment "Windows from $BRANCH_NAME" -Action "upload" -Files $NEW_MSI_PATH
 
-git fetch
 git pull origin "$BRANCH_NAME"
 git add .
 git commit -m "Windows hardcoded lib updated"
