@@ -1,5 +1,14 @@
 #!/bin/bash
 
-end_time=$(TZ=Asia/Omsk date -v+15M "+%H:%M")
-message="Android build started. It will be ready approximately at $end_time Omsk Time."
-echo "$message"
+open -a "Android Studio"
+
+# Wait for Android Studio to launch
+sleep 5
+
+osascript -e '
+tell application "System Events"
+    tell process "Android Studio"
+        keystroke "O" using {command down, shift down}
+    end tell
+end tell
+'

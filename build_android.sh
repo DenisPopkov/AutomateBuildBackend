@@ -85,6 +85,20 @@ if [ "$isUseDevAnalytics" == "true" ]; then
     echo "Nothing to change with analytics"
 fi
 
+open -a "Android Studio"
+
+sleep 5
+
+osascript -e '
+tell application "System Events"
+    tell process "Android Studio"
+        keystroke "O" using {command down, shift down}
+    end tell
+end tell
+'
+
+sleep 80
+
 rm -f "$ALL_BUILD_FILE"
 cp "$ANDROID_BUILD_FILE" "$ALL_BUILD_FILE"
 
