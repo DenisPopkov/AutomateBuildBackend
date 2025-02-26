@@ -80,7 +80,7 @@ if ($USE_DEV_ANALYTICS -eq $true) {
 $endTime = [System.TimeZoneInfo]::ConvertTimeBySystemTimeZoneId((Get-Date).AddMinutes(15), "Asia/Omsk")
 $formattedTime = $endTime.ToString("HH:mm")
 $message = "Android build started. It will be ready approximately at $formattedTime Omsk Time."
-Execute-FileUpload -SlackToken $SLACK_BOT_TOKEN -ChannelId $SLACK_CHANNEL -InitialComment "$message" -Action "message"
+Post-Message -SlackToken $SLACK_BOT_TOKEN -ChannelId $SLACK_CHANNEL -InitialComment "$message"
 
 # Paths for build files
 $DESKTOP_BUILD_FILE = "$PROJECT_DIR\desktopApp\build.gradle.kts"
