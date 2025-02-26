@@ -36,6 +36,10 @@ fi
 
 open -a "Android Studio"
 
+end_time=$(date -u -d "+15 minutes" "+%H:%M")
+message="Android build started. It will be ready approximately at $end_time GMT."
+execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$message" "message"
+
 PROJECT_DIR="/Users/denispopkov/AndroidStudioProjects/SA_Neuro_Multiplatform"
 cd "$PROJECT_DIR" || { echo "Project directory not found!"; exit 1; }
 
