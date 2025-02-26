@@ -77,6 +77,11 @@ if ($USE_DEV_ANALYTICS -eq $true) {
     Write-Host "Nothing to change with analytics"
 }
 
+$endTime = [System.TimeZoneInfo]::ConvertTimeBySystemTimeZoneId((Get-Date).AddMinutes(15), "Asia/Omsk")
+$formattedTime = $endTime.ToString("HH:mm")
+$message = "Android build started. It will be ready approximately at $formattedTime Omsk Time."
+Execute-FileUpload -SlackToken $SLACK_BOT_TOKEN -ChannelId $SLACK_CHANNEL -InitialComment "$message" -Action "message"
+
 # Paths for build files
 $DESKTOP_BUILD_FILE = "$PROJECT_DIR\desktopApp\build.gradle.kts"
 $DESKTOP_DSP_BUILD_FILE = "C:\Users\BlackBricks\Desktop\build_dsp\build.gradle.kts"
