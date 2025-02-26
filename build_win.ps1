@@ -284,7 +284,7 @@ function Post-Message {
 
 Start-Sleep -Seconds 5
 
-$endTime = [System.TimeZoneInfo]::ConvertTimeBySystemTimeZoneId((Get-Date).AddMinutes(20), "Omsk Standard Time")
+$endTime = [System.TimeZoneInfo]::ConvertTimeBySystemTimeZoneId((Get-Date).AddMinutes(15), "Omsk Standard Time")
 $formattedTime = $endTime.ToString("HH:mm")
 $message = "Windows build started. It will be ready approximately at $formattedTime Omsk Time."
 Post-Message -SlackToken $SLACK_BOT_TOKEN -ChannelId $SLACK_CHANNEL -InitialComment $message
