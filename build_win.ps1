@@ -77,7 +77,7 @@ if ($USE_DEV_ANALYTICS -eq $true) {
     Write-Host "Nothing to change with analytics"
 }
 
-$endTime = [System.TimeZoneInfo]::ConvertTimeBySystemTimeZoneId((Get-Date).AddMinutes(15), "Asia/Omsk")
+$endTime = [System.TimeZoneInfo]::ConvertTimeBySystemTimeZoneId((Get-Date).AddMinutes(20), "Omsk Standard Time")
 $formattedTime = $endTime.ToString("HH:mm")
 $message = "Android build started. It will be ready approximately at $formattedTime Omsk Time."
 Post-Message -SlackToken $SLACK_BOT_TOKEN -ChannelId $SLACK_CHANNEL -InitialComment "$message"
