@@ -182,7 +182,7 @@ if [ "$isBundleToBuild" == "true" ]; then
     echo "Replacing $SHARED_GRADLE_FILE with $DEFAULT_SHARED_GRADLE_FILE"
     rm -f "$SHARED_GRADLE_FILE"
     cp "$DEFAULT_SHARED_GRADLE_FILE" "$SHARED_GRADLE_FILE"
-    else
+  else
       echo "Nothing to change with analytics"
   fi
 
@@ -246,7 +246,7 @@ else
     echo "Replacing $SHARED_GRADLE_FILE with $DEFAULT_SHARED_GRADLE_FILE"
     rm -f "$SHARED_GRADLE_FILE"
     cp "$DEFAULT_SHARED_GRADLE_FILE" "$SHARED_GRADLE_FILE"
-    else
+  else
       echo "Nothing to change with analytics"
   fi
 
