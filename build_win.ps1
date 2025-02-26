@@ -77,102 +77,6 @@ if ($USE_DEV_ANALYTICS -eq $true) {
     Write-Host "Nothing to change with analytics"
 }
 
-$endTime = [System.TimeZoneInfo]::ConvertTimeBySystemTimeZoneId((Get-Date).AddMinutes(20), "Omsk Standard Time")
-$formattedTime = $endTime.ToString("HH:mm")
-$message = "Windows build started. It will be ready approximately at $formattedTime Omsk Time."
-Execute-FileUpload -SlackToken $SLACK_BOT_TOKEN -ChannelId $SLACK_CHANNEL -InitialComment "$message" -Action "message"
-
-# Paths for build files
-$DESKTOP_BUILD_FILE = "$PROJECT_DIR\desktopApp\build.gradle.kts"
-$DESKTOP_DSP_BUILD_FILE = "C:\Users\BlackBricks\Desktop\build_dsp\build.gradle.kts"
-$DESKTOP_N0_DSP_BUILD_FILE = "C:\Users\BlackBricks\Desktop\no_dsp\build.gradle.kts"
-$BUILD_PATH = "$PROJECT_DIR\desktopApp\build"
-$SET_UPDATED_LIB_PATH = "$PROJECT_DIR\shared\src\commonMain\resources\MR\files\libdspmac.dylib"
-$CACHE_UPDATED_LIB_PATH = "$PROJECT_DIR\shared\build\resources\MR\files\libdspmac.dylib"
-
-Remove-Item -Force $DESKTOP_N0_DSP_BUILD_FILE -ErrorAction Ignore
-Copy-Item -Path $DESKTOP_BUILD_FILE -Destination $DESKTOP_N0_DSP_BUILD_FILE
-
-Write-Host "Replacing $DESKTOP_BUILD_FILE with $DESKTOP_DSP_BUILD_FILE"
-Remove-Item -Force $DESKTOP_BUILD_FILE -ErrorAction Ignore
-Copy-Item -Path $DESKTOP_DSP_BUILD_FILE -Destination $DESKTOP_BUILD_FILE
-
-Remove-Item -Recurse -Force $BUILD_PATH -ErrorAction Ignore
-Copy-Item -Path $DESKTOP_DSP_BUILD_FILE -Destination $DESKTOP_BUILD_FILE
-
-# Replace NeuroWindow.kt just before building the MSI
-$NEURO_WINDOW_FILE_PATH = "$PROJECT_DIR\desktopApp\src\main\kotlin\presentation\neuro_window\NeuroWindow.kt"
-$NEURO_WINDOW_DSP_FILE = "C:\Users\BlackBricks\Desktop\build_dsp\NeuroWindow.kt"
-$NEURO_WINDOW_N0_DSP_FILE = "C:\Users\BlackBricks\Desktop\no_dsp\NeuroWindow.kt"
-
-Remove-Item -Force $NEURO_WINDOW_FILE_PATH -ErrorAction Ignore
-Copy-Item -Path $NEURO_WINDOW_N0_DSP_FILE -Destination $NEURO_WINDOW_FILE_PATH
-
-# Compile Kotlin
-Set-Location -Path $PROJECT_DIR
-./gradlew compileKotlin
-
-Write-Host "Building..."
-./gradlew packageReleaseMsi
-
-# Restore original NeuroWindow.kt file
-Remove-Item -Force $NEURO_WINDOW_FILE_PATH
-Copy-Item -Path $NEURO_WINDOW_DSP_FILE -Destination $NEURO_WINDOW_FILE_PATH
-
-# Restore original build file and lib
-Remove-Item -Force $DESKTOP_BUILD_FILE
-Copy-Item -Path $DESKTOP_N0_DSP_BUILD_FILE -Destination $DESKTOP_BUILD_FILE
-
-Remove-Item -Force $SET_UPDATED_LIB_PATH
-Copy-Item -Path $CACHE_UPDATED_LIB_PATH -Destination $SET_UPDATED_LIB_PATH
-
-# Path to the build output
-$DESKTOP_BUILD_PATH = "$PROJECT_DIR\desktopApp\build\compose\binaries\main-release\msi"
-
-# Original MSI path after build (before renaming)
-$FINAL_MSI_PATH = "$DESKTOP_BUILD_PATH\Neuro Desktop-$VERSION_NAME.msi"
-
-# Construct the new MSI path with version code in square brackets
-$NEW_MSI_PATH = "$DESKTOP_BUILD_PATH\Neuro_Desktop-$VERSION_NAME-$VERSION_CODE.msi"
-
-# Check if the original file exists (before renaming)
-if (Test-Path $FINAL_MSI_PATH) {
-    # If the destination file already exists, we delete it to avoid conflicts
-    if (Test-Path $NEW_MSI_PATH) {
-        Remove-Item $NEW_MSI_PATH -Force
-        Write-Host "Deleted existing file: $NEW_MSI_PATH"
-    }
-
-    # Rename the file (Move-Item also renames it)
-    Move-Item -Path $FINAL_MSI_PATH -Destination $NEW_MSI_PATH
-    Write-Host "Renamed file: '$NEW_MSI_PATH'"
-} else {
-    Write-Host "Error: Build file '$FINAL_MSI_PATH' not found."
-    exit 1
-}
-
-# Resetting (replace with default version if isUseDevAnalytics is true)
-if ($isUseDevAnalytics -eq $true) {
-    Write-Host "Replacing $SHARED_GRADLE_FILE with $DEFAULT_SHARED_GRADLE_FILE"
-    Remove-Item -Force $SHARED_GRADLE_FILE
-    Copy-Item -Path $DEFAULT_SHARED_GRADLE_FILE -Destination $SHARED_GRADLE_FILE
-} else {
-    Write-Host "Nothing to change with analytics"
-}
-
-Start-Sleep -Seconds 20
-
-if ($BUMP_VERSION -eq "true") {
-    git pull origin "$BRANCH_NAME" --no-rebase
-    git add .
-    git commit -m "Windows version bump to $VERSION_CODE"
-    git push origin "$BRANCH_NAME"
-
-    Write-Output "Version bump completed successfully. New versionCode: $VERSION_CODE"
-} else {
-    Write-Output "Skipping version bump as bumpVersion is false."
-}
-
 function Execute-FileUpload {
     param (
         [string]$SlackToken,
@@ -345,19 +249,135 @@ function Post-Message {
         [string]$InitialComment
     )
 
-    $command = "curl -s -X POST -H 'Authorization: Bearer $SlackToken' -H 'Content-Type: application/json' -d @{
+    # Create the JSON body for the request
+    $body = @{
         channel = $ChannelId
         text = $InitialComment
-    } 'https://slack.com/api/chat.postMessage'"
+    } | ConvertTo-Json
 
-    $response = Invoke-Expression $command | ConvertFrom-Json
+    # Print the JSON body for debugging
+    Write-Host "Request Body: $body"
 
-    if ($response.ok -ne $true) {
-        Write-Host "Failed to complete message post: $($response | ConvertTo-Json)"
+    # Send the request to Slack API
+    try {
+        $response = Invoke-RestMethod -Uri 'https://slack.com/api/chat.postMessage' `
+            -Method Post `
+            -Headers @{
+                "Authorization" = "Bearer $SlackToken"
+                "Content-Type" = "application/json; charset=utf-8"
+            } `
+            -Body $body
+
+        # Check if the request was successful
+        if ($response.ok -ne $true) {
+            Write-Host "Failed to post message: $($response | ConvertTo-Json)"
+            exit 1
+        }
+
+        # Output the response
+        Write-Host "Message posted successfully: $($response | ConvertTo-Json)"
+    } catch {
+        Write-Host "Error: Failed to send request to Slack API. Details: $_"
         exit 1
     }
+}
 
-    Write-Host "$response"
+Start-Sleep -Seconds 5
+
+$endTime = [System.TimeZoneInfo]::ConvertTimeBySystemTimeZoneId((Get-Date).AddMinutes(20), "Omsk Standard Time")
+$formattedTime = $endTime.ToString("HH:mm")
+$message = "Windows build started. It will be ready approximately at $formattedTime Omsk Time."
+Post-Message -SlackToken $SLACK_BOT_TOKEN -ChannelId $SLACK_CHANNEL -InitialComment $message
+
+# Paths for build files
+$DESKTOP_BUILD_FILE = "$PROJECT_DIR\desktopApp\build.gradle.kts"
+$DESKTOP_DSP_BUILD_FILE = "C:\Users\BlackBricks\Desktop\build_dsp\build.gradle.kts"
+$DESKTOP_N0_DSP_BUILD_FILE = "C:\Users\BlackBricks\Desktop\no_dsp\build.gradle.kts"
+$BUILD_PATH = "$PROJECT_DIR\desktopApp\build"
+$SET_UPDATED_LIB_PATH = "$PROJECT_DIR\shared\src\commonMain\resources\MR\files\libdspmac.dylib"
+$CACHE_UPDATED_LIB_PATH = "$PROJECT_DIR\shared\build\resources\MR\files\libdspmac.dylib"
+
+Remove-Item -Force $DESKTOP_N0_DSP_BUILD_FILE -ErrorAction Ignore
+Copy-Item -Path $DESKTOP_BUILD_FILE -Destination $DESKTOP_N0_DSP_BUILD_FILE
+
+Write-Host "Replacing $DESKTOP_BUILD_FILE with $DESKTOP_DSP_BUILD_FILE"
+Remove-Item -Force $DESKTOP_BUILD_FILE -ErrorAction Ignore
+Copy-Item -Path $DESKTOP_DSP_BUILD_FILE -Destination $DESKTOP_BUILD_FILE
+
+Remove-Item -Recurse -Force $BUILD_PATH -ErrorAction Ignore
+Copy-Item -Path $DESKTOP_DSP_BUILD_FILE -Destination $DESKTOP_BUILD_FILE
+
+# Replace NeuroWindow.kt just before building the MSI
+$NEURO_WINDOW_FILE_PATH = "$PROJECT_DIR\desktopApp\src\main\kotlin\presentation\neuro_window\NeuroWindow.kt"
+$NEURO_WINDOW_DSP_FILE = "C:\Users\BlackBricks\Desktop\build_dsp\NeuroWindow.kt"
+$NEURO_WINDOW_N0_DSP_FILE = "C:\Users\BlackBricks\Desktop\no_dsp\NeuroWindow.kt"
+
+Remove-Item -Force $NEURO_WINDOW_FILE_PATH -ErrorAction Ignore
+Copy-Item -Path $NEURO_WINDOW_N0_DSP_FILE -Destination $NEURO_WINDOW_FILE_PATH
+
+# Compile Kotlin
+Set-Location -Path $PROJECT_DIR
+./gradlew compileKotlin
+
+Write-Host "Building..."
+./gradlew packageReleaseMsi
+
+# Restore original NeuroWindow.kt file
+Remove-Item -Force $NEURO_WINDOW_FILE_PATH
+Copy-Item -Path $NEURO_WINDOW_DSP_FILE -Destination $NEURO_WINDOW_FILE_PATH
+
+# Restore original build file and lib
+Remove-Item -Force $DESKTOP_BUILD_FILE
+Copy-Item -Path $DESKTOP_N0_DSP_BUILD_FILE -Destination $DESKTOP_BUILD_FILE
+
+Remove-Item -Force $SET_UPDATED_LIB_PATH
+Copy-Item -Path $CACHE_UPDATED_LIB_PATH -Destination $SET_UPDATED_LIB_PATH
+
+# Path to the build output
+$DESKTOP_BUILD_PATH = "$PROJECT_DIR\desktopApp\build\compose\binaries\main-release\msi"
+
+# Original MSI path after build (before renaming)
+$FINAL_MSI_PATH = "$DESKTOP_BUILD_PATH\Neuro Desktop-$VERSION_NAME.msi"
+
+# Construct the new MSI path with version code in square brackets
+$NEW_MSI_PATH = "$DESKTOP_BUILD_PATH\Neuro_Desktop-$VERSION_NAME-$VERSION_CODE.msi"
+
+# Check if the original file exists (before renaming)
+if (Test-Path $FINAL_MSI_PATH) {
+    # If the destination file already exists, we delete it to avoid conflicts
+    if (Test-Path $NEW_MSI_PATH) {
+        Remove-Item $NEW_MSI_PATH -Force
+        Write-Host "Deleted existing file: $NEW_MSI_PATH"
+    }
+
+    # Rename the file (Move-Item also renames it)
+    Move-Item -Path $FINAL_MSI_PATH -Destination $NEW_MSI_PATH
+    Write-Host "Renamed file: '$NEW_MSI_PATH'"
+} else {
+    Write-Host "Error: Build file '$FINAL_MSI_PATH' not found."
+    exit 1
+}
+
+# Resetting (replace with default version if isUseDevAnalytics is true)
+if ($isUseDevAnalytics -eq $true) {
+    Write-Host "Replacing $SHARED_GRADLE_FILE with $DEFAULT_SHARED_GRADLE_FILE"
+    Remove-Item -Force $SHARED_GRADLE_FILE
+    Copy-Item -Path $DEFAULT_SHARED_GRADLE_FILE -Destination $SHARED_GRADLE_FILE
+} else {
+    Write-Host "Nothing to change with analytics"
+}
+
+Start-Sleep -Seconds 20
+
+if ($BUMP_VERSION -eq "true") {
+    git pull origin "$BRANCH_NAME" --no-rebase
+    git add .
+    git commit -m "Windows version bump to $VERSION_CODE"
+    git push origin "$BRANCH_NAME"
+
+    Write-Output "Version bump completed successfully. New versionCode: $VERSION_CODE"
+} else {
+    Write-Output "Skipping version bump as bumpVersion is false."
 }
 
 Start-Sleep -Seconds 20
