@@ -20,7 +20,7 @@ if [ ! -f "$SECRET_FILE" ]; then
 fi
 
 end_time=$(date -u -d "+15 minutes" "+%H:%M")
-message="Android build started. It will be ready approximately at $end_time GMT."
+message="iOS build started. It will be ready approximately at $end_time GMT."
 execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$message" "message"
 
 while IFS='=' read -r key value; do
