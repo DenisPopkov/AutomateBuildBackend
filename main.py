@@ -16,14 +16,16 @@ def build_mac():
         branch_name = data.get('branchName')
         sign = data.get('sign')
         bump_version = data.get('bumpVersion', False)
+        use_dev_analytics = data.get('isUseDevAnalytics', True)
 
         if not branch_name or sign is None:
             return jsonify({"error": "Missing required parameters: branchName and sign"}), 400
 
         script_path = "./build_mac_signed.sh" if sign else "./build_mac_no_sign.sh"
         bump_version_flag = "true" if bump_version else "false"
+        use_dev_analytics_flag = "true" if use_dev_analytics else "false"
 
-        subprocess.run(["sh", script_path, branch_name, bump_version_flag], check=True)
+        subprocess.run(["sh", script_path, branch_name, bump_version_flag, use_dev_analytics_flag], check=True)
 
         return jsonify({
             "message": f"macOS build for branch {branch_name} {'with' if sign else 'without'} signing executed successfully with bumpVersion={bump_version_flag}!"
@@ -41,6 +43,7 @@ def build_win():
         data = request.json
         branch_name = data.get('branchName')
         bump_version = data.get('bumpVersion', False)
+        use_dev_analytics = data.get('isUseDevAnalytics', True)
 
         if not branch_name:
             return jsonify({"error": "Missing required parameter: branchName"}), 400
@@ -48,13 +51,14 @@ def build_win():
         # Define the script path and flags
         script_path = ".\\build_win.ps1"
         bump_version_flag = "true" if bump_version else "false"
+        use_dev_analytics_flag = "true" if use_dev_analytics else "false"
 
         # Change the directory to the specified path
         os.chdir("C:\\Users\\BlackBricks\\PycharmProjects\\AutomateBuildBackend")
 
         # Run the PowerShell script with the parameters
         subprocess.run(
-            ["powershell", "-ExecutionPolicy", "Bypass", "-File", script_path, "-BRANCH_NAME", branch_name, "-BUMP_VERSION", bump_version_flag],
+            ["powershell", "-ExecutionPolicy", "Bypass", "-File", script_path, "-BRANCH_NAME", branch_name, "-BUMP_VERSION", bump_version_flag, "-USE_DEV_ANALYTICS", use_dev_analytics_flag],
             check=True)
 
         return jsonify({
@@ -73,7 +77,8 @@ def build_android():
         data = request.json
         branch_name = data.get('branchName')
         bump_version = data.get('bumpVersion', False)
-        is_bundle_to_build = data.get('isBundleToBuild', False)  # New param
+        is_bundle_to_build = data.get('isBundleToBuild', False)
+        use_dev_analytics = data.get('isUseDevAnalytics', True)
 
         if not branch_name:
             return jsonify({"error": "Missing required parameter: branchName"}), 400
@@ -81,8 +86,9 @@ def build_android():
         script_path = "./build_android.sh"
         bump_version_flag = "true" if bump_version else "false"
         is_bundle_to_build_flag = "true" if is_bundle_to_build else "false"
+        use_dev_analytics_flag = "true" if use_dev_analytics else "false"
 
-        subprocess.run(["sh", script_path, branch_name, bump_version_flag, is_bundle_to_build_flag], check=True)
+        subprocess.run(["sh", script_path, branch_name, bump_version_flag, is_bundle_to_build_flag, use_dev_analytics_flag], check=True)
 
         return jsonify({
             "message": f"Android build for branch {branch_name} executed successfully with bumpVersion={bump_version_flag}!"}), 200
@@ -96,11 +102,18 @@ def build_android():
 @app.route('/build_ios', methods=['POST'])
 def build_ios():
     try:
-        branch_name = request.json.get('branchName')
+        data = request.json
+        branch_name = data.get('branchName')
+        use_dev_analytics = data.get('isUseDevAnalytics', True)
+
         if not branch_name:
             return jsonify({"error": "Missing required parameter: branchName"}), 400
+
+        use_dev_analytics_flag = "true" if use_dev_analytics else "false"
+
         script_path = "./build_ios.sh"
-        subprocess.run(["sh", script_path, branch_name], check=True)
+        subprocess.run(["sh", script_path, branch_name, use_dev_analytics_flag], check=True)
+
         return jsonify({"message": f"iOS build for branch {branch_name} executed successfully!"}), 200
     except subprocess.CalledProcessError as e:
         return jsonify({"error": str(e)}), 500

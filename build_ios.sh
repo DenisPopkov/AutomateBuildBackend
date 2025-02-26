@@ -14,6 +14,11 @@ SWIFT_TARGET_DIR="/Users/denispopkov/AndroidStudioProjects/SA_Neuro_Multiplatfor
 SWIFT_TARGET_FILE="$SWIFT_TARGET_DIR/SA_Neuro_Multiplatform_shared.swift"
 SECRET_FILE="/Users/denispopkov/Desktop/secret.txt"
 
+# For dev analytics
+SHARED_GRADLE_FILE="$PROJECT_DIR/shared/build.gradle.kts"
+DEFAULT_SHARED_GRADLE_FILE="/Users/denispopkov/Desktop/default/build.gradle.kts"
+DEV_SHARED_GRADLE_FILE="/Users/denispopkov/Desktop/dev/build.gradle.kts"
+
 if [ ! -f "$SECRET_FILE" ]; then
   echo "Error: secret.txt file not found at $SECRET_FILE"
   exit 1
@@ -33,14 +38,16 @@ while IFS='=' read -r key value; do
   esac
 done < "$SECRET_FILE"
 
-# Checkout branch
 BRANCH_NAME=$1
+isUseDevAnalytics=$2
+
+# Checkout branch
 if [ -z "$BRANCH_NAME" ]; then
   echo "Error: Branch name is required"
   exit 1
 fi
 
-git fetch && git checkout "$BRANCH_NAME" && git pull origin "$BRANCH_NAME"
+git fetch && git checkout "$BRANCH_NAME" && git pull origin "$BRANCH_NAME" --no-rebase
 
 # Extract the current version from project.pbxproj
 if [ -f "$PBXPROJ_PATH" ]; then
@@ -79,6 +86,14 @@ else
   exit 1
 fi
 
+if [ "$isUseDevAnalytics" == "true" ]; then
+  echo "Replacing $SHARED_GRADLE_FILE with $DEV_SHARED_GRADLE_FILE"
+  rm -f "$SHARED_GRADLE_FILE"
+  cp "$DEV_SHARED_GRADLE_FILE" "$SHARED_GRADLE_FILE"
+  else
+    echo "Nothing to change with analytics"
+fi
+
 # Move file to backup location
 if [ -f "$FILE_TO_DELETE" ]; then
   mv "$FILE_TO_DELETE" "$FILE_BACKUP_PATH"
@@ -100,6 +115,16 @@ mkdir -p "$SWIFT_TARGET_DIR"
 cp "$SWIFT_FILE_SOURCE" "$SWIFT_TARGET_FILE"
 
 cd "$IOS_APP_PATH" || exit
+
+if [ "$isUseDevAnalytics" == "true" ]; then
+  echo "Replacing $SHARED_GRADLE_FILE with $DEFAULT_SHARED_GRADLE_FILE"
+  rm -f "$SHARED_GRADLE_FILE"
+  cp "$DEFAULT_SHARED_GRADLE_FILE" "$SHARED_GRADLE_FILE"
+else
+    echo "Nothing to change with analytics"
+fi
+
+sleep 20
 
 # Run Fastlane with fallback
 if fastlane testflight_upload; then

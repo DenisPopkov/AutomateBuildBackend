@@ -1,6 +1,7 @@
 param(
     [string]$BRANCH_NAME,
-    [string]$BUMP_VERSION
+    [string]$BUMP_VERSION,
+    [string]$USE_DEV_ANALYTICS
 )
 
 $SECRET_FILE = "C:\Users\BlackBricks\Desktop\secret.txt"
@@ -36,13 +37,19 @@ foreach ($line in $secrets) {
 }
 
 $PROJECT_DIR = "C:\Users\BlackBricks\StudioProjects\SA_Neuro_Multiplatform"
+
+# For analytics
+$SHARED_GRADLE_FILE = "$PROJECT_DIR\shared\build.gradle.kts"
+$DEFAULT_SHARED_GRADLE_FILE = "C:\Users\BlackBricks\Desktop\default\build.gradle.kts"
+$DEV_SHARED_GRADLE_FILE = "C:\Users\BlackBricks\Desktop\dev\build.gradle.kts"
+
 Set-Location -Path $PROJECT_DIR -ErrorAction Stop
 
 Write-Host "Checking out branch: $BRANCH_NAME"
 git stash push -m "Pre-build stash"
 git fetch
 if (!(git checkout $BRANCH_NAME)) { exit 1 }
-git pull origin $BRANCH_NAME
+git pull origin $BRANCH_NAME --no-rebase
 
 # Extract version code and version name from gradle.properties
 $gradlePropsPath = "$PROJECT_DIR\gradle.properties"
@@ -60,6 +67,14 @@ if ($BUMP_VERSION -eq "true") {
     (Get-Content $gradlePropsPath) -replace 'desktop\.build\.number\s*=\s*\d+', "desktop.build.number=$VERSION_CODE" | Set-Content $gradlePropsPath
 } else {
     Write-Host "Nothing to bump"
+}
+
+if ($USE_DEV_ANALYTICS -eq $true) {
+    Write-Host "Replacing $SHARED_GRADLE_FILE with $DEV_SHARED_GRADLE_FILE"
+    Remove-Item -Force $SHARED_GRADLE_FILE
+    Copy-Item -Path $DEV_SHARED_GRADLE_FILE -Destination $SHARED_GRADLE_FILE
+} else {
+    Write-Host "Nothing to change with analytics"
 }
 
 # Paths for build files
@@ -131,8 +146,19 @@ if (Test-Path $FINAL_MSI_PATH) {
     exit 1
 }
 
+# Resetting (replace with default version if isUseDevAnalytics is true)
+if ($isUseDevAnalytics -eq $true) {
+    Write-Host "Replacing $SHARED_GRADLE_FILE with $DEFAULT_SHARED_GRADLE_FILE"
+    Remove-Item -Force $SHARED_GRADLE_FILE
+    Copy-Item -Path $DEFAULT_SHARED_GRADLE_FILE -Destination $SHARED_GRADLE_FILE
+} else {
+    Write-Host "Nothing to change with analytics"
+}
+
+Start-Sleep -Seconds 20
+
 if ($BUMP_VERSION -eq "true") {
-    git pull origin "$BRANCH_NAME"
+    git pull origin "$BRANCH_NAME" --no-rebase
     git add .
     git commit -m "Windows version bump to $VERSION_CODE"
     git push origin "$BRANCH_NAME"

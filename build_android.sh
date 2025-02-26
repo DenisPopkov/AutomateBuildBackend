@@ -27,6 +27,7 @@ done < "$SECRET_FILE"
 BRANCH_NAME=$1
 BUMP_VERSION=$2
 isBundleToBuild=$3
+isUseDevAnalytics=$4
 
 # Validate branch name input
 if [ -z "$BRANCH_NAME" ]; then
@@ -45,12 +46,17 @@ cd "$PROJECT_DIR" || { echo "Project directory not found!"; exit 1; }
 
 echo "Checking out branch: $BRANCH_NAME"
 git stash push -m "Pre-build stash"
-git fetch && git checkout "$BRANCH_NAME" && git pull origin "$BRANCH_NAME"
+git fetch && git checkout "$BRANCH_NAME" && git pull origin "$BRANCH_NAME" --no-rebase
 
 # Replace build.gradle.kts for Android with arm_target/build.gradle.kts
 ANDROID_BUILD_FILE="$PROJECT_DIR/androidApp/build.gradle.kts"
 ARM_BUILD_FILE="/Users/denispopkov/Desktop/arm_target/build.gradle.kts"
 ALL_BUILD_FILE="/Users/denispopkov/Desktop/all_target/build.gradle.kts"
+
+# For dev analytics
+SHARED_GRADLE_FILE="$PROJECT_DIR/shared/build.gradle.kts"
+DEFAULT_SHARED_GRADLE_FILE="/Users/denispopkov/Desktop/default/build.gradle.kts"
+DEV_SHARED_GRADLE_FILE="/Users/denispopkov/Desktop/dev/build.gradle.kts"
 
 # Extract versionCode and versionName from build.gradle.kts
 VERSION_CODE=$(grep "versionCode =" "$PROJECT_DIR/androidApp/build.gradle.kts" | awk -F '=' '{print $2}' | xargs)
@@ -69,6 +75,14 @@ if [ "$BUMP_VERSION" == "true" ]; then
   sed -i '' "s/versionCode = $OLD_VERSION/versionCode = $VERSION_CODE/" "$PROJECT_DIR/androidApp/build.gradle.kts"
 else
   echo "Nothing to bump"
+fi
+
+if [ "$isUseDevAnalytics" == "true" ]; then
+  echo "Replacing $SHARED_GRADLE_FILE with $DEV_SHARED_GRADLE_FILE"
+  rm -f "$SHARED_GRADLE_FILE"
+  cp "$DEV_SHARED_GRADLE_FILE" "$SHARED_GRADLE_FILE"
+  else
+    echo "Nothing to change with analytics"
 fi
 
 rm -f "$ALL_BUILD_FILE"
@@ -164,11 +178,21 @@ if [ "$isBundleToBuild" == "true" ]; then
   echo "Uploading AAB to Slack..."
   execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "Android App Bundle from $BRANCH_NAME" "upload" "${FINAL_AAB_PATH}"
 
+  if [ "$isUseDevAnalytics" == "true" ]; then
+    echo "Replacing $SHARED_GRADLE_FILE with $DEFAULT_SHARED_GRADLE_FILE"
+    rm -f "$SHARED_GRADLE_FILE"
+    cp "$DEFAULT_SHARED_GRADLE_FILE" "$SHARED_GRADLE_FILE"
+    else
+      echo "Nothing to change with analytics"
+  fi
+
+  sleep 20
+
   if [ $? -eq 0 ]; then
     echo "AAB sent to Slack successfully."
     git add .
     git commit -m "Update hardcoded libs"
-    git push origin "$BRANCH_NAME"
+    git push origin "$BRANCH_NAME" --no-rebase
   else
     echo "Error sending AAB to Slack."
     exit 1
@@ -217,6 +241,16 @@ else
   # Upload APK to Slack
   echo "Uploading APK to Slack..."
   execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "Android APK from $BRANCH_NAME" "upload" "${FILE_PATH}"
+
+  if [ "$isUseDevAnalytics" == "true" ]; then
+    echo "Replacing $SHARED_GRADLE_FILE with $DEFAULT_SHARED_GRADLE_FILE"
+    rm -f "$SHARED_GRADLE_FILE"
+    cp "$DEFAULT_SHARED_GRADLE_FILE" "$SHARED_GRADLE_FILE"
+    else
+      echo "Nothing to change with analytics"
+  fi
+
+  sleep 20
 
   if [ $? -eq 0 ]; then
     echo "APK sent to Slack successfully."

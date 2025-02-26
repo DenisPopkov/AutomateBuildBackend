@@ -26,6 +26,7 @@ fi
 
 BRANCH_NAME=$1
 BUMP_VERSION=$2
+isUseDevAnalytics=$3
 
 if [ -z "$BRANCH_NAME" ]; then
   echo "Error: Branch name is required"
@@ -44,7 +45,7 @@ cd "$PROJECT_DIR" || { echo "Project directory not found!"; exit 1; }
 
 echo "Checking out branch: $BRANCH_NAME"
 git stash push -m "Pre-build stash"
-git fetch && git checkout "$BRANCH_NAME" && git pull origin "$BRANCH_NAME"
+git fetch && git checkout "$BRANCH_NAME" && git pull origin "$BRANCH_NAME" --no-rebase
 
 VERSION_CODE=$(grep '^desktop\.build\.number\s*=' "$PROJECT_DIR/gradle.properties" | sed 's/.*=\s*\([0-9]*\)/\1/' | xargs)
 VERSION_NAME=$(grep '^desktop\.version\s*=' "$PROJECT_DIR/gradle.properties" | sed 's/.*=\s*\([0-9]*\.[0-9]*\.[0-9]*\)/\1/' | xargs)
@@ -67,6 +68,19 @@ DESKTOP_N0_DSP_BUILD_FILE="/Users/denispopkov/Desktop/no_dsp/build.gradle.kts"
 BUILD_PATH="$PROJECT_DIR/desktopApp/build"
 SET_UPDATED_LIB_PATH="$PROJECT_DIR/shared/src/commonMain/resources/MR/files/libdspmac.dylib"
 CACHE_UPDATED_LIB_PATH="$PROJECT_DIR/desktopApp/build/native/libdspmac.dylib"
+
+# For dev analytics
+SHARED_GRADLE_FILE="$PROJECT_DIR/shared/build.gradle.kts"
+DEFAULT_SHARED_GRADLE_FILE="/Users/denispopkov/Desktop/default/build.gradle.kts"
+DEV_SHARED_GRADLE_FILE="/Users/denispopkov/Desktop/dev/build.gradle.kts"
+
+if [ "$isUseDevAnalytics" == "true" ]; then
+  echo "Replacing $SHARED_GRADLE_FILE with $DEV_SHARED_GRADLE_FILE"
+  rm -f "$SHARED_GRADLE_FILE"
+  cp "$DEV_SHARED_GRADLE_FILE" "$SHARED_GRADLE_FILE"
+  else
+    echo "Nothing to change with analytics"
+fi
 
 rm -f "$DESKTOP_N0_DSP_BUILD_FILE"
 rm -f "$DESKTOP_N0_DSP_BUILD_FILE"
@@ -234,6 +248,16 @@ fi
 
 echo "Uploading renamed .pkg to Slack..."
 execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "macOS signed from $BRANCH_NAME" "upload" "${FINAL_PKG_PATH}"
+
+if [ "$isUseDevAnalytics" == "true" ]; then
+  echo "Replacing $SHARED_GRADLE_FILE with $DEFAULT_SHARED_GRADLE_FILE"
+  rm -f "$SHARED_GRADLE_FILE"
+  cp "$DEFAULT_SHARED_GRADLE_FILE" "$SHARED_GRADLE_FILE"
+else
+    echo "Nothing to change with analytics"
+fi
+
+sleep 20
 
 if [ $? -eq 0 ]; then
     echo "PKG sent to Slack successfully."
