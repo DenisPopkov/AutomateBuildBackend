@@ -82,12 +82,13 @@ else
 fi
 
 # Update Fastfile
-#if [ -f "$FASTFILE_PATH" ]; then
-#  sed -i '' "s/ensure_git_branch(branch: 'sc_fastlane')/ensure_git_branch(branch: '$BRANCH_NAME')/" "$FASTFILE_PATH"
-#else
-#  echo "Fastfile not found: $FASTFILE_PATH"
-#  exit 1
-#fi
+if [ -f "$FASTFILE_PATH" ]; then
+  SAFE_BRANCH_NAME=$(printf '%s\n' "$BRANCH_NAME" | sed 's/[\/&]/\\&/g')
+  sed -i '' "s/ensure_git_branch(branch: 'sc_fastlane')/ensure_git_branch(branch: '$SAFE_BRANCH_NAME')/" "$FASTFILE_PATH"
+else
+  echo "Fastfile not found: $FASTFILE_PATH"
+  exit 1
+fi
 
 if [ "$isUseDevAnalytics" == "true" ]; then
   echo "Replacing $SHARED_GRADLE_FILE with $DEV_SHARED_GRADLE_FILE"
