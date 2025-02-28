@@ -24,10 +24,6 @@ if [ ! -f "$SECRET_FILE" ]; then
   exit 1
 fi
 
-end_time=$(TZ=Asia/Omsk date -v+15M "+%H:%M")
-message="Android build started. It will be ready approximately at $end_time Omsk Time."
-execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$message" "message"
-
 while IFS='=' read -r key value; do
   key=$(echo "$key" | xargs)
   value=$(echo "$value" | xargs)
@@ -48,6 +44,10 @@ if [ -z "$BRANCH_NAME" ]; then
 fi
 
 git fetch && git checkout "$BRANCH_NAME" && git pull origin "$BRANCH_NAME" --no-rebase
+
+end_time=$(TZ=Asia/Omsk date -v+15M "+%H:%M")
+message="Android build started. It will be ready approximately at $end_time Omsk Time."
+execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$message" "message"
 
 # Extract the current version from project.pbxproj
 if [ -f "$PBXPROJ_PATH" ]; then
