@@ -14,6 +14,9 @@ SWIFT_TARGET_DIR="/Users/denispopkov/AndroidStudioProjects/SA_Neuro_Multiplatfor
 SWIFT_TARGET_FILE="$SWIFT_TARGET_DIR/SA_Neuro_Multiplatform_shared.swift"
 SECRET_FILE="/Users/denispopkov/Desktop/secret.txt"
 
+PROJECT_DIR="/Users/denispopkov/AndroidStudioProjects/SA_Neuro_Multiplatform"
+cd "$PROJECT_DIR" || { echo "Project directory not found!"; exit 1; }
+
 # For dev analytics
 SHARED_GRADLE_FILE="$PROJECT_DIR/shared/build.gradle.kts"
 DEFAULT_SHARED_GRADLE_FILE="/Users/denispopkov/Desktop/default/build.gradle.kts"
@@ -79,12 +82,12 @@ else
 fi
 
 # Update Fastfile
-if [ -f "$FASTFILE_PATH" ]; then
-  sed -i '' "s/ensure_git_branch(branch: 'sc_fastlane')/ensure_git_branch(branch: '$BRANCH_NAME')/" "$FASTFILE_PATH"
-else
-  echo "Fastfile not found: $FASTFILE_PATH"
-  exit 1
-fi
+#if [ -f "$FASTFILE_PATH" ]; then
+#  sed -i '' "s/ensure_git_branch(branch: 'sc_fastlane')/ensure_git_branch(branch: '$BRANCH_NAME')/" "$FASTFILE_PATH"
+#else
+#  echo "Fastfile not found: $FASTFILE_PATH"
+#  exit 1
+#fi
 
 if [ "$isUseDevAnalytics" == "true" ]; then
   echo "Replacing $SHARED_GRADLE_FILE with $DEV_SHARED_GRADLE_FILE"
