@@ -37,7 +37,7 @@ echo "Opening Android Studio..."
 open -a "Android Studio"
 
 end_time=$(TZ=Asia/Omsk date -v+15M "+%H:%M")
-message="Android build started. It will be ready approximately at $end_time Omsk Time."
+message="macOS build started. It will be ready approximately at $end_time Omsk Time."
 execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$message" "message"
 
 PROJECT_DIR="/Users/denispopkov/AndroidStudioProjects/SA_Neuro_Multiplatform"
