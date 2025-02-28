@@ -46,7 +46,7 @@ fi
 git fetch && git checkout "$BRANCH_NAME" && git pull origin "$BRANCH_NAME" --no-rebase
 
 end_time=$(TZ=Asia/Omsk date -v+15M "+%H:%M")
-message="Android build started. It will be ready approximately at $end_time Omsk Time."
+message="iOS build started. It will be ready approximately at $end_time Omsk Time."
 execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$message" "message"
 
 # Extract the current version from project.pbxproj
