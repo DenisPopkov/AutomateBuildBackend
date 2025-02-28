@@ -4,13 +4,11 @@ source "/Users/denispopkov/PycharmProjects/AutomateBuildBackend/slack_upload.sh"
 
 SECRET_FILE="/Users/denispopkov/Desktop/secret.txt"
 
-# Validate secret.txt file existence
 if [ ! -f "$SECRET_FILE" ]; then
   echo "Error: secret.txt file not found at $SECRET_FILE"
   exit 1
 fi
 
-# Read secret.txt for configuration values
 while IFS='=' read -r key value; do
   key=$(echo "$key" | xargs)
   value=$(echo "$value" | xargs)
@@ -55,8 +53,7 @@ ALL_BUILD_FILE="/Users/denispopkov/Desktop/all_target/build.gradle.kts"
 
 # For dev analytics
 SHARED_GRADLE_FILE="$PROJECT_DIR/shared/build.gradle.kts"
-DEFAULT_SHARED_GRADLE_FILE="/Users/denispopkov/Desktop/default/build.gradle.kts"
-DEV_SHARED_GRADLE_FILE="/Users/denispopkov/Desktop/dev/build.gradle.kts"
+PROD_SHARED_GRADLE_FILE="/Users/denispopkov/Desktop/prod/build.gradle.kts"
 
 # Extract versionCode and versionName from build.gradle.kts
 VERSION_CODE=$(grep "versionCode =" "$PROJECT_DIR/androidApp/build.gradle.kts" | awk -F '=' '{print $2}' | xargs)
@@ -69,18 +66,21 @@ fi
 
 OLD_VERSION=$VERSION_CODE
 
-# Increment versionCode if required
 if [ "$BUMP_VERSION" == "true" ]; then
   VERSION_CODE=$((VERSION_CODE + 1))
   sed -i '' "s/versionCode = $OLD_VERSION/versionCode = $VERSION_CODE/" "$PROJECT_DIR/androidApp/build.gradle.kts"
+  git pull origin "$BRANCH_NAME" --no-rebase
+  git add .
+  git commit -m "Android version bump to $VERSION_CODE"
+  git push origin "$BRANCH_NAME"
 else
   echo "Nothing to bump"
 fi
 
-if [ "$isUseDevAnalytics" == "true" ]; then
-  echo "Replacing $SHARED_GRADLE_FILE with $DEV_SHARED_GRADLE_FILE"
+if [ "$isUseDevAnalytics" == "false" ]; then
+  echo "Replacing $SHARED_GRADLE_FILE with $PROD_SHARED_GRADLE_FILE"
   rm -f "$SHARED_GRADLE_FILE"
-  cp "$DEV_SHARED_GRADLE_FILE" "$SHARED_GRADLE_FILE"
+  cp "$PROD_SHARED_GRADLE_FILE" "$SHARED_GRADLE_FILE"
   else
     echo "Nothing to change with analytics"
 fi
@@ -192,14 +192,6 @@ if [ "$isBundleToBuild" == "true" ]; then
   echo "Uploading AAB to Slack..."
   execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "Android App Bundle from $BRANCH_NAME" "upload" "${FINAL_AAB_PATH}"
 
-  if [ "$isUseDevAnalytics" == "true" ]; then
-    echo "Replacing $SHARED_GRADLE_FILE with $DEFAULT_SHARED_GRADLE_FILE"
-    rm -f "$SHARED_GRADLE_FILE"
-    cp "$DEFAULT_SHARED_GRADLE_FILE" "$SHARED_GRADLE_FILE"
-  else
-      echo "Nothing to change with analytics"
-  fi
-
   sleep 20
 
   if [ $? -eq 0 ]; then
@@ -256,16 +248,6 @@ else
   echo "Uploading APK to Slack..."
   execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "Android APK from $BRANCH_NAME" "upload" "${FILE_PATH}"
 
-  if [ "$isUseDevAnalytics" == "true" ]; then
-    echo "Replacing $SHARED_GRADLE_FILE with $DEFAULT_SHARED_GRADLE_FILE"
-    rm -f "$SHARED_GRADLE_FILE"
-    cp "$DEFAULT_SHARED_GRADLE_FILE" "$SHARED_GRADLE_FILE"
-  else
-      echo "Nothing to change with analytics"
-  fi
-
-  sleep 20
-
   if [ $? -eq 0 ]; then
     echo "APK sent to Slack successfully."
     git pull origin "$BRANCH_NAME" --no-rebase
@@ -276,15 +258,4 @@ else
     echo "Error sending APK to Slack."
     exit 1
   fi
-fi
-
-if [ "$BUMP_VERSION" == "true" ]; then
-    git pull origin "$BRANCH_NAME" --no-rebase
-    git add .
-    git commit -m "Android version bump to $VERSION_CODE"
-    git push origin "$BRANCH_NAME"
-
-    echo "Version bump completed successfully. New versionCode: $VERSION_CODE"
-else
-    echo "Skipping version bump as bumpVersion is false."
 fi

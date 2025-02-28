@@ -58,6 +58,10 @@ fi
 if [ "$BUMP_VERSION" == "true" ]; then
   VERSION_CODE=$((VERSION_CODE + 1))
   sed -i '' "s/^desktop\.build\.number\s*=\s*[0-9]*$/desktop.build.number=$VERSION_CODE/" "$PROJECT_DIR/gradle.properties"
+  git pull origin "$BRANCH_NAME" --no-rebase
+  git add .
+  git commit -m "macOS version bump to $VERSION_CODE"
+  git push origin "$BRANCH_NAME"
 else
   echo "Nothing to bump"
 fi
@@ -71,16 +75,29 @@ CACHE_UPDATED_LIB_PATH="$PROJECT_DIR/desktopApp/build/native/libdspmac.dylib"
 
 # For dev analytics
 SHARED_GRADLE_FILE="$PROJECT_DIR/shared/build.gradle.kts"
-DEFAULT_SHARED_GRADLE_FILE="/Users/denispopkov/Desktop/default/build.gradle.kts"
-DEV_SHARED_GRADLE_FILE="/Users/denispopkov/Desktop/dev/build.gradle.kts"
+PROD_SHARED_GRADLE_FILE="/Users/denispopkov/Desktop/prod/build.gradle.kts"
 
-if [ "$isUseDevAnalytics" == "true" ]; then
-  echo "Replacing $SHARED_GRADLE_FILE with $DEV_SHARED_GRADLE_FILE"
+if [ "$isUseDevAnalytics" == "false" ]; then
+  echo "Replacing $SHARED_GRADLE_FILE with $PROD_SHARED_GRADLE_FILE"
   rm -f "$SHARED_GRADLE_FILE"
-  cp "$DEV_SHARED_GRADLE_FILE" "$SHARED_GRADLE_FILE"
+  cp "$PROD_SHARED_GRADLE_FILE" "$SHARED_GRADLE_FILE"
   else
     echo "Nothing to change with analytics"
 fi
+
+open -a "Android Studio"
+
+sleep 5
+
+osascript -e '
+tell application "System Events"
+    tell process "Android Studio"
+        keystroke "O" using {command down, shift down}
+    end tell
+end tell
+'
+
+sleep 80
 
 rm -f "$DESKTOP_N0_DSP_BUILD_FILE"
 rm -f "$DESKTOP_N0_DSP_BUILD_FILE"
@@ -249,15 +266,7 @@ fi
 echo "Uploading renamed .pkg to Slack..."
 execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "macOS signed from $BRANCH_NAME" "upload" "${FINAL_PKG_PATH}"
 
-if [ "$isUseDevAnalytics" == "true" ]; then
-  echo "Replacing $SHARED_GRADLE_FILE with $DEFAULT_SHARED_GRADLE_FILE"
-  rm -f "$SHARED_GRADLE_FILE"
-  cp "$DEFAULT_SHARED_GRADLE_FILE" "$SHARED_GRADLE_FILE"
-else
-    echo "Nothing to change with analytics"
-fi
-
-sleep 20
+sleep 10
 
 if [ $? -eq 0 ]; then
     echo "PKG sent to Slack successfully."
@@ -304,15 +313,4 @@ if [ -f "$NOTARIZED_BUILD_PATH" ]; then
     echo "File removed successfully."
 else
     echo "File not found: $NOTARIZED_BUILD_PATH"
-fi
-
-if [ "$BUMP_VERSION" == "true" ]; then
-    git pull origin "$BRANCH_NAME" --no-rebase
-    git add .
-    git commit -m "macOS version bump to $VERSION_CODE"
-    git push origin "$BRANCH_NAME"
-
-    echo "Version bump completed successfully. New versionCode: $VERSION_CODE"
-else
-    echo "Skipping version bump as bumpVersion is false."
 fi

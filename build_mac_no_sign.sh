@@ -21,8 +21,7 @@ done < "$SECRET_FILE"
 
 # For dev analytics
 SHARED_GRADLE_FILE="$PROJECT_DIR/shared/build.gradle.kts"
-DEFAULT_SHARED_GRADLE_FILE="/Users/denispopkov/Desktop/default/build.gradle.kts"
-DEV_SHARED_GRADLE_FILE="/Users/denispopkov/Desktop/dev/build.gradle.kts"
+PROD_SHARED_GRADLE_FILE="/Users/denispopkov/Desktop/prod/build.gradle.kts"
 
 BRANCH_NAME=$1
 isUseDevAnalytics=$2
@@ -50,13 +49,27 @@ if [ -z "$VERSION_CODE" ] || [ -z "$VERSION_NAME" ]; then
   exit 1
 fi
 
-if [ "$isUseDevAnalytics" == "true" ]; then
-  echo "Replacing $SHARED_GRADLE_FILE with $DEV_SHARED_GRADLE_FILE"
+if [ "$isUseDevAnalytics" == "false" ]; then
+  echo "Replacing $SHARED_GRADLE_FILE with $PROD_SHARED_GRADLE_FILE"
   rm -f "$SHARED_GRADLE_FILE"
-  cp "$DEV_SHARED_GRADLE_FILE" "$SHARED_GRADLE_FILE"
+  cp "$PROD_SHARED_GRADLE_FILE" "$SHARED_GRADLE_FILE"
   else
     echo "Nothing to change with analytics"
 fi
+
+open -a "Android Studio"
+
+sleep 5
+
+osascript -e '
+tell application "System Events"
+    tell process "Android Studio"
+        keystroke "O" using {command down, shift down}
+    end tell
+end tell
+'
+
+sleep 80
 
 # Building
 echo "Building no-signed build..."
@@ -90,14 +103,6 @@ if [ $? -eq 0 ]; then
 else
     echo "Error sending Build to Slack."
     exit 1
-fi
-
-if [ "$isUseDevAnalytics" == "true" ]; then
-  echo "Replacing $SHARED_GRADLE_FILE with $DEFAULT_SHARED_GRADLE_FILE"
-  rm -f "$SHARED_GRADLE_FILE"
-  cp "$DEFAULT_SHARED_GRADLE_FILE" "$SHARED_GRADLE_FILE"
-else
-    echo "Nothing to change with analytics"
 fi
 
 ## Releasing after build

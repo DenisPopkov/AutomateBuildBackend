@@ -40,8 +40,7 @@ $PROJECT_DIR = "C:\Users\BlackBricks\StudioProjects\SA_Neuro_Multiplatform"
 
 # For analytics
 $SHARED_GRADLE_FILE = "$PROJECT_DIR\shared\build.gradle.kts"
-$DEFAULT_SHARED_GRADLE_FILE = "C:\Users\BlackBricks\Desktop\default\build.gradle.kts"
-$DEV_SHARED_GRADLE_FILE = "C:\Users\BlackBricks\Desktop\dev\build.gradle.kts"
+$PROD_SHARED_GRADLE_FILE = "C:\Users\BlackBricks\Desktop\default\build.gradle.kts"
 
 Set-Location -Path $PROJECT_DIR -ErrorAction Stop
 
@@ -61,21 +60,34 @@ if (-not $VERSION_CODE -or -not $VERSION_NAME) {
     exit 1
 }
 
-# Bump version if required
 if ($BUMP_VERSION -eq "true") {
     $VERSION_CODE = [int]$VERSION_CODE + 1
     (Get-Content $gradlePropsPath) -replace 'desktop\.build\.number\s*=\s*\d+', "desktop.build.number=$VERSION_CODE" | Set-Content $gradlePropsPath
+    Start-Sleep -Seconds 5
+    git pull origin "$BRANCH_NAME" --no-rebase
+    git add .
+    git commit -m "Windows version bump to $VERSION_CODE"
+    git push origin "$BRANCH_NAME"
 } else {
     Write-Host "Nothing to bump"
 }
 
-if ($USE_DEV_ANALYTICS -eq $true) {
-    Write-Host "Replacing $SHARED_GRADLE_FILE with $DEV_SHARED_GRADLE_FILE"
+if ($USE_DEV_ANALYTICS -eq $false) {
+    Write-Host "Replacing $SHARED_GRADLE_FILE with $PROD_SHARED_GRADLE_FILE"
     Remove-Item -Force $SHARED_GRADLE_FILE
-    Copy-Item -Path $DEV_SHARED_GRADLE_FILE -Destination $SHARED_GRADLE_FILE
+    Copy-Item -Path $PROD_SHARED_GRADLE_FILE -Destination $SHARED_GRADLE_FILE
 } else {
     Write-Host "Nothing to change with analytics"
 }
+
+Start-Process "C:\Program Files\Android\Android Studio\bin\studio64.exe"
+
+Start-Sleep -Seconds 5
+
+Add-Type -AssemblyName System.Windows.Forms
+[System.Windows.Forms.SendKeys]::SendWait("^+O")
+
+Start-Sleep -Seconds 80
 
 function Execute-FileUpload {
     param (
@@ -97,7 +109,6 @@ function Execute-FileUpload {
     }
 
     if ($Action -eq "upload") {
-        # Handle file upload
         $filelist = @()
         $comma = ""
 
@@ -133,7 +144,6 @@ function Execute-FileUpload {
 
         Write-Host "File upload completed"
     } elseif ($Action -eq "message") {
-        # Post a simple message without file upload
         Post-Message -SlackToken $SlackToken -ChannelId $ChannelId -InitialComment $InitialComment
     } else {
         Write-Host "Invalid action specified. Use 'upload' to upload files or 'message' to post a message."
@@ -356,28 +366,6 @@ if (Test-Path $FINAL_MSI_PATH) {
 } else {
     Write-Host "Error: Build file '$FINAL_MSI_PATH' not found."
     exit 1
-}
-
-# Resetting (replace with default version if isUseDevAnalytics is true)
-if ($isUseDevAnalytics -eq $true) {
-    Write-Host "Replacing $SHARED_GRADLE_FILE with $DEFAULT_SHARED_GRADLE_FILE"
-    Remove-Item -Force $SHARED_GRADLE_FILE
-    Copy-Item -Path $DEFAULT_SHARED_GRADLE_FILE -Destination $SHARED_GRADLE_FILE
-} else {
-    Write-Host "Nothing to change with analytics"
-}
-
-Start-Sleep -Seconds 20
-
-if ($BUMP_VERSION -eq "true") {
-    git pull origin "$BRANCH_NAME" --no-rebase
-    git add .
-    git commit -m "Windows version bump to $VERSION_CODE"
-    git push origin "$BRANCH_NAME"
-
-    Write-Output "Version bump completed successfully. New versionCode: $VERSION_CODE"
-} else {
-    Write-Output "Skipping version bump as bumpVersion is false."
 }
 
 Start-Sleep -Seconds 20

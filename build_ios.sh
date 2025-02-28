@@ -19,8 +19,7 @@ cd "$PROJECT_DIR" || { echo "Project directory not found!"; exit 1; }
 
 # For dev analytics
 SHARED_GRADLE_FILE="$PROJECT_DIR/shared/build.gradle.kts"
-DEFAULT_SHARED_GRADLE_FILE="/Users/denispopkov/Desktop/default/build.gradle.kts"
-DEV_SHARED_GRADLE_FILE="/Users/denispopkov/Desktop/dev/build.gradle.kts"
+PROD_SHARED_GRADLE_FILE="/Users/denispopkov/Desktop/prod/build.gradle.kts"
 
 if [ ! -f "$SECRET_FILE" ]; then
   echo "Error: secret.txt file not found at $SECRET_FILE"
@@ -90,13 +89,27 @@ else
   exit 1
 fi
 
-if [ "$isUseDevAnalytics" == "true" ]; then
-  echo "Replacing $SHARED_GRADLE_FILE with $DEV_SHARED_GRADLE_FILE"
+if [ "$isUseDevAnalytics" == "false" ]; then
+  echo "Replacing $SHARED_GRADLE_FILE with $PROD_SHARED_GRADLE_FILE"
   rm -f "$SHARED_GRADLE_FILE"
-  cp "$DEV_SHARED_GRADLE_FILE" "$SHARED_GRADLE_FILE"
+  cp "$PROD_SHARED_GRADLE_FILE" "$SHARED_GRADLE_FILE"
   else
     echo "Nothing to change with analytics"
 fi
+
+open -a "Android Studio"
+
+sleep 5
+
+osascript -e '
+tell application "System Events"
+    tell process "Android Studio"
+        keystroke "O" using {command down, shift down}
+    end tell
+end tell
+'
+
+sleep 80
 
 # Move file to backup location
 if [ -f "$FILE_TO_DELETE" ]; then
@@ -119,16 +132,6 @@ mkdir -p "$SWIFT_TARGET_DIR"
 cp "$SWIFT_FILE_SOURCE" "$SWIFT_TARGET_FILE"
 
 cd "$IOS_APP_PATH" || exit
-
-if [ "$isUseDevAnalytics" == "true" ]; then
-  echo "Replacing $SHARED_GRADLE_FILE with $DEFAULT_SHARED_GRADLE_FILE"
-  rm -f "$SHARED_GRADLE_FILE"
-  cp "$DEFAULT_SHARED_GRADLE_FILE" "$SHARED_GRADLE_FILE"
-else
-    echo "Nothing to change with analytics"
-fi
-
-sleep 20
 
 # Run Fastlane with fallback
 if fastlane testflight_upload; then
