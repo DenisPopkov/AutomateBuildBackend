@@ -76,18 +76,18 @@ if ($USE_DEV_ANALYTICS -eq $false) {
     Write-Host "Replacing $SHARED_GRADLE_FILE with $PROD_SHARED_GRADLE_FILE"
     Remove-Item -Force $SHARED_GRADLE_FILE
     Copy-Item -Path $PROD_SHARED_GRADLE_FILE -Destination $SHARED_GRADLE_FILE
+
+    Start-Process "C:\Program Files\Android\Android Studio\bin\studio64.exe"
+
+    Start-Sleep -Seconds 5
+
+    Add-Type -AssemblyName System.Windows.Forms
+    [System.Windows.Forms.SendKeys]::SendWait("^+O")
+
+    Start-Sleep -Seconds 80
 } else {
     Write-Host "Nothing to change with analytics"
 }
-
-Start-Process "C:\Program Files\Android\Android Studio\bin\studio64.exe"
-
-Start-Sleep -Seconds 5
-
-Add-Type -AssemblyName System.Windows.Forms
-[System.Windows.Forms.SendKeys]::SendWait("^+O")
-
-Start-Sleep -Seconds 80
 
 function Execute-FileUpload {
     param (

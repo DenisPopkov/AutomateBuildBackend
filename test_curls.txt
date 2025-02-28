@@ -15,6 +15,10 @@ curl -X POST http://192.168.2.49:5001/build_win \
 -H "Content-Type: application/json" \
 -d '{"branchName": "build_win_soundcheck" }'
 
+curl -X POST localhost:5001/build_mac \
+-H "Content-Type: application/json" \
+-d '{"branchName": "d.popkov/desktop/feat/win_notifaction_manager", "sign": false }'
+
 curl -X POST http://192.168.2.49:5001/build_android \
 -H "Content-Type: application/json" \
 -d '{"branchName": "soundcheck_develop"}'

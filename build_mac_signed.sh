@@ -81,23 +81,23 @@ if [ "$isUseDevAnalytics" == "false" ]; then
   echo "Replacing $SHARED_GRADLE_FILE with $PROD_SHARED_GRADLE_FILE"
   rm -f "$SHARED_GRADLE_FILE"
   cp "$PROD_SHARED_GRADLE_FILE" "$SHARED_GRADLE_FILE"
-  else
-    echo "Nothing to change with analytics"
-fi
 
-open -a "Android Studio"
+  open -a "Android Studio"
 
-sleep 5
+  sleep 5
 
-osascript -e '
-tell application "System Events"
+  osascript -e '
+  tell application "System Events"
     tell process "Android Studio"
         keystroke "O" using {command down, shift down}
     end tell
-end tell
-'
+  end tell
+  '
 
-sleep 80
+  sleep 80
+  else
+    echo "Nothing to change with analytics"
+fi
 
 rm -f "$DESKTOP_N0_DSP_BUILD_FILE"
 rm -f "$DESKTOP_N0_DSP_BUILD_FILE"
