@@ -80,13 +80,13 @@ else
   exit 1
 fi
 
-# Update Fastfile
-if [ -f "$FASTFILE_PATH" ]; then
-  SAFE_BRANCH_NAME=$(printf '%s\n' "$BRANCH_NAME" | sed 's/[\/&]/\\&/g')
-  sed -i '' "s/ensure_git_branch(branch: 'sc_fastlane')/ensure_git_branch(branch: '$SAFE_BRANCH_NAME')/" "$FASTFILE_PATH"
+ESCAPED_BRANCH_NAME=$(printf '%s\n' "$BRANCH_NAME" | sed -e 's/[\/&]/\\&/g')
+
+# Detect OS and set sed flag accordingly
+if [[ "$OSTYPE" == "darwin"* ]]; then
+  sed -i "" "s/branch: '[^']*'/branch: '$ESCAPED_BRANCH_NAME'/" "$FASTFILE_PATH"
 else
-  echo "Fastfile not found: $FASTFILE_PATH"
-  exit 1
+  sed -i "s/branch: '[^']*'/branch: '$ESCAPED_BRANCH_NAME'/" "$FASTFILE_PATH"
 fi
 
 if [ "$isUseDevAnalytics" == "false" ]; then
