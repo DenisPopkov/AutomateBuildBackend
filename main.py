@@ -40,12 +40,17 @@ def build_mac():
 @app.route('/build_win', methods=['POST'])
 def build_win():
     try:
+        print("Received request to /build_win")
         data = request.json
         branch_name = data.get('branchName')
         bump_version = data.get('bumpVersion', False)
         use_dev_analytics = data.get('isUseDevAnalytics', True)
 
+        print(
+            f"Parsed data: branchName={branch_name}, bumpVersion={bump_version}, isUseDevAnalytics={use_dev_analytics}")
+
         if not branch_name:
+            print("Error: Missing required parameter: branchName")
             return jsonify({"error": "Missing required parameter: branchName"}), 400
 
         # Define the script path and flags
@@ -53,22 +58,37 @@ def build_win():
         bump_version_flag = "true" if bump_version else "false"
         use_dev_analytics_flag = "true" if use_dev_analytics else "false"
 
-        # Change the directory to the specified path
+        print("Changing working directory...")
         os.chdir("C:\\Users\\BlackBricks\\PycharmProjects\\AutomateBuildBackend")
+        print("Current working directory:", os.getcwd())
 
-        # Run the PowerShell script with the parameters
-        subprocess.run(
-            ["powershell", "-ExecutionPolicy", "Bypass", "-File", script_path, "-BRANCH_NAME", branch_name, "-BUMP_VERSION", bump_version_flag, "-USE_DEV_ANALYTICS", use_dev_analytics_flag],
-            check=True)
+        # Construct command
+        command = [
+            "powershell", "-ExecutionPolicy", "Bypass", "-File", script_path,
+            "-BRANCH_NAME", branch_name,
+            "-BUMP_VERSION", bump_version_flag,
+            "-USE_DEV_ANALYTICS", use_dev_analytics_flag
+        ]
+
+        print(f"Executing command: {' '.join(command)}")
+
+        # Run the PowerShell script
+        result = subprocess.run(command, check=True, capture_output=True, text=True)
+
+        print(f"Script output: {result.stdout}")
+        if result.stderr:
+            print(f"Script error output: {result.stderr}")
 
         return jsonify({
             "message": f"Windows build for branch {branch_name} executed successfully with bumpVersion={bump_version_flag}!"
         }), 200
 
     except subprocess.CalledProcessError as e:
-        return jsonify({"error": str(e)}), 500
+        print(f"Subprocess failed: {e}")
+        return jsonify({"error": f"Build failed: {e}"}), 500
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        print(f"Unexpected error: {e}")
+        return jsonify({"error": f"Unexpected error: {str(e)}"}), 500
 
 
 @app.route('/build_android', methods=['POST'])
@@ -88,7 +108,9 @@ def build_android():
         is_bundle_to_build_flag = "true" if is_bundle_to_build else "false"
         use_dev_analytics_flag = "true" if use_dev_analytics else "false"
 
-        subprocess.run(["sh", script_path, branch_name, bump_version_flag, is_bundle_to_build_flag, use_dev_analytics_flag], check=True)
+        subprocess.run(
+            ["sh", script_path, branch_name, bump_version_flag, is_bundle_to_build_flag, use_dev_analytics_flag],
+            check=True)
 
         return jsonify({
             "message": f"Android build for branch {branch_name} executed successfully with bumpVersion={bump_version_flag}!"}), 200
