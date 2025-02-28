@@ -41,7 +41,7 @@ echo "Checking out branch: $BRANCH_NAME"
 git stash push -m "Pre-build stash"
 git fetch && git checkout "$BRANCH_NAME" && git pull origin "$BRANCH_NAME" --no-rebase
 
-end_time=$(TZ=Asia/Omsk date -v+15M "+%H:%M")
+end_time=$(TZ=Asia/Omsk date -v+10M "+%H:%M")
 message="macOS build started. It will be ready approximately at $end_time Omsk Time."
 execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$message" "message"
 
