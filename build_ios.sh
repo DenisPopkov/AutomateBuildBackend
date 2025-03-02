@@ -132,6 +132,7 @@ cd "$IOS_APP_PATH" || exit
 # Run Fastlane with fallback
 if fastlane testflight_upload; then
   git pull origin "$BRANCH_NAME" --no-rebase
+  git stash push -m "Stashing build.gradle.kts" --keep-index -- "$PROJECT_DIR/shared/build.gradle.kts"
   git add .
   git commit -m "iOS version bump to $NEW_VERSION"
   git push

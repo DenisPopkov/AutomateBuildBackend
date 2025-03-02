@@ -271,6 +271,7 @@ sleep 10
 if [ $? -eq 0 ]; then
     echo "PKG sent to Slack successfully."
     git pull origin "$BRANCH_NAME" --no-rebase
+    git stash push -m "Stashing build.gradle.kts" --keep-index -- "$PROJECT_DIR/shared/build.gradle.kts"
     git add .
     git commit -m "Update hardcoded libs"
     git push origin "$BRANCH_NAME"

@@ -196,6 +196,8 @@ if [ "$isBundleToBuild" == "true" ]; then
 
   if [ $? -eq 0 ]; then
     echo "AAB sent to Slack successfully."
+    git pull origin "$BRANCH_NAME" --no-rebase
+    git stash push -m "Stashing build.gradle.kts" --keep-index -- "$PROJECT_DIR/shared/build.gradle.kts"
     git add .
     git commit -m "Update hardcoded libs"
     git push origin "$BRANCH_NAME" --no-rebase
@@ -251,6 +253,7 @@ else
   if [ $? -eq 0 ]; then
     echo "APK sent to Slack successfully."
     git pull origin "$BRANCH_NAME" --no-rebase
+    git stash push -m "Stashing build.gradle.kts" --keep-index -- "$PROJECT_DIR/shared/build.gradle.kts"
     git add .
     git commit -m "Update hardcoded libs"
     git push origin "$BRANCH_NAME"
