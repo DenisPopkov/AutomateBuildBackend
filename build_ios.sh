@@ -47,22 +47,18 @@ fi
 
 git fetch && git checkout "$BRANCH_NAME" && git pull origin "$BRANCH_NAME" --no-rebase
 
+cd "$IOS_APP_PATH" || exit
+
+LAST_BUILD_NUMBER=$(agvtool what-version -terse)
+NEW_VERSION=$((LAST_BUILD_NUMBER + 1))
+
 end_time=$(TZ=Asia/Omsk date -v+15M "+%H:%M")
 message="iOS build started. It will be ready approximately at $end_time Omsk Time."
 execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$message" "message"
 
-# Extract the current version from project.pbxproj
+# Update project.pbxproj
 if [ -f "$PBXPROJ_PATH" ]; then
-  CURRENT_VERSION=$(grep -o 'CURRENT_PROJECT_VERSION = [0-9]\+;' "$PBXPROJ_PATH" | sed -E 's/.*= ([0-9]+);/\1/' | head -n 1)
-  CURRENT_VERSION=$(echo "$CURRENT_VERSION" | xargs)
-
-  if [[ "$CURRENT_VERSION" =~ ^[0-9]+$ ]]; then
-    NEW_VERSION=$((CURRENT_VERSION + 1))
-    sed -i '' "s/CURRENT_PROJECT_VERSION = $CURRENT_VERSION;/CURRENT_PROJECT_VERSION = $NEW_VERSION;/" "$PBXPROJ_PATH"
-  else
-    echo "Error: Unable to extract a valid CURRENT_PROJECT_VERSION from project.pbxproj"
-    exit 1
-  fi
+  sed -i '' "s/CURRENT_PROJECT_VERSION = $LAST_BUILD_NUMBER;/CURRENT_PROJECT_VERSION = $NEW_VERSION;/" "$PBXPROJ_PATH"
 
   MARKETING_VERSION=$(grep -o 'MARKETING_VERSION = [^;]*' "$PBXPROJ_PATH" | sed -E 's/.*= (.*)/\1/' | head -n 1)
   MARKETING_VERSION=$(echo "$MARKETING_VERSION" | xargs)
