@@ -183,7 +183,7 @@ if [ "$isBundleToBuild" == "true" ]; then
   done
 
   # Move the APK file to the builds folder with the unique name
-  mv "$APK_PATH" "$FINAL_AAB_PATH" || { echo "Error renaming AAB"; exit 1; }
+  mv "$AAB_PATH" "$FINAL_AAB_PATH" || { echo "Error renaming AAB"; exit 1; }
   echo "APK renamed and moved to: $FINAL_AAB_PATH"
 
   FILE_PATH="$FINAL_AAB_PATH"
