@@ -40,7 +40,7 @@ $PROJECT_DIR = "C:\Users\BlackBricks\StudioProjects\SA_Neuro_Multiplatform"
 
 # For analytics
 $SHARED_GRADLE_FILE = "$PROJECT_DIR\shared\build.gradle.kts"
-$PROD_SHARED_GRADLE_FILE = "C:\Users\BlackBricks\Desktop\default\build.gradle.kts"
+$PROD_SHARED_GRADLE_FILE = "C:\Users\BlackBricks\Desktop\prod\build.gradle.kts"
 
 Set-Location -Path $PROJECT_DIR -ErrorAction Stop
 
