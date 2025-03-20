@@ -23,9 +23,7 @@ while IFS='=' read -r key value; do
 done < "$SECRET_FILE"
 
 BRANCH_NAME=$1
-BUMP_VERSION=$2
-isBundleToBuild=$3
-isUseDevAnalytics=$4
+isUseDevAnalytics=$2
 
 # Validate branch name input
 if [ -z "$BRANCH_NAME" ]; then
@@ -35,8 +33,16 @@ fi
 
 open -a "Android Studio"
 
+analyticsMessage=""
+
+if [ "$isUseDevAnalytics" == "false" ]; then
+  analyticsMessage="dev"
+else
+  analyticsMessage="prod"
+fi
+
 end_time=$(TZ=Asia/Omsk date -v+15M "+%H:%M")
-message="Android build started. It will be ready approximately at $end_time Omsk Time."
+message="Android build started on $BRANCH_NAME with $analyticsMessage analytics. It will be ready approximately at $end_time Omsk Time."
 execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$message" "message"
 
 PROJECT_DIR="/Users/denispopkov/AndroidStudioProjects/SA_Neuro_Multiplatform"
@@ -66,16 +72,12 @@ fi
 
 OLD_VERSION=$VERSION_CODE
 
-if [ "$BUMP_VERSION" == "true" ]; then
-  VERSION_CODE=$((VERSION_CODE + 1))
-  sed -i '' "s/versionCode = $OLD_VERSION/versionCode = $VERSION_CODE/" "$PROJECT_DIR/androidApp/build.gradle.kts"
-  git pull origin "$BRANCH_NAME" --no-rebase
-  git add .
-  git commit -m "Android version bump to $VERSION_CODE"
-  git push origin "$BRANCH_NAME"
-else
-  echo "Nothing to bump"
-fi
+VERSION_CODE=$((VERSION_CODE + 1))
+sed -i '' "s/versionCode = $OLD_VERSION/versionCode = $VERSION_CODE/" "$PROJECT_DIR/androidApp/build.gradle.kts"
+git pull origin "$BRANCH_NAME" --no-rebase
+git add .
+git commit -m "Android version bump to $VERSION_CODE"
+git push origin "$BRANCH_NAME"
 
 if [ "$isUseDevAnalytics" == "false" ]; then
   echo "Replacing $SHARED_GRADLE_FILE with $PROD_SHARED_GRADLE_FILE"
@@ -126,7 +128,7 @@ APK_PATH="$PROJECT_DIR/androidApp/build/outputs/apk/release/androidApp-release.a
 echo "path to APK = $APK_PATH"
 
 if [ ! -f "$APK_PATH" ]; then
-  execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "Android build failed :crycat:" "message"
+  execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "Android build failed :crycat: Because of rebuilding DSP lib" "message"
   echo "Error: APK not found"
   exit 1
 fi
@@ -150,7 +152,7 @@ rm -rf "$RELEASE_PATH"
 rm -f "$ANDROID_BUILD_FILE"
 cp "$ALL_BUILD_FILE" "$ANDROID_BUILD_FILE"
 
-if [ "$isBundleToBuild" == "true" ]; then
+if [ "$isUseDevAnalytics" == "false" ]; then
   echo "Building AAB (Android App Bundle)..."
 
   # Build AAB
@@ -239,10 +241,6 @@ else
     FINAL_APK_PATH="$FINAL_DIR/neuro3-${VERSION_NAME}-[${VERSION_CODE}]_${INDEX}.apk"
     INDEX=$((INDEX + 1))
   done
-
-  # Move the APK file to the builds folder with the unique name
-  mv "$APK_PATH" "$FINAL_APK_PATH" || { echo "Error renaming APK"; exit 1; }
-  echo "APK renamed and moved to: $FINAL_APK_PATH"
 
   FILE_PATH="$FINAL_APK_PATH"
 

@@ -39,6 +39,14 @@ done < "$SECRET_FILE"
 BRANCH_NAME=$1
 isUseDevAnalytics=$2
 
+analyticsMessage=""
+
+if [ "$isUseDevAnalytics" == "false" ]; then
+  analyticsMessage="dev"
+else
+  analyticsMessage="prod"
+fi
+
 # Checkout branch
 if [ -z "$BRANCH_NAME" ]; then
   echo "Error: Branch name is required"
@@ -53,7 +61,7 @@ LAST_BUILD_NUMBER=$(agvtool what-version -terse)
 NEW_VERSION=$((LAST_BUILD_NUMBER + 1))
 
 end_time=$(TZ=Asia/Omsk date -v+15M "+%H:%M")
-message="iOS build started. It will be ready approximately at $end_time Omsk Time."
+message="iOS build started on $BRANCH_NAME with $analyticsMessage analytics. It will be ready approximately at $end_time Omsk Time."
 execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$message" "message"
 
 # Update project.pbxproj

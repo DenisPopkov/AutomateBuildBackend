@@ -36,8 +36,16 @@ fi
 echo "Opening Android Studio..."
 open -a "Android Studio"
 
+analyticsMessage=""
+
+if [ "$isUseDevAnalytics" == "false" ]; then
+  analyticsMessage="dev"
+else
+  analyticsMessage="prod"
+fi
+
 end_time=$(TZ=Asia/Omsk date -v+32M "+%H:%M")
-message="macOS build started. It will be ready approximately at $end_time Omsk Time."
+message="MacOS build started on $BRANCH_NAME with $analyticsMessage analytics. It will be ready approximately at $end_time Omsk Time."
 execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$message" "message"
 
 PROJECT_DIR="/Users/denispopkov/AndroidStudioProjects/SA_Neuro_Multiplatform"
@@ -55,16 +63,12 @@ if [ -z "$VERSION_CODE" ] || [ -z "$VERSION_NAME" ]; then
   exit 1
 fi
 
-if [ "$BUMP_VERSION" == "true" ]; then
-  VERSION_CODE=$((VERSION_CODE + 1))
-  sed -i '' "s/^desktop\.build\.number\s*=\s*[0-9]*$/desktop.build.number=$VERSION_CODE/" "$PROJECT_DIR/gradle.properties"
-  git pull origin "$BRANCH_NAME" --no-rebase
-  git add .
-  git commit -m "macOS version bump to $VERSION_CODE"
-  git push origin "$BRANCH_NAME"
-else
-  echo "Nothing to bump"
-fi
+VERSION_CODE=$((VERSION_CODE + 1))
+sed -i '' "s/^desktop\.build\.number\s*=\s*[0-9]*$/desktop.build.number=$VERSION_CODE/" "$PROJECT_DIR/gradle.properties"
+git pull origin "$BRANCH_NAME" --no-rebase
+git add .
+git commit -m "macOS version bump to $VERSION_CODE"
+git push origin "$BRANCH_NAME"
 
 DESKTOP_BUILD_FILE="$PROJECT_DIR/desktopApp/build.gradle.kts"
 DESKTOP_DSP_BUILD_FILE="/Users/denispopkov/Desktop/build_dsp/build.gradle.kts"
@@ -246,10 +250,6 @@ if [ -f "$FINAL_PKG_PATH" ]; then
         INDEX=$((INDEX + 1))
     done
 fi
-
-# Move the file to the builds folder with the final name
-mv "$SIGNED_PKG_PATH" "$FINAL_PKG_PATH" || { echo "Error renaming .pkg"; exit 1; }
-echo "Renamed .pkg and moved to: $FINAL_PKG_PATH"
 
 # Check the signature of the renamed .pkg
 echo "Checking signature of the renamed .pkg file..."

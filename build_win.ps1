@@ -1,6 +1,5 @@
 param(
     [string]$BRANCH_NAME,
-    [string]$BUMP_VERSION,
     [string]$USE_DEV_ANALYTICS
 )
 
@@ -60,17 +59,13 @@ if (-not $VERSION_CODE -or -not $VERSION_NAME) {
     exit 1
 }
 
-if ($BUMP_VERSION -eq "true") {
-    $VERSION_CODE = [int]$VERSION_CODE + 1
-    (Get-Content $gradlePropsPath) -replace 'desktop\.build\.number\s*=\s*\d+', "desktop.build.number=$VERSION_CODE" | Set-Content $gradlePropsPath
-    Start-Sleep -Seconds 5
-    git pull origin "$BRANCH_NAME" --no-rebase
-    git add .
-    git commit -m "Windows version bump to $VERSION_CODE"
-    git push origin "$BRANCH_NAME"
-} else {
-    Write-Host "Nothing to bump"
-}
+$VERSION_CODE = [int]$VERSION_CODE + 1
+(Get-Content $gradlePropsPath) -replace 'desktop\.build\.number\s*=\s*\d+', "desktop.build.number=$VERSION_CODE" | Set-Content $gradlePropsPath
+Start-Sleep -Seconds 5
+git pull origin "$BRANCH_NAME" --no-rebase
+git add .
+git commit -m "Windows version bump to $VERSION_CODE"
+git push origin "$BRANCH_NAME"
 
 if ($USE_DEV_ANALYTICS -eq $false) {
     Write-Host "Replacing $SHARED_GRADLE_FILE with $PROD_SHARED_GRADLE_FILE"
@@ -294,9 +289,17 @@ function Post-Message {
 
 Start-Sleep -Seconds 5
 
+$analyticsMessage = ""
+
+if ($USE_DEV_ANALYTICS -eq $false) {
+    $analyticsMessage = "dev"
+} else {
+    $analyticsMessage = "prod"
+}
+
 $endTime = [System.TimeZoneInfo]::ConvertTimeBySystemTimeZoneId((Get-Date).AddMinutes(15), "Omsk Standard Time")
 $formattedTime = $endTime.ToString("HH:mm")
-$message = "Windows build started. It will be ready approximately at $formattedTime Omsk Time."
+$message = "Windows build started on $BRANCH_NAME with $analyticsMessage analytics. It will be ready approximately at $formattedTime Omsk Time."
 Post-Message -SlackToken $SLACK_BOT_TOKEN -ChannelId $SLACK_CHANNEL -InitialComment $message
 
 # Paths for build files

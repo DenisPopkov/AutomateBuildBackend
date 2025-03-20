@@ -19,7 +19,6 @@ function execute_file_upload() {
     fi
 
     if [ "${action}" == "upload" ]; then
-        # Handle file upload
         for file in ${files}; do
             if [ ! -f "${file}" ]; then
                 echo "File not found: ${file}"
