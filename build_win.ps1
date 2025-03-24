@@ -291,7 +291,7 @@ Start-Sleep -Seconds 5
 
 $analyticsMessage = ""
 
-if ($USE_DEV_ANALYTICS -eq $false) {
+if ($USE_DEV_ANALYTICS -eq $true) {
     $analyticsMessage = "dev"
 } else {
     $analyticsMessage = "prod"
