@@ -41,7 +41,7 @@ isUseDevAnalytics=$2
 
 analyticsMessage=""
 
-if [ "$isUseDevAnalytics" == "false" ]; then
+if [ "$isUseDevAnalytics" == "true" ]; then
   analyticsMessage="dev"
 else
   analyticsMessage="prod"
