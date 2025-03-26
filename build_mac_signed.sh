@@ -25,13 +25,7 @@ if [ -z "$TEAM_ID" ] || [ -z "$APPLE_ID" ] || [ -z "$NOTARY_PASSWORD" ] || [ -z 
 fi
 
 BRANCH_NAME=$1
-BUMP_VERSION=$2
-isUseDevAnalytics=$3
-
-if [ -z "$BRANCH_NAME" ]; then
-  echo "Error: Branch name is required"
-  exit 1
-fi
+isUseDevAnalytics=$2
 
 echo "Opening Android Studio..."
 open -a "Android Studio"
@@ -230,12 +224,6 @@ xcrun notarytool submit "$SIGNED_PKG_PATH" \
   --password "$NOTARY_PASSWORD" \
   --wait
 
-if [ "$BUMP_VERSION" == "true" ]; then
-    VERSION_CODE=$((VERSION_CODE + 1))
-else
-   echo "Bump is false"
-fi
-
 # Rename signed .pkg to final format
 BASE_NAME="neuro_desktop_${VERSION_NAME}-[${VERSION_CODE}]_installer_mac.pkg"
 FINAL_DIR="/Users/denispopkov/Desktop/builds"
@@ -270,7 +258,6 @@ sleep 10
 
 if [ $? -eq 0 ]; then
     echo "PKG sent to Slack successfully."
-    git pull origin "$BRANCH_NAME" --no-rebase
     git stash push -m "Stashing build.gradle.kts" --keep-index -- "$PROJECT_DIR/shared/build.gradle.kts"
     git add .
     git commit -m "Update hardcoded libs"
