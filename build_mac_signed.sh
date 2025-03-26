@@ -39,7 +39,7 @@ else
 fi
 
 end_time=$(TZ=Asia/Omsk date -v+32M "+%H:%M")
-message="MacOS build started on $BRANCH_NAME with $analyticsMessage analytics. It will be ready approximately at $end_time Omsk Time."
+message="macOS build started on $BRANCH_NAME with $analyticsMessage analytics. It will be ready approximately at $end_time Omsk Time."
 execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$message" "message"
 
 PROJECT_DIR="/Users/denispopkov/AndroidStudioProjects/SA_Neuro_Multiplatform"
