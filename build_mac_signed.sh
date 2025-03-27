@@ -239,6 +239,10 @@ if [ -f "$FINAL_PKG_PATH" ]; then
     done
 fi
 
+# Move the file to the builds folder with the final name
+mv "$SIGNED_PKG_PATH" "$FINAL_PKG_PATH" || { echo "Error renaming .pkg"; exit 1; }
+echo "Renamed .pkg and moved to: $FINAL_PKG_PATH"
+
 # Check the signature of the renamed .pkg
 echo "Checking signature of the renamed .pkg file..."
 SIGNATURE_CHECK=$(pkgutil --check-signature "$FINAL_PKG_PATH")
