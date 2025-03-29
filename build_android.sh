@@ -55,15 +55,6 @@ echo "Checking out branch: $BRANCH_NAME"
 git stash push -m "Pre-build stash"
 git fetch && git checkout "$BRANCH_NAME" && git pull origin "$BRANCH_NAME" --no-rebase
 
-# Replace build.gradle.kts for Android with arm_target/build.gradle.kts
-ANDROID_BUILD_FILE="$PROJECT_DIR/androidApp/build.gradle.kts"
-ARM_BUILD_FILE="/Users/denispopkov/Desktop/arm_target/build.gradle.kts"
-ALL_BUILD_FILE="/Users/denispopkov/Desktop/all_target/build.gradle.kts"
-
-# For dev analytics
-SHARED_GRADLE_FILE="$PROJECT_DIR/shared/build.gradle.kts"
-PROD_SHARED_GRADLE_FILE="/Users/denispopkov/Desktop/prod/build.gradle.kts"
-
 # Extract versionCode and versionName from build.gradle.kts
 VERSION_CODE=$(grep "versionCode =" "$PROJECT_DIR/androidApp/build.gradle.kts" | awk -F '=' '{print $2}' | xargs)
 VERSION_NAME=$(grep "versionName =" "$PROJECT_DIR/androidApp/build.gradle.kts" | awk -F '"' '{print $2}' | xargs)
@@ -96,57 +87,6 @@ if [ "$isUseDevAnalytics" == "false" ]; then
   else
     echo "Nothing to change with analytics"
 fi
-
-rm -f "$ALL_BUILD_FILE"
-cp "$ANDROID_BUILD_FILE" "$ALL_BUILD_FILE"
-
-echo "Replacing $ANDROID_BUILD_FILE with $ARM_BUILD_FILE"
-rm -f "$ANDROID_BUILD_FILE"
-cp "$ARM_BUILD_FILE" "$ANDROID_BUILD_FILE"
-
-# Clean up old jniLibs
-JNI_LIBS_PATH="$PROJECT_DIR/androidApp/src/main/jniLibs"
-BUILD_PATH="$PROJECT_DIR/androidApp/build"
-RELEASE_PATH="$PROJECT_DIR/androidApp/release"
-
-rm -rf "$JNI_LIBS_PATH"
-rm -rf "$BUILD_PATH"
-rm -rf "$RELEASE_PATH"
-
-# Build APK
-./gradlew assembleRelease \
-  -Pandroid.injected.signing.store.file="$KEYFILE" \
-  -Pandroid.injected.signing.store.password="$KEY_PASSWORD" \
-  -Pandroid.injected.signing.key.alias="$KEY_ALIAS" \
-  -Pandroid.injected.signing.key.password="$KEY_PASSWORD"
-
-APK_PATH="$PROJECT_DIR/androidApp/build/outputs/apk/release/androidApp-release.apk"
-echo "path to APK = $APK_PATH"
-
-if [ ! -f "$APK_PATH" ]; then
-  post_error_message "$BRANCH_NAME"
-  echo "Error: APK not found"
-  exit 1
-fi
-
-# Rename the APK to .zip (no zipping necessary)
-APK_ZIP_PATH="${APK_PATH%.apk}.zip"
-mv "$APK_PATH" "$APK_ZIP_PATH"
-
-# Unzip the APK (which is a zip file) directly
-unzip -o "$APK_ZIP_PATH" -d "$PROJECT_DIR/androidApp/build/outputs/apk/release/"
-
-# Copy libraries to jniLibs
-mkdir -p "$JNI_LIBS_PATH/arm64-v8a" "$JNI_LIBS_PATH/x86_64"
-cp "$PROJECT_DIR/androidApp/build/outputs/apk/release/lib/arm64-v8a/libdspandroid.so" "$JNI_LIBS_PATH/x86_64/"
-cp "$PROJECT_DIR/androidApp/build/outputs/apk/release/lib/arm64-v8a/libdspandroid.so" "$JNI_LIBS_PATH/arm64-v8a/"
-
-# Cleanup after the build
-rm -rf "$BUILD_PATH"
-rm -rf "$RELEASE_PATH"
-
-rm -f "$ANDROID_BUILD_FILE"
-cp "$ALL_BUILD_FILE" "$ANDROID_BUILD_FILE"
 
 if [ "$isUseDevAnalytics" == "false" ]; then
   echo "Building AAB (Android App Bundle)..."

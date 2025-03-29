@@ -89,6 +89,46 @@ def rebuild_dsp():
         return jsonify({"error": str(e)}), 500
 
 
+@app.route('/rebuild_android_dsp', methods=['POST'])
+def rebuild_android_dsp():
+    try:
+        data = request.json
+        branch_name = data.get('branchName')
+
+        script_path = "./rebuild_android_dsp.sh"
+        log_file = "/tmp/build_error_log.txt"
+
+        with open(log_file, "w"):
+            pass
+
+        with open(log_file, "w") as log:
+            process = subprocess.Popen(
+                ["sh", script_path, branch_name],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True
+            )
+
+            for line in process.stdout:
+                sys.stdout.write(line)
+                sys.stdout.flush()
+                log.write(line)
+
+            process.wait()
+
+        if process.returncode != 0:
+            raise subprocess.CalledProcessError(process.returncode, script_path)
+
+        return jsonify({
+            "message": f"macOS build for branch {branch_name} signing executed successfully!"
+        }), 200
+
+    except subprocess.CalledProcessError:
+        return jsonify({"error": "Build script failed. Check Slack for full logs."}), 500
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 @app.route('/build_win', methods=['POST'])
 def build_win():
     try:
