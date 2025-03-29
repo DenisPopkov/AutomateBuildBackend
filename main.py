@@ -35,15 +35,22 @@ def rebuild_dsp():
         branch_name = data.get('branchName')
 
         script_path = "./rebuild_dsp.sh"
+        log_file = "/tmp/build_error_log.txt"
 
-        subprocess.run(["sh", script_path, branch_name], check=True)
+        with open(log_file, "w") as log:
+            result = subprocess.run(
+                ["sh", script_path, branch_name],
+                stdout=log,  # Redirect stdout to log file
+                stderr=log,  # Redirect stderr to log file
+                text=True
+            )
 
         return jsonify({
             "message": f"macOS build for branch {branch_name} signing executed successfully!"
         }), 200
 
-    except subprocess.CalledProcessError as e:
-        return jsonify({"error": str(e)}), 500
+    except subprocess.CalledProcessError:
+        return jsonify({"error": "Build script failed. Check Slack for full logs."}), 500
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 

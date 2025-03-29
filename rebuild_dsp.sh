@@ -9,8 +9,6 @@ SET_UPDATED_LIB_PATH="$PROJECT_DIR/shared/src/commonMain/resources/MR/files/libd
 CACHE_UPDATED_LIB_PATH="$PROJECT_DIR/desktopApp/build/native/libdspmac.dylib"
 ERROR_LOG_FILE="/tmp/build_error_log.txt"
 
-exec > >(tee "$ERROR_LOG_FILE") 2>&1
-
 post_error_message() {
   local branch_name=$1
   local message=":x: Failed to update DSP library on \`$branch_name\`"
