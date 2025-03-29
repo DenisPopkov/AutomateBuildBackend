@@ -64,37 +64,24 @@ git commit -m "macOS version bump to $VERSION_CODE"
 git push origin "$BRANCH_NAME"
 
 BUILD_PATH="$PROJECT_DIR/desktopApp/build"
-SET_UPDATED_LIB_PATH="$PROJECT_DIR/shared/src/commonMain/resources/MR/files/libdspmac.dylib"
-CACHE_UPDATED_LIB_PATH="$PROJECT_DIR/desktopApp/build/native/libdspmac.dylib"
 
 if [ "$isUseDevAnalytics" == "false" ]; then
   enable_prod_keys
+
+  sleep 5
+
+  osascript -e '
+    tell application "System Events"
+      tell process "Android Studio"
+        keystroke "O" using {command down, shift down}
+      end tell
+    end tell
+  '
+
+  sleep 80
   else
     echo "Nothing to change with analytics"
 fi
-
-enable_dsp_gradle_task
-
-sleep 5
-
-osascript -e '
-  tell application "System Events"
-    tell process "Android Studio"
-        keystroke "O" using {command down, shift down}
-    end tell
-  end tell
-'
-
-sleep 80
-
-./gradlew compileKotlin
-
-sleep 5
-
-disable_dsp_gradle_task
-
-rm -f "$SET_UPDATED_LIB_PATH"
-cp "$CACHE_UPDATED_LIB_PATH" "$SET_UPDATED_LIB_PATH"
 
 # Building
 echo "Building signed build..."

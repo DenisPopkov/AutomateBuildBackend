@@ -301,24 +301,6 @@ $message = @"
 "@
 Post-Message -SlackToken $SLACK_BOT_TOKEN -ChannelId $SLACK_CHANNEL -InitialComment $message
 
-# Paths for build files
-$DESKTOP_BUILD_FILE = "$PROJECT_DIR\desktopApp\build.gradle.kts"
-$DESKTOP_DSP_BUILD_FILE = "C:\Users\BlackBricks\Desktop\build_dsp\build.gradle.kts"
-$DESKTOP_N0_DSP_BUILD_FILE = "C:\Users\BlackBricks\Desktop\no_dsp\build.gradle.kts"
-$BUILD_PATH = "$PROJECT_DIR\desktopApp\build"
-$SET_UPDATED_LIB_PATH = "$PROJECT_DIR\shared\src\commonMain\resources\MR\files\libdspmac.dylib"
-$CACHE_UPDATED_LIB_PATH = "$PROJECT_DIR\shared\build\resources\MR\files\libdspmac.dylib"
-
-Remove-Item -Force $DESKTOP_N0_DSP_BUILD_FILE -ErrorAction Ignore
-Copy-Item -Path $DESKTOP_BUILD_FILE -Destination $DESKTOP_N0_DSP_BUILD_FILE
-
-Write-Host "Replacing $DESKTOP_BUILD_FILE with $DESKTOP_DSP_BUILD_FILE"
-Remove-Item -Force $DESKTOP_BUILD_FILE -ErrorAction Ignore
-Copy-Item -Path $DESKTOP_DSP_BUILD_FILE -Destination $DESKTOP_BUILD_FILE
-
-Remove-Item -Recurse -Force $BUILD_PATH -ErrorAction Ignore
-Copy-Item -Path $DESKTOP_DSP_BUILD_FILE -Destination $DESKTOP_BUILD_FILE
-
 # Replace NeuroWindow.kt just before building the MSI
 $NEURO_WINDOW_FILE_PATH = "$PROJECT_DIR\desktopApp\src\main\kotlin\presentation\neuro_window\NeuroWindow.kt"
 $NEURO_WINDOW_DSP_FILE = "C:\Users\BlackBricks\Desktop\build_dsp\NeuroWindow.kt"
@@ -327,10 +309,6 @@ $NEURO_WINDOW_N0_DSP_FILE = "C:\Users\BlackBricks\Desktop\no_dsp\NeuroWindow.kt"
 Remove-Item -Force $NEURO_WINDOW_FILE_PATH -ErrorAction Ignore
 Copy-Item -Path $NEURO_WINDOW_N0_DSP_FILE -Destination $NEURO_WINDOW_FILE_PATH
 
-# Compile Kotlin
-Set-Location -Path $PROJECT_DIR
-./gradlew compileKotlin
-
 Write-Host "Building..."
 ./gradlew packageReleaseMsi
 
@@ -338,20 +316,11 @@ Write-Host "Building..."
 Remove-Item -Force $NEURO_WINDOW_FILE_PATH
 Copy-Item -Path $NEURO_WINDOW_DSP_FILE -Destination $NEURO_WINDOW_FILE_PATH
 
-# Restore original build file and lib
-Remove-Item -Force $DESKTOP_BUILD_FILE
-Copy-Item -Path $DESKTOP_N0_DSP_BUILD_FILE -Destination $DESKTOP_BUILD_FILE
-
-Remove-Item -Force $SET_UPDATED_LIB_PATH
-Copy-Item -Path $CACHE_UPDATED_LIB_PATH -Destination $SET_UPDATED_LIB_PATH
-
 # Path to the build output
 $DESKTOP_BUILD_PATH = "$PROJECT_DIR\desktopApp\build\compose\binaries\main-release\msi"
 
 # Original MSI path after build (before renaming)
 $FINAL_MSI_PATH = "$DESKTOP_BUILD_PATH\Neuro Desktop-$VERSION_NAME.msi"
-
-# Construct the new MSI path with version code in square brackets
 $NEW_MSI_PATH = "$DESKTOP_BUILD_PATH\Neuro_Desktop-$VERSION_NAME-$VERSION_CODE.msi"
 
 # Check if the original file exists (before renaming)
