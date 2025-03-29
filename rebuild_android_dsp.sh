@@ -5,16 +5,9 @@ source "/Users/denispopkov/PycharmProjects/AutomateBuildBackend/utils.sh"
 
 PROJECT_DIR="/Users/denispopkov/AndroidStudioProjects/SA_Neuro_Multiplatform"
 SECRET_FILE="/Users/denispopkov/Desktop/secret.txt"
-ERROR_LOG_FILE="/tmp/build_error_log.txt"
 JNI_LIBS_PATH="$PROJECT_DIR/androidApp/src/main/jniLibs"
 BUILD_PATH="$PROJECT_DIR/androidApp/build"
 RELEASE_PATH="$PROJECT_DIR/androidApp/release"
-
-post_error_message() {
-  local branch_name=$1
-  local message=":x: Failed to update DSP library on \`$branch_name\`"
-  execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$message" "upload" "$ERROR_LOG_FILE"
-}
 
 while IFS='=' read -r key value; do
   key=$(echo "$key" | xargs)
@@ -31,7 +24,6 @@ done < "$SECRET_FILE"
 
 if [ -z "$TEAM_ID" ] || [ -z "$APPLE_ID" ] || [ -z "$NOTARY_PASSWORD" ] || [ -z "$USER_PASSWORD" ]; then
   echo "Error: TEAM_ID, APPLE_ID, NOTARY_PASSWORD, or USER_PASSWORD is missing in $SECRET_FILE"
-  post_error_message "$BRANCH_NAME"
   exit 1
 fi
 
@@ -79,7 +71,6 @@ APK_PATH="$PROJECT_DIR/androidApp/build/outputs/apk/release/androidApp-release.a
 echo "path to APK = $APK_PATH"
 
 if [ ! -f "$APK_PATH" ]; then
-  post_error_message "$BRANCH_NAME"
   echo "Error: APK not found"
   exit 1
 fi

@@ -18,12 +18,6 @@ SECRET_FILE="/Users/denispopkov/Desktop/secret.txt"
 PROJECT_DIR="/Users/denispopkov/AndroidStudioProjects/SA_Neuro_Multiplatform"
 cd "$PROJECT_DIR" || { echo "Project directory not found!"; exit 1; }
 
-post_error_message() {
-  local branch_name=$1
-  local message=":x: Failed to build MacOS on \`$branch_name\`"
-  execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$message" "upload" "$ERROR_LOG_FILE"
-}
-
 while IFS='=' read -r key value; do
   key=$(echo "$key" | xargs)
   value=$(echo "$value" | xargs)
@@ -67,7 +61,6 @@ if [ -f "$PBXPROJ_PATH" ]; then
   VERSION_NUMBER="$MARKETING_VERSION"
 else
   echo "project.pbxproj not found: $PBXPROJ_PATH"
-  post_error_message "$BRANCH_NAME"
   exit 1
 fi
 
@@ -76,7 +69,6 @@ if [ -f "$INFO_PLIST_PATH" ]; then
   /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $NEW_VERSION" "$INFO_PLIST_PATH"
 else
   echo "Info.plist not found: $INFO_PLIST_PATH"
-  post_error_message "$BRANCH_NAME"
   exit 1
 fi
 
@@ -144,7 +136,6 @@ if fastlane testflight_upload; then
 
   execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "New iOS build uploaded to TestFlight with v$VERSION_NUMBER ($NEW_VERSION) from $BRANCH_NAME" "message"
 else
-  post_error_message "$BRANCH_NAME"
   echo "Fastlane failed. Not committing changes or sending Slack message."
 fi
 
