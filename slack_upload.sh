@@ -124,20 +124,23 @@ function post_message() {
     local slack_token=$1
     local channel_id=$2
     local initial_comment=$3
-    local command="curl -s -X POST \
-      -H \"Authorization: Bearer ${slack_token}\" \
-      -H \"Content-Type: application/json\" \
-      -d '{
-        \"channel\": \"${channel_id}\",
-        \"text\": \"${initial_comment}\"
-      }' \
-      'https://slack.com/api/chat.postMessage'"
-    local response=$(eval "${command}")
+
+    local json_payload=$(jq -n \
+        --arg channel "$channel_id" \
+        --arg text "$initial_comment" \
+        '{channel: $channel, text: $text}')
+
+    local response=$(curl -s -X POST \
+        -H "Authorization: Bearer ${slack_token}" \
+        -H "Content-Type: application/json; charset=UTF-8" \
+        -d "$json_payload" \
+        'https://slack.com/api/chat.postMessage')
 
     if [ "$(echo "${response}" | jq -r '.ok')" != "true" ]; then
-        echo "Failed to complete: ${response}"
+        echo "Failed to post message: ${response}"
         exit 1
     fi
 
+    echo "Successfully posted message:"
     echo "${response}"
 }

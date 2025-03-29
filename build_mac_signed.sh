@@ -1,6 +1,7 @@
 #!/bin/bash
 
 source "/Users/denispopkov/PycharmProjects/AutomateBuildBackend/slack_upload.sh"
+source "/Users/denispopkov/PycharmProjects/AutomateBuildBackend/utils.sh"
 
 SECRET_FILE="/Users/denispopkov/Desktop/secret.txt"
 BUILD_TOOL="/Users/denispopkov/AndroidStudioProjects/SA_Neuro_release/Neuro_desktop.pkgproj"
@@ -39,8 +40,10 @@ else
 fi
 
 end_time=$(TZ=Asia/Omsk date -v+32M "+%H:%M")
-message="macOS build started on $BRANCH_NAME with $analyticsMessage analytics. It will be ready approximately at $end_time Omsk Time."
-execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$message" "message"
+message=":hammer_and_wrench: MacOS build started on \`$BRANCH_NAME\`
+:mag_right: Analytics look on $analyticsMessage
+:clock2: It will be ready approximately at $end_time"
+post_message "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$message"
 
 PROJECT_DIR="/Users/denispopkov/AndroidStudioProjects/SA_Neuro_Multiplatform"
 cd "$PROJECT_DIR" || { echo "Project directory not found!"; exit 1; }
@@ -65,8 +68,6 @@ git commit -m "macOS version bump to $VERSION_CODE"
 git push origin "$BRANCH_NAME"
 
 DESKTOP_BUILD_FILE="$PROJECT_DIR/desktopApp/build.gradle.kts"
-DESKTOP_DSP_BUILD_FILE="/Users/denispopkov/Desktop/build_dsp/build.gradle.kts"
-DESKTOP_N0_DSP_BUILD_FILE="/Users/denispopkov/Desktop/no_dsp/build.gradle.kts"
 BUILD_PATH="$PROJECT_DIR/desktopApp/build"
 SET_UPDATED_LIB_PATH="$PROJECT_DIR/shared/src/commonMain/resources/MR/files/libdspmac.dylib"
 CACHE_UPDATED_LIB_PATH="$PROJECT_DIR/desktopApp/build/native/libdspmac.dylib"
@@ -79,43 +80,29 @@ if [ "$isUseDevAnalytics" == "false" ]; then
   echo "Replacing $SHARED_GRADLE_FILE with $PROD_SHARED_GRADLE_FILE"
   rm -f "$SHARED_GRADLE_FILE"
   cp "$PROD_SHARED_GRADLE_FILE" "$SHARED_GRADLE_FILE"
+  else
+    echo "Nothing to change with analytics"
+fi
 
-  open -a "Android Studio"
+enable_dsp_gradle_task
 
-  sleep 5
+sleep 5
 
-  osascript -e '
+osascript -e '
   tell application "System Events"
     tell process "Android Studio"
         keystroke "O" using {command down, shift down}
     end tell
   end tell
-  '
+'
 
-  sleep 80
-  else
-    echo "Nothing to change with analytics"
-fi
-
-rm -f "$DESKTOP_N0_DSP_BUILD_FILE"
-rm -f "$DESKTOP_N0_DSP_BUILD_FILE"
-cp "$DESKTOP_BUILD_FILE" "$DESKTOP_N0_DSP_BUILD_FILE"
-
-echo "Replacing $DESKTOP_BUILD_FILE with $DESKTOP_DSP_BUILD_FILE"
-rm -f "$DESKTOP_BUILD_FILE"
-cp "$DESKTOP_DSP_BUILD_FILE" "$DESKTOP_BUILD_FILE"
-
-rm -rf "$BUILD_PATH"
-
-cp "$DESKTOP_DSP_BUILD_FILE" "$DESKTOP_BUILD_FILE"
+sleep 80
 
 ./gradlew compileKotlin
 
-rm -f "$DESKTOP_BUILD_FILE"
-cp "$DESKTOP_N0_DSP_BUILD_FILE" "$DESKTOP_BUILD_FILE"
+sleep 5
 
-rm -f "$SET_UPDATED_LIB_PATH"
-cp "$CACHE_UPDATED_LIB_PATH" "$SET_UPDATED_LIB_PATH"
+disable_dsp_gradle_task
 
 # Building
 echo "Building signed build..."

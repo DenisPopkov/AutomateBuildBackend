@@ -1,10 +1,7 @@
-import datetime
 import os
 import subprocess
-from flask import Flask, jsonify, request
 
-from BuildItem import BuildItem
-from utils import extract_version
+from flask import Flask, jsonify, request
 
 app = Flask(__name__)
 
@@ -20,6 +17,26 @@ def build_mac():
         use_dev_analytics_flag = "true" if use_dev_analytics else "false"
 
         subprocess.run(["sh", script_path, branch_name, use_dev_analytics_flag], check=True)
+
+        return jsonify({
+            "message": f"macOS build for branch {branch_name} signing executed successfully!"
+        }), 200
+
+    except subprocess.CalledProcessError as e:
+        return jsonify({"error": str(e)}), 500
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/rebuild_dsp', methods=['POST'])
+def rebuild_dsp():
+    try:
+        data = request.json
+        branch_name = data.get('branchName')
+
+        script_path = "./rebuild_dps.sh"
+
+        subprocess.run(["sh", script_path, branch_name], check=True)
 
         return jsonify({
             "message": f"macOS build for branch {branch_name} signing executed successfully!"
@@ -129,6 +146,7 @@ def build_ios():
         return jsonify({"error": str(e)}), 500
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
 
 @app.route('/remote_branches', methods=['GET'])
 def get_remote_branches():

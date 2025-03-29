@@ -1,0 +1,63 @@
+#!/bin/bash
+
+source "/Users/denispopkov/PycharmProjects/AutomateBuildBackend/slack_upload.sh"
+source "/Users/denispopkov/PycharmProjects/AutomateBuildBackend/utils.sh"
+
+SECRET_FILE="/Users/denispopkov/Desktop/secret.txt"
+
+while IFS='=' read -r key value; do
+  key=$(echo "$key" | xargs)
+  value=$(echo "$value" | xargs)
+
+  case "$key" in
+    "SLACK_BOT_TOKEN") SLACK_BOT_TOKEN="$value" ;;
+    "SLACK_CHANNEL") SLACK_CHANNEL="$value" ;;
+    "TEAM_ID") TEAM_ID="$value" ;;
+    "APPLE_ID") APPLE_ID="$value" ;;
+    "NOTARY_PASSWORD") NOTARY_PASSWORD="$value" ;;
+    "USER_PASSWORD") USER_PASSWORD="$value" ;;
+  esac
+done < "$SECRET_FILE"
+
+if [ -z "$TEAM_ID" ] || [ -z "$APPLE_ID" ] || [ -z "$NOTARY_PASSWORD" ] || [ -z "$USER_PASSWORD" ]; then
+  echo "Error: TEAM_ID, APPLE_ID, NOTARY_PASSWORD, or USER_PASSWORD is missing in $SECRET_FILE"
+  exit 1
+fi
+
+BRANCH_NAME=$1
+
+message=":hammer_and_wrench: Start DSP library update on \`$BRANCH_NAME\`"
+post_message "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$message"
+
+echo "Opening Android Studio..."
+open -a "Android Studio"
+
+PROJECT_DIR="/Users/denispopkov/AndroidStudioProjects/SA_Neuro_Multiplatform"
+cd "$PROJECT_DIR" || { echo "Project directory not found!"; exit 1; }
+
+enable_dsp_gradle_task
+
+sleep 5
+
+osascript -e '
+  tell application "System Events"
+    tell process "Android Studio"
+        keystroke "O" using {command down, shift down}
+    end tell
+  end tell
+'
+
+sleep 80
+
+./gradlew compileKotlin
+
+sleep 5
+
+disable_dsp_gradle_task
+
+git add .
+git commit -m "add: update dsp lib"
+git push origin "$BRANCH_NAME"
+
+message=":white_check_mark: DSP library successfully updated on \`$BRANCH_NAME\`"
+post_message "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$message"
