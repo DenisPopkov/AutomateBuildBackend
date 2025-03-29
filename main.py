@@ -47,6 +47,7 @@ def build_mac():
         }), 200
 
     except subprocess.CalledProcessError:
+        post_error_message(branch_name, secret_config)
         return jsonify({"error": "Build script failed. Check Slack for full logs."}), 500
     except Exception as e:
         post_error_message(branch_name, secret_config)
@@ -92,8 +93,10 @@ def rebuild_dsp():
         }), 200
 
     except subprocess.CalledProcessError:
+        post_error_message(branch_name, secret_config)
         return jsonify({"error": "Build script failed. Check Slack for full logs."}), 500
     except Exception as e:
+        post_error_message(branch_name, secret_config)
         return jsonify({"error": str(e)}), 500
 
 
@@ -136,8 +139,10 @@ def rebuild_android_dsp():
         }), 200
 
     except subprocess.CalledProcessError:
+        post_error_message(branch_name, secret_config)
         return jsonify({"error": "Build script failed. Check Slack for full logs."}), 500
     except Exception as e:
+        post_error_message(branch_name, secret_config)
         return jsonify({"error": str(e)}), 500
 
 
@@ -175,6 +180,7 @@ def build_win():
         }), 200
 
     except subprocess.CalledProcessError as e:
+        post_error_message(branch_name, secret_config)
         return jsonify({"error": f"Build failed: {e}"}), 500
     except Exception as e:
         post_error_message(branch_name, secret_config)
@@ -225,6 +231,7 @@ def build_android():
         }), 200
 
     except subprocess.CalledProcessError:
+        post_error_message(branch_name, secret_config)
         return jsonify({"error": "Build script failed. Check Slack for full logs."}), 500
     except Exception as e:
         post_error_message(branch_name, secret_config)
@@ -240,9 +247,6 @@ def build_ios():
         data = request.json
         branch_name = data.get('branchName')
         use_dev_analytics = data.get('isUseDevAnalytics', True)
-
-        if not branch_name:
-            return jsonify({"error": "Missing required parameter: branchName"}), 400
 
         script_path = "./build_ios.sh"
         log_file = "/tmp/build_error_log.txt"
@@ -272,6 +276,7 @@ def build_ios():
         return jsonify({"message": f"iOS build for branch {branch_name} executed successfully!"}), 200
 
     except subprocess.CalledProcessError:
+        post_error_message(branch_name, secret_config)
         return jsonify({"error": "Build script failed. Check Slack for full logs."}), 500
     except Exception as e:
         post_error_message(branch_name, secret_config)
