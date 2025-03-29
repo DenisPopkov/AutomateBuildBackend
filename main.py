@@ -34,7 +34,7 @@ def rebuild_dsp():
         data = request.json
         branch_name = data.get('branchName')
 
-        script_path = "./rebuild_dps.sh"
+        script_path = "./rebuild_dsp.sh"
 
         subprocess.run(["sh", script_path, branch_name], check=True)
 
