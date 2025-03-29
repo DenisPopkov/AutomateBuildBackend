@@ -38,6 +38,9 @@ def rebuild_dsp():
         script_path = "./rebuild_dsp.sh"
         log_file = "/tmp/build_error_log.txt"
 
+        with open(log_file, "w"):
+            pass
+
         with open(log_file, "w") as log:
             process = subprocess.Popen(
                 ["sh", script_path, branch_name],
