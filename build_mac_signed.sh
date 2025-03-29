@@ -191,28 +191,24 @@ xcrun notarytool submit "$SIGNED_PKG_PATH" \
   --password "$NOTARY_PASSWORD" \
   --wait
 
-# Rename signed .pkg to final format
+# Rename signed .pkg to final format in-place
+BUILD_DIR="/Users/denispopkov/AndroidStudioProjects/SA_Neuro_release/build"
 BASE_NAME="neuro_desktop_${VERSION_NAME}-[${VERSION_CODE}]_installer_mac.pkg"
-FINAL_DIR="/Users/denispopkov/Desktop/builds"
-FINAL_PKG_PATH="$FINAL_DIR/$BASE_NAME"
+NEW_PKG_PATH="$BUILD_DIR/$BASE_NAME"
 
-# Check if the file already exists
-if [ -f "$FINAL_PKG_PATH" ]; then
-    echo "File with name $BASE_NAME already exists. Finding a unique name..."
-    INDEX=1
-    while [ -f "$FINAL_PKG_PATH" ]; do
-        FINAL_PKG_PATH="$FINAL_DIR/neuro_desktop_${VERSION_NAME}-[${VERSION_CODE}]_installer_mac_${INDEX}.pkg"
-        INDEX=$((INDEX + 1))
-    done
-fi
+# Check for existing files and find unique name
+INDEX=1
+while [ -f "$NEW_PKG_PATH" ]; do
+    NEW_PKG_PATH="$BUILD_DIR/neuro_desktop_${VERSION_NAME}-[${VERSION_CODE}]_installer_mac_${INDEX}.pkg"
+    INDEX=$((INDEX + 1))
+done
 
-# Move the file to the builds folder with the final name
-mv "$SIGNED_PKG_PATH" "$FINAL_PKG_PATH" || { echo "Error renaming .pkg"; exit 1; }
-echo "Renamed .pkg and moved to: $FINAL_PKG_PATH"
+mv "$SIGNED_PKG_PATH" "$NEW_PKG_PATH" || { echo "Error renaming .pkg"; exit 1; }
+echo "Final package path: $NEW_PKG_PATH"
 
 # Check the signature of the renamed .pkg
 echo "Checking signature of the renamed .pkg file..."
-SIGNATURE_CHECK=$(pkgutil --check-signature "$FINAL_PKG_PATH")
+SIGNATURE_CHECK=$(pkgutil --check-signature "$NEW_PKG_PATH")
 
 if [[ "$SIGNATURE_CHECK" == *"Developer ID Installer: Source Audio LLC"* ]]; then
   echo "Signature verified successfully!"
@@ -223,7 +219,7 @@ else
 fi
 
 echo "Uploading renamed .pkg to Slack..."
-execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "macOS signed from $BRANCH_NAME" "upload" "${FINAL_PKG_PATH}"
+execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "macOS signed from $BRANCH_NAME" "upload" "${NEW_PKG_PATH}"
 
 sleep 10
 

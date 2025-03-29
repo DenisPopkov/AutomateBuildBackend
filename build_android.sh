@@ -84,8 +84,8 @@ if [ "$isUseDevAnalytics" == "false" ]; then
   '
 
   sleep 80
-  else
-    echo "Nothing to change with analytics"
+else
+  echo "Nothing to change with analytics"
 fi
 
 if [ "$isUseDevAnalytics" == "false" ]; then
@@ -102,46 +102,40 @@ if [ "$isUseDevAnalytics" == "false" ]; then
 
   if [ ! -f "$AAB_PATH" ]; then
     post_error_message "$BRANCH_NAME"
-    echo "Error: Signed APK not found at expected path: $AAB_PATH"
+    echo "Error: Signed AAB not found at expected path: $AAB_PATH"
     exit 1
   fi
 
-  echo "APK built successfully: $AAB_PATH"
+  # Rename AAB with version info
+  NEW_AAB_BASE="neuro3-${VERSION_NAME}-[${VERSION_CODE}].aab"
+  NEW_AAB_PATH="$PROJECT_DIR/androidApp/build/outputs/bundle/release/${NEW_AAB_BASE}"
 
-  # Rename APK with unique name if needed
-  BASE_NAME="neuro3-${VERSION_NAME}-[${VERSION_CODE}].aab"
-  FINAL_DIR="/Users/denispopkov/Desktop/builds"
-  FINAL_AAB_PATH="$FINAL_DIR/$BASE_NAME"
-
-  # Ensure unique filename in the builds folder
   INDEX=1
-  while [ -f "$FINAL_AAB_PATH" ]; do
-    FINAL_AAB_PATH="$FINAL_DIR/neuro3-${VERSION_NAME}-[${VERSION_CODE}]_${INDEX}.aab"
+  while [ -f "$NEW_AAB_PATH" ]; do
+    NEW_AAB_BASE="neuro3-${VERSION_NAME}-[${VERSION_CODE}]_${INDEX}.aab"
+    NEW_AAB_PATH="$PROJECT_DIR/androidApp/build/outputs/bundle/release/${NEW_AAB_BASE}"
     INDEX=$((INDEX + 1))
   done
 
-  # Move the APK file to the builds folder with the unique name
-  mv "$AAB_PATH" "$FINAL_AAB_PATH" || { echo "Error renaming AAB"; exit 1; }
-  echo "APK renamed and moved to: $FINAL_AAB_PATH"
+  mv "$AAB_PATH" "$NEW_AAB_PATH" || { echo "Error renaming AAB"; exit 1; }
+  echo "AAB renamed to: $NEW_AAB_PATH"
 
-  FILE_PATH="$FINAL_AAB_PATH"
+  FILE_PATH="$NEW_AAB_PATH"
 
   # Upload AAB to Slack
   echo "Uploading AAB to Slack..."
-  execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "Android App Bundle from $BRANCH_NAME" "upload" "${FINAL_AAB_PATH}"
+  execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "Android App Bundle from $BRANCH_NAME" "upload" "${FILE_PATH}"
 
   sleep 20
 
   undo_enable_prod_keys
-
-  sleep 5
 
   if [ $? -eq 0 ]; then
     echo "AAB sent to Slack successfully."
     git pull origin "$BRANCH_NAME" --no-rebase
     git add .
     git commit -m "Update hardcoded libs"
-    git push origin "$BRANCH_NAME" --no-rebase
+    git push origin "$BRANCH_NAME"
   else
     echo "Error sending AAB to Slack."
     post_error_message "$BRANCH_NAME"
@@ -149,17 +143,15 @@ if [ "$isUseDevAnalytics" == "false" ]; then
   fi
 
 else
-  # If not building AAB, then build APK
+  # Build APK
   echo "Building APK..."
 
-  # Build APK
   ./gradlew assembleRelease \
     -Pandroid.injected.signing.store.file="$KEYFILE" \
     -Pandroid.injected.signing.store.password="$KEY_PASSWORD" \
     -Pandroid.injected.signing.key.alias="$KEY_ALIAS" \
     -Pandroid.injected.signing.key.password="$KEY_PASSWORD"
 
-  # Find the signed APK
   APK_PATH="$PROJECT_DIR/androidApp/build/outputs/apk/release/androidApp-release.apk"
 
   if [ ! -f "$APK_PATH" ]; then
@@ -168,29 +160,27 @@ else
     exit 1
   fi
 
-  echo "APK built successfully: $APK_PATH"
+  # Rename APK with version info
+  NEW_APK_BASE="neuro3-${VERSION_NAME}-[${VERSION_CODE}].apk"
+  NEW_APK_PATH="$PROJECT_DIR/androidApp/build/outputs/apk/release/${NEW_APK_BASE}"
 
-  # Rename APK with unique name if needed
-  BASE_NAME="neuro3-${VERSION_NAME}-[${VERSION_CODE}].apk"
-  FINAL_DIR="/Users/denispopkov/Desktop/builds"
-  FINAL_APK_PATH="$FINAL_DIR/$BASE_NAME"
-
-  # Ensure unique filename in the builds folder
   INDEX=1
-  while [ -f "$FINAL_APK_PATH" ]; do
-    FINAL_APK_PATH="$FINAL_DIR/neuro3-${VERSION_NAME}-[${VERSION_CODE}]_${INDEX}.apk"
+  while [ -f "$NEW_APK_PATH" ]; do
+    NEW_APK_BASE="neuro3-${VERSION_NAME}-[${VERSION_CODE}]_${INDEX}.apk"
+    NEW_APK_PATH="$PROJECT_DIR/androidApp/build/outputs/apk/release/${NEW_APK_BASE}"
     INDEX=$((INDEX + 1))
   done
 
-  FILE_PATH="$FINAL_APK_PATH"
+  mv "$APK_PATH" "$NEW_APK_PATH" || { echo "Error renaming APK"; exit 1; }
+  echo "APK renamed to: $NEW_APK_PATH"
+
+  FILE_PATH="$NEW_APK_PATH"
 
   # Upload APK to Slack
   echo "Uploading APK to Slack..."
   execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "Android APK from $BRANCH_NAME" "upload" "${FILE_PATH}"
 
   undo_enable_prod_keys
-
-  sleep 5
 
   if [ $? -eq 0 ]; then
     echo "APK sent to Slack successfully."

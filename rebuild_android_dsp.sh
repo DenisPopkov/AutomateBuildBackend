@@ -23,10 +23,9 @@ while IFS='=' read -r key value; do
   case "$key" in
     "SLACK_BOT_TOKEN") SLACK_BOT_TOKEN="$value" ;;
     "SLACK_CHANNEL") SLACK_CHANNEL="$value" ;;
-    "TEAM_ID") TEAM_ID="$value" ;;
-    "APPLE_ID") APPLE_ID="$value" ;;
-    "NOTARY_PASSWORD") NOTARY_PASSWORD="$value" ;;
-    "USER_PASSWORD") USER_PASSWORD="$value" ;;
+    "KEYFILE") KEYFILE="$value" ;;
+    "KEY_ALIAS") KEY_ALIAS="$value" ;;
+    "KEY_PASSWORD") KEY_PASSWORD="$value" ;;
   esac
 done < "$SECRET_FILE"
 
@@ -42,7 +41,7 @@ echo "Checking out branch: $BRANCH_NAME"
 git stash push -m "Pre-build stash"
 git fetch && git checkout "$BRANCH_NAME" && git pull origin "$BRANCH_NAME" --no-rebase
 
-message=":hammer_and_wrench: Start DSP library update on \`$BRANCH_NAME\`"
+message=":hammer_and_wrench: Start Android DSP library update on \`$BRANCH_NAME\`"
 post_message "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$message"
 
 echo "Opening Android Studio..."
