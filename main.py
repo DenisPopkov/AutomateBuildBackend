@@ -1,5 +1,6 @@
 import os
 import subprocess
+import sys
 
 from flask import Flask, jsonify, request
 
@@ -38,12 +39,22 @@ def rebuild_dsp():
         log_file = "/tmp/build_error_log.txt"
 
         with open(log_file, "w") as log:
-            result = subprocess.run(
+            process = subprocess.Popen(
                 ["sh", script_path, branch_name],
-                stdout=log,  # Redirect stdout to log file
-                stderr=log,  # Redirect stderr to log file
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
                 text=True
             )
+
+            for line in process.stdout:
+                sys.stdout.write(line)
+                sys.stdout.flush()
+                log.write(line)
+
+            process.wait()
+
+        if process.returncode != 0:
+            raise subprocess.CalledProcessError(process.returncode, script_path)
 
         return jsonify({
             "message": f"macOS build for branch {branch_name} signing executed successfully!"
