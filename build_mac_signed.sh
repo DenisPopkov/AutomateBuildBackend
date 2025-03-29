@@ -67,14 +67,8 @@ BUILD_PATH="$PROJECT_DIR/desktopApp/build"
 SET_UPDATED_LIB_PATH="$PROJECT_DIR/shared/src/commonMain/resources/MR/files/libdspmac.dylib"
 CACHE_UPDATED_LIB_PATH="$PROJECT_DIR/desktopApp/build/native/libdspmac.dylib"
 
-# For dev analytics
-SHARED_GRADLE_FILE="$PROJECT_DIR/shared/build.gradle.kts"
-PROD_SHARED_GRADLE_FILE="/Users/denispopkov/Desktop/prod/build.gradle.kts"
-
 if [ "$isUseDevAnalytics" == "false" ]; then
-  echo "Replacing $SHARED_GRADLE_FILE with $PROD_SHARED_GRADLE_FILE"
-  rm -f "$SHARED_GRADLE_FILE"
-  cp "$PROD_SHARED_GRADLE_FILE" "$SHARED_GRADLE_FILE"
+  enable_prod_keys
   else
     echo "Nothing to change with analytics"
 fi
@@ -246,9 +240,12 @@ execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "macOS signed from $
 
 sleep 10
 
+undo_enable_prod_keys
+
+sleep 5
+
 echo "PKG sent to Slack successfully."
 git pull origin "$BRANCH_NAME" --no-rebase
-git stash push -m "Stashing build.gradle.kts" --keep-index -- "$PROJECT_DIR/shared/build.gradle.kts"
 git add .
 git commit -m "Update hardcoded libs"
 git push origin "$BRANCH_NAME"

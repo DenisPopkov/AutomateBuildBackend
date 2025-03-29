@@ -1,6 +1,7 @@
 #!/bin/bash
 
 source "/Users/denispopkov/PycharmProjects/AutomateBuildBackend/slack_upload.sh"
+source "/Users/denispopkov/PycharmProjects/AutomateBuildBackend/utils.sh"
 
 SECRET_FILE="/Users/denispopkov/Desktop/secret.txt"
 
@@ -30,12 +31,6 @@ post_error_message() {
   local message=":x: Failed to build Android on \`$branch_name\`"
   execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$message" "upload" "$ERROR_LOG_FILE"
 }
-
-# Validate branch name input
-if [ -z "$BRANCH_NAME" ]; then
-  echo "Error: Branch name is required"
-  exit 1
-fi
 
 open -a "Android Studio"
 
@@ -83,9 +78,7 @@ git commit -m "Android version bump to $VERSION_CODE"
 git push origin "$BRANCH_NAME"
 
 if [ "$isUseDevAnalytics" == "false" ]; then
-  echo "Replacing $SHARED_GRADLE_FILE with $PROD_SHARED_GRADLE_FILE"
-  rm -f "$SHARED_GRADLE_FILE"
-  cp "$PROD_SHARED_GRADLE_FILE" "$SHARED_GRADLE_FILE"
+  enable_prod_keys
 
   open -a "Android Studio"
 
@@ -199,10 +192,13 @@ if [ "$isUseDevAnalytics" == "false" ]; then
 
   sleep 20
 
+  undo_enable_prod_keys
+
+  sleep 5
+
   if [ $? -eq 0 ]; then
     echo "AAB sent to Slack successfully."
     git pull origin "$BRANCH_NAME" --no-rebase
-    git stash push -m "Stashing build.gradle.kts" --keep-index -- "$PROJECT_DIR/shared/build.gradle.kts"
     git add .
     git commit -m "Update hardcoded libs"
     git push origin "$BRANCH_NAME" --no-rebase
@@ -252,10 +248,13 @@ else
   echo "Uploading APK to Slack..."
   execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "Android APK from $BRANCH_NAME" "upload" "${FILE_PATH}"
 
+  undo_enable_prod_keys
+
+  sleep 5
+
   if [ $? -eq 0 ]; then
     echo "APK sent to Slack successfully."
     git pull origin "$BRANCH_NAME" --no-rebase
-    git stash push -m "Stashing build.gradle.kts" --keep-index -- "$PROJECT_DIR/shared/build.gradle.kts"
     git add .
     git commit -m "Update hardcoded libs"
     git push origin "$BRANCH_NAME"

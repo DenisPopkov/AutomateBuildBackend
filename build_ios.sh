@@ -1,6 +1,7 @@
 #!/bin/bash
 
 source "/Users/denispopkov/PycharmProjects/AutomateBuildBackend/slack_upload.sh"
+source "/Users/denispopkov/PycharmProjects/AutomateBuildBackend/utils.sh"
 
 IOS_APP_PATH="/Users/denispopkov/AndroidStudioProjects/SA_Neuro_Multiplatform/iosApp"
 PBXPROJ_PATH="$IOS_APP_PATH/iosApp.xcodeproj/project.pbxproj"
@@ -22,10 +23,6 @@ post_error_message() {
   local message=":x: Failed to build MacOS on \`$branch_name\`"
   execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$message" "upload" "$ERROR_LOG_FILE"
 }
-
-# For dev analytics
-SHARED_GRADLE_FILE="$PROJECT_DIR/shared/build.gradle.kts"
-PROD_SHARED_GRADLE_FILE="/Users/denispopkov/Desktop/prod/build.gradle.kts"
 
 while IFS='=' read -r key value; do
   key=$(echo "$key" | xargs)
@@ -93,9 +90,7 @@ else
 fi
 
 if [ "$isUseDevAnalytics" == "false" ]; then
-  echo "Replacing $SHARED_GRADLE_FILE with $PROD_SHARED_GRADLE_FILE"
-  rm -f "$SHARED_GRADLE_FILE"
-  cp "$PROD_SHARED_GRADLE_FILE" "$SHARED_GRADLE_FILE"
+  enable_prod_keys
 
   open -a "Android Studio"
 
@@ -136,10 +131,13 @@ cp "$SWIFT_FILE_SOURCE" "$SWIFT_TARGET_FILE"
 
 cd "$IOS_APP_PATH" || exit
 
+undo_enable_prod_keys
+
+sleep 5
+
 # Run Fastlane with fallback
 if fastlane testflight_upload; then
   git pull origin "$BRANCH_NAME" --no-rebase
-  git stash push -m "Stashing build.gradle.kts" --keep-index -- "$PROJECT_DIR/shared/build.gradle.kts"
   git add .
   git commit -m "iOS version bump to $NEW_VERSION"
   git push

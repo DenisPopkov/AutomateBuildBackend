@@ -254,16 +254,13 @@ function Post-Message {
         [string]$InitialComment
     )
 
-    # Create the JSON body for the request
     $body = @{
         channel = $ChannelId
         text = $InitialComment
     } | ConvertTo-Json
 
-    # Print the JSON body for debugging
     Write-Host "Request Body: $body"
 
-    # Send the request to Slack API
     try {
         $response = Invoke-RestMethod -Uri 'https://slack.com/api/chat.postMessage' `
             -Method Post `
@@ -273,13 +270,11 @@ function Post-Message {
             } `
             -Body $body
 
-        # Check if the request was successful
         if ($response.ok -ne $true) {
             Write-Host "Failed to post message: $($response | ConvertTo-Json)"
             exit 1
         }
 
-        # Output the response
         Write-Host "Message posted successfully: $($response | ConvertTo-Json)"
     } catch {
         Write-Host "Error: Failed to send request to Slack API. Details: $_"
@@ -299,7 +294,11 @@ if ($USE_DEV_ANALYTICS -eq $true) {
 
 $endTime = [System.TimeZoneInfo]::ConvertTimeBySystemTimeZoneId((Get-Date).AddMinutes(15), "Omsk Standard Time")
 $formattedTime = $endTime.ToString("HH:mm")
-$message = "Windows build started on $BRANCH_NAME with $analyticsMessage analytics. It will be ready approximately at $formattedTime Omsk Time."
+$message = @"
+:hammer_and_wrench: Windows build started on `$BRANCH_NAME`
+:mag_right: Analytics look on $analyticsMessage
+:clock2: It will be ready approximately at $formattedTime Omsk Time
+"@
 Post-Message -SlackToken $SLACK_BOT_TOKEN -ChannelId $SLACK_CHANNEL -InitialComment $message
 
 # Paths for build files
