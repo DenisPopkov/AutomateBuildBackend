@@ -67,6 +67,7 @@ sleep 80
 if ! ./gradlew compileKotlin --stacktrace --info; then
   echo "Error: Gradle build failed"
   post_error_message "$BRANCH_NAME"
+  disable_dsp_gradle_task
   exit 1
 fi
 
