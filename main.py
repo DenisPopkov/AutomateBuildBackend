@@ -21,27 +21,36 @@ def build_mac():
         log_file = "/tmp/build_error_log.txt"
         use_dev_analytics_flag = "true" if use_dev_analytics else "false"
 
+        # Clear any previous log file
         with open(log_file, "w"):
             pass
 
+        # Open the log file and execute the script
         with open(log_file, "w") as log:
             process = subprocess.Popen(
                 ["sh", script_path, branch_name, use_dev_analytics_flag],
                 stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
+                stderr=subprocess.PIPE,  # Capture stderr as well
                 text=True
             )
 
+            # Read output and error streams
             for line in process.stdout:
                 sys.stdout.write(line)
                 sys.stdout.flush()
                 log.write(line)
 
+            for line in process.stderr:
+                sys.stderr.write(line)
+                sys.stderr.flush()
+                log.write(line)
+
             process.wait()
 
-        if process.returncode != 0:
-            post_error_message(branch_name, secret_config)
-            raise subprocess.CalledProcessError(process.returncode, script_path)
+            # Check for any errors in the process
+            if process.returncode != 0:
+                post_error_message(branch_name, secret_config)
+                raise subprocess.CalledProcessError(process.returncode, script_path, output=line)
 
         return jsonify({
             "message": f"macOS build for branch {branch_name} signing executed successfully!"
@@ -50,7 +59,7 @@ def build_mac():
     except subprocess.CalledProcessError:
         return jsonify({"error": "Build script failed. Check Slack for full logs."}), 500
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": f"An unexpected error occurred: {str(e)}"}), 500
 
 
 @app.route('/rebuild_dsp', methods=['POST'])
@@ -65,27 +74,36 @@ def rebuild_dsp():
         script_path = "./rebuild_dsp.sh"
         log_file = "/tmp/build_error_log.txt"
 
+        # Clear any previous log file
         with open(log_file, "w"):
             pass
 
+        # Open the log file and execute the script
         with open(log_file, "w") as log:
             process = subprocess.Popen(
                 ["sh", script_path, branch_name],
                 stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
+                stderr=subprocess.PIPE,  # Capture stderr as well
                 text=True
             )
 
+            # Read and log both stdout and stderr streams
             for line in process.stdout:
                 sys.stdout.write(line)
                 sys.stdout.flush()
                 log.write(line)
 
+            for line in process.stderr:
+                sys.stderr.write(line)
+                sys.stderr.flush()
+                log.write(line)
+
             process.wait()
 
-        if process.returncode != 0:
-            post_error_message(branch_name, secret_config)
-            raise subprocess.CalledProcessError(process.returncode, script_path)
+            # Check if the script execution was successful
+            if process.returncode != 0:
+                post_error_message(branch_name, secret_config)
+                raise subprocess.CalledProcessError(process.returncode, script_path)
 
         return jsonify({
             "message": f"macOS build for branch {branch_name} signing executed successfully!"
@@ -94,7 +112,7 @@ def rebuild_dsp():
     except subprocess.CalledProcessError:
         return jsonify({"error": "Build script failed. Check Slack for full logs."}), 500
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": f"An unexpected error occurred: {str(e)}"}), 500
 
 
 @app.route('/rebuild_android_dsp', methods=['POST'])
@@ -109,27 +127,36 @@ def rebuild_android_dsp():
         script_path = "./rebuild_android_dsp.sh"
         log_file = "/tmp/build_error_log.txt"
 
+        # Clear any previous log file
         with open(log_file, "w"):
             pass
 
+        # Open the log file and execute the script
         with open(log_file, "w") as log:
             process = subprocess.Popen(
                 ["sh", script_path, branch_name],
                 stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
+                stderr=subprocess.PIPE,  # Capture stderr as well
                 text=True
             )
 
+            # Read and log both stdout and stderr streams
             for line in process.stdout:
                 sys.stdout.write(line)
                 sys.stdout.flush()
                 log.write(line)
 
+            for line in process.stderr:
+                sys.stderr.write(line)
+                sys.stderr.flush()
+                log.write(line)
+
             process.wait()
 
-        if process.returncode != 0:
-            post_error_message(branch_name, secret_config)
-            raise subprocess.CalledProcessError(process.returncode, script_path)
+            # Check if the script execution was successful
+            if process.returncode != 0:
+                post_error_message(branch_name, secret_config)
+                raise subprocess.CalledProcessError(process.returncode, script_path)
 
         return jsonify({
             "message": f"macOS build for branch {branch_name} signing executed successfully!"
@@ -138,7 +165,7 @@ def rebuild_android_dsp():
     except subprocess.CalledProcessError:
         return jsonify({"error": "Build script failed. Check Slack for full logs."}), 500
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": f"An unexpected error occurred: {str(e)}"}), 500
 
 
 @app.route('/build_win', methods=['POST'])
@@ -159,36 +186,38 @@ def build_win():
         script_path = ".\\build_win.ps1"
         use_dev_analytics_flag = "true" if use_dev_analytics else "false"
 
-        print("Changing working directory...")
         os.chdir("C:\\Users\\BlackBricks\\PycharmProjects\\AutomateBuildBackend")
-        print("Current working directory:", os.getcwd())
 
+        # Construct PowerShell command
         command = [
             "powershell", "-ExecutionPolicy", "Bypass", "-File", script_path,
             "-BRANCH_NAME", branch_name,
             "-USE_DEV_ANALYTICS", use_dev_analytics_flag
         ]
 
-        subprocess.run(command, check=True, capture_output=True, text=True)
-
-        with open(log_file, "w"):
-            pass
-
+        # Capture logs and errors using subprocess
         with open(log_file, "w") as log:
             process = subprocess.Popen(
-                ["sh", script_path, branch_name, is_bundle_to_build_flag, use_dev_analytics_flag],
+                command,  # Running PowerShell script
                 stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
+                stderr=subprocess.PIPE,  # Capture both stdout and stderr
                 text=True
             )
 
+            # Capture and write stdout and stderr to both console and log file
             for line in process.stdout:
                 sys.stdout.write(line)
                 sys.stdout.flush()
                 log.write(line)
 
+            for line in process.stderr:
+                sys.stderr.write(line)
+                sys.stderr.flush()
+                log.write(line)
+
             process.wait()
 
+        # If the process fails (non-zero exit code), send error message
         if process.returncode != 0:
             post_error_message(branch_name, secret_config)
             raise subprocess.CalledProcessError(process.returncode, script_path)
@@ -218,27 +247,38 @@ def build_android():
 
         script_path = "./build_android.sh"
         log_file = "/tmp/build_error_log.txt"
-        is_bundle_to_build_flag = "true" if not use_dev_analytics else "false"
+
+        # Set the flags based on the 'use_dev_analytics' parameter
+        is_bundle_to_build_flag = "false" if use_dev_analytics else "true"
         use_dev_analytics_flag = "true" if use_dev_analytics else "false"
 
+        # Clear any previous log file
         with open(log_file, "w"):
             pass
 
+        # Open log file and execute the script
         with open(log_file, "w") as log:
             process = subprocess.Popen(
                 ["sh", script_path, branch_name, is_bundle_to_build_flag, use_dev_analytics_flag],
                 stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
+                stderr=subprocess.PIPE,  # Capture stderr explicitly
                 text=True
             )
 
+            # Capture and log both stdout and stderr
             for line in process.stdout:
                 sys.stdout.write(line)
                 sys.stdout.flush()
                 log.write(line)
 
+            for line in process.stderr:
+                sys.stderr.write(line)
+                sys.stderr.flush()
+                log.write(line)
+
             process.wait()
 
+        # Check for any errors in the process return code
         if process.returncode != 0:
             post_error_message(branch_name, secret_config)
             raise subprocess.CalledProcessError(process.returncode, script_path)
@@ -250,7 +290,7 @@ def build_android():
     except subprocess.CalledProcessError:
         return jsonify({"error": "Build script failed. Check Slack for full logs."}), 500
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": f"Unexpected error: {str(e)}"}), 500
 
 
 @app.route('/build_ios', methods=['POST'])
@@ -263,28 +303,40 @@ def build_ios():
         branch_name = data.get('branchName')
         use_dev_analytics = data.get('isUseDevAnalytics', True)
 
+        if not branch_name:
+            return jsonify({"error": "Missing required parameter: branchName"}), 400
+
         script_path = "./build_ios.sh"
         log_file = "/tmp/build_error_log.txt"
         use_dev_analytics_flag = "true" if use_dev_analytics else "false"
 
+        # Clear any previous log file
         with open(log_file, "w"):
             pass
 
+        # Open log file and execute the script
         with open(log_file, "w") as log:
             process = subprocess.Popen(
                 ["sh", script_path, branch_name, use_dev_analytics_flag],
                 stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
+                stderr=subprocess.PIPE,  # Explicitly capture stderr as well
                 text=True
             )
 
+            # Capture and log both stdout and stderr
             for line in process.stdout:
                 sys.stdout.write(line)
                 sys.stdout.flush()
                 log.write(line)
 
+            for line in process.stderr:
+                sys.stderr.write(line)
+                sys.stderr.flush()
+                log.write(line)
+
             process.wait()
 
+        # If the process fails (non-zero exit code), send error message
         if process.returncode != 0:
             post_error_message(branch_name, secret_config)
             raise subprocess.CalledProcessError(process.returncode, script_path)
@@ -294,7 +346,7 @@ def build_ios():
     except subprocess.CalledProcessError:
         return jsonify({"error": "Build script failed. Check Slack for full logs."}), 500
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": f"Unexpected error: {str(e)}"}), 500
 
 
 @app.route('/remote_branches', methods=['GET'])
