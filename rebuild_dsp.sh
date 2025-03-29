@@ -3,6 +3,7 @@
 source "/Users/denispopkov/PycharmProjects/AutomateBuildBackend/slack_upload.sh"
 source "/Users/denispopkov/PycharmProjects/AutomateBuildBackend/utils.sh"
 
+PROJECT_DIR="/Users/denispopkov/AndroidStudioProjects/SA_Neuro_Multiplatform"
 SECRET_FILE="/Users/denispopkov/Desktop/secret.txt"
 SET_UPDATED_LIB_PATH="$PROJECT_DIR/shared/src/commonMain/resources/MR/files/libdspmac.dylib"
 CACHE_UPDATED_LIB_PATH="$PROJECT_DIR/desktopApp/build/native/libdspmac.dylib"
@@ -63,6 +64,8 @@ disable_dsp_gradle_task
 
 rm -f "$SET_UPDATED_LIB_PATH"
 cp "$CACHE_UPDATED_LIB_PATH" "$SET_UPDATED_LIB_PATH"
+
+sleep 10
 
 git add .
 git commit -m "add: update dsp lib"

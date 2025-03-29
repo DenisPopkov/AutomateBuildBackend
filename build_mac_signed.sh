@@ -67,7 +67,6 @@ git add .
 git commit -m "macOS version bump to $VERSION_CODE"
 git push origin "$BRANCH_NAME"
 
-DESKTOP_BUILD_FILE="$PROJECT_DIR/desktopApp/build.gradle.kts"
 BUILD_PATH="$PROJECT_DIR/desktopApp/build"
 SET_UPDATED_LIB_PATH="$PROJECT_DIR/shared/src/commonMain/resources/MR/files/libdspmac.dylib"
 CACHE_UPDATED_LIB_PATH="$PROJECT_DIR/desktopApp/build/native/libdspmac.dylib"
