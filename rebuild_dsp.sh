@@ -37,6 +37,10 @@ fi
 
 BRANCH_NAME=$1
 
+cd "$PROJECT_DIR" || { echo "Project directory not found!"; exit 1; }
+
+sleep 5
+
 echo "Checking out branch: $BRANCH_NAME"
 git stash push -m "Pre-build stash"
 git fetch && git checkout "$BRANCH_NAME" && git pull origin "$BRANCH_NAME" --no-rebase
