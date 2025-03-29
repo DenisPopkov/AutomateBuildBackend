@@ -12,7 +12,7 @@ ERROR_LOG_FILE="/tmp/build_error_log.txt"
 post_error_message() {
   local branch_name=$1
   local message=":x: Failed to update DSP library on \`$branch_name\`"
-  execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$message" "$ERROR_LOG_FILE"
+  execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$message" "upload" "$ERROR_LOG_FILE"
 }
 
 while IFS='=' read -r key value; do
