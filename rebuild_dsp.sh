@@ -7,11 +7,12 @@ PROJECT_DIR="/Users/denispopkov/AndroidStudioProjects/SA_Neuro_Multiplatform"
 SECRET_FILE="/Users/denispopkov/Desktop/secret.txt"
 SET_UPDATED_LIB_PATH="$PROJECT_DIR/shared/src/commonMain/resources/MR/files/libdspmac.dylib"
 CACHE_UPDATED_LIB_PATH="$PROJECT_DIR/desktopApp/build/native/libdspmac.dylib"
+ERROR_LOG_FILE="/tmp/build_error_log.txt"
 
 post_error_message() {
   local branch_name=$1
   local message=":x: Failed to update DSP library on \`$branch_name\`"
-  post_message "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$message"
+  execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$message" "upload" "$ERROR_LOG_FILE"
 }
 
 while IFS='=' read -r key value; do
@@ -64,7 +65,7 @@ osascript -e '
 sleep 80
 
 if ! ./gradlew compileKotlin; then
-  echo "Error: Gradle build failed"
+  echo "Error: Gradle build failed" | tee -a "$ERROR_LOG_FILE"
   post_error_message "$BRANCH_NAME"
   exit 1
 fi
