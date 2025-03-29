@@ -104,6 +104,9 @@ sleep 5
 
 disable_dsp_gradle_task
 
+rm -f "$SET_UPDATED_LIB_PATH"
+cp "$CACHE_UPDATED_LIB_PATH" "$SET_UPDATED_LIB_PATH"
+
 # Building
 echo "Building signed build..."
 ./gradlew packageDmg
