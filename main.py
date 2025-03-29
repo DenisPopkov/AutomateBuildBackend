@@ -40,6 +40,7 @@ def build_mac():
             process.wait()
 
         if process.returncode != 0:
+            post_error_message(branch_name, secret_config)
             raise subprocess.CalledProcessError(process.returncode, script_path)
 
         return jsonify({
@@ -47,10 +48,8 @@ def build_mac():
         }), 200
 
     except subprocess.CalledProcessError:
-        post_error_message(branch_name, secret_config)
         return jsonify({"error": "Build script failed. Check Slack for full logs."}), 500
     except Exception as e:
-        post_error_message(branch_name, secret_config)
         return jsonify({"error": str(e)}), 500
 
 
@@ -93,10 +92,8 @@ def rebuild_dsp():
         }), 200
 
     except subprocess.CalledProcessError:
-        post_error_message(branch_name, secret_config)
         return jsonify({"error": "Build script failed. Check Slack for full logs."}), 500
     except Exception as e:
-        post_error_message(branch_name, secret_config)
         return jsonify({"error": str(e)}), 500
 
 
@@ -139,10 +136,8 @@ def rebuild_android_dsp():
         }), 200
 
     except subprocess.CalledProcessError:
-        post_error_message(branch_name, secret_config)
         return jsonify({"error": "Build script failed. Check Slack for full logs."}), 500
     except Exception as e:
-        post_error_message(branch_name, secret_config)
         return jsonify({"error": str(e)}), 500
 
 
@@ -154,6 +149,7 @@ def build_win():
 
         data = request.json
         branch_name = data.get('branchName')
+        log_file = "/tmp/build_error_log.txt"
         use_dev_analytics = data.get('isUseDevAnalytics', True)
 
         if not branch_name:
@@ -175,15 +171,35 @@ def build_win():
 
         subprocess.run(command, check=True, capture_output=True, text=True)
 
+        with open(log_file, "w"):
+            pass
+
+        with open(log_file, "w") as log:
+            process = subprocess.Popen(
+                ["sh", script_path, branch_name, is_bundle_to_build_flag, use_dev_analytics_flag],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True
+            )
+
+            for line in process.stdout:
+                sys.stdout.write(line)
+                sys.stdout.flush()
+                log.write(line)
+
+            process.wait()
+
+        if process.returncode != 0:
+            post_error_message(branch_name, secret_config)
+            raise subprocess.CalledProcessError(process.returncode, script_path)
+
         return jsonify({
             "message": f"Windows build for branch {branch_name} executed successfully!"
         }), 200
 
     except subprocess.CalledProcessError as e:
-        post_error_message(branch_name, secret_config)
         return jsonify({"error": f"Build failed: {e}"}), 500
     except Exception as e:
-        post_error_message(branch_name, secret_config)
         return jsonify({"error": f"Unexpected error: {str(e)}"}), 500
 
 
@@ -224,6 +240,7 @@ def build_android():
             process.wait()
 
         if process.returncode != 0:
+            post_error_message(branch_name, secret_config)
             raise subprocess.CalledProcessError(process.returncode, script_path)
 
         return jsonify({
@@ -231,10 +248,8 @@ def build_android():
         }), 200
 
     except subprocess.CalledProcessError:
-        post_error_message(branch_name, secret_config)
         return jsonify({"error": "Build script failed. Check Slack for full logs."}), 500
     except Exception as e:
-        post_error_message(branch_name, secret_config)
         return jsonify({"error": str(e)}), 500
 
 
@@ -271,15 +286,14 @@ def build_ios():
             process.wait()
 
         if process.returncode != 0:
+            post_error_message(branch_name, secret_config)
             raise subprocess.CalledProcessError(process.returncode, script_path)
 
         return jsonify({"message": f"iOS build for branch {branch_name} executed successfully!"}), 200
 
     except subprocess.CalledProcessError:
-        post_error_message(branch_name, secret_config)
         return jsonify({"error": "Build script failed. Check Slack for full logs."}), 500
     except Exception as e:
-        post_error_message(branch_name, secret_config)
         return jsonify({"error": str(e)}), 500
 
 
