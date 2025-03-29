@@ -4,6 +4,8 @@ source "/Users/denispopkov/PycharmProjects/AutomateBuildBackend/slack_upload.sh"
 source "/Users/denispopkov/PycharmProjects/AutomateBuildBackend/utils.sh"
 
 SECRET_FILE="/Users/denispopkov/Desktop/secret.txt"
+SET_UPDATED_LIB_PATH="$PROJECT_DIR/shared/src/commonMain/resources/MR/files/libdspmac.dylib"
+CACHE_UPDATED_LIB_PATH="$PROJECT_DIR/desktopApp/build/native/libdspmac.dylib"
 
 while IFS='=' read -r key value; do
   key=$(echo "$key" | xargs)
