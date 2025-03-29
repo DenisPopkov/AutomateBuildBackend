@@ -22,11 +22,6 @@ while IFS='=' read -r key value; do
   esac
 done < "$SECRET_FILE"
 
-if [ -z "$TEAM_ID" ] || [ -z "$APPLE_ID" ] || [ -z "$NOTARY_PASSWORD" ] || [ -z "$USER_PASSWORD" ]; then
-  echo "Error: TEAM_ID, APPLE_ID, NOTARY_PASSWORD, or USER_PASSWORD is missing in $SECRET_FILE"
-  exit 1
-fi
-
 BRANCH_NAME=$1
 
 echo "Checking out branch: $BRANCH_NAME"
