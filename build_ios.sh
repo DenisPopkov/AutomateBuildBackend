@@ -17,14 +17,15 @@ SECRET_FILE="/Users/denispopkov/Desktop/secret.txt"
 PROJECT_DIR="/Users/denispopkov/AndroidStudioProjects/SA_Neuro_Multiplatform"
 cd "$PROJECT_DIR" || { echo "Project directory not found!"; exit 1; }
 
+post_error_message() {
+  local branch_name=$1
+  local message=":x: Failed to build MacOS on \`$branch_name\`"
+  execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$message" "upload" "$ERROR_LOG_FILE"
+}
+
 # For dev analytics
 SHARED_GRADLE_FILE="$PROJECT_DIR/shared/build.gradle.kts"
 PROD_SHARED_GRADLE_FILE="/Users/denispopkov/Desktop/prod/build.gradle.kts"
-
-if [ ! -f "$SECRET_FILE" ]; then
-  echo "Error: secret.txt file not found at $SECRET_FILE"
-  exit 1
-fi
 
 while IFS='=' read -r key value; do
   key=$(echo "$key" | xargs)
@@ -47,12 +48,6 @@ else
   analyticsMessage="prod"
 fi
 
-# Checkout branch
-if [ -z "$BRANCH_NAME" ]; then
-  echo "Error: Branch name is required"
-  exit 1
-fi
-
 git fetch && git checkout "$BRANCH_NAME" && git pull origin "$BRANCH_NAME" --no-rebase
 
 cd "$IOS_APP_PATH" || exit
@@ -61,8 +56,10 @@ LAST_BUILD_NUMBER=$(agvtool what-version -terse)
 NEW_VERSION=$((LAST_BUILD_NUMBER + 1))
 
 end_time=$(TZ=Asia/Omsk date -v+15M "+%H:%M")
-message="iOS build started on $BRANCH_NAME with $analyticsMessage analytics. It will be ready approximately at $end_time Omsk Time."
-execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$message" "message"
+message=":hammer_and_wrench: iOS build started on \`$BRANCH_NAME\`
+:mag_right: Analytics look on $analyticsMessage
+:clock2: It will be ready approximately at $end_time"
+post_message "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$message"
 
 # Update project.pbxproj
 if [ -f "$PBXPROJ_PATH" ]; then
@@ -73,6 +70,7 @@ if [ -f "$PBXPROJ_PATH" ]; then
   VERSION_NUMBER="$MARKETING_VERSION"
 else
   echo "project.pbxproj not found: $PBXPROJ_PATH"
+  post_error_message "$BRANCH_NAME"
   exit 1
 fi
 
@@ -81,6 +79,7 @@ if [ -f "$INFO_PLIST_PATH" ]; then
   /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $NEW_VERSION" "$INFO_PLIST_PATH"
 else
   echo "Info.plist not found: $INFO_PLIST_PATH"
+  post_error_message "$BRANCH_NAME"
   exit 1
 fi
 
@@ -147,7 +146,7 @@ if fastlane testflight_upload; then
 
   execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "New iOS build uploaded to TestFlight with v$VERSION_NUMBER ($NEW_VERSION) from $BRANCH_NAME" "message"
 else
-  execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "iOS build failed :crycat:" "message"
+  post_error_message "$BRANCH_NAME"
   echo "Fastlane failed. Not committing changes or sending Slack message."
 fi
 

@@ -25,6 +25,12 @@ done < "$SECRET_FILE"
 BRANCH_NAME=$1
 isUseDevAnalytics=$2
 
+post_error_message() {
+  local branch_name=$1
+  local message=":x: Failed to build Android on \`$branch_name\`"
+  execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$message" "upload" "$ERROR_LOG_FILE"
+}
+
 # Validate branch name input
 if [ -z "$BRANCH_NAME" ]; then
   echo "Error: Branch name is required"
@@ -42,8 +48,10 @@ else
 fi
 
 end_time=$(TZ=Asia/Omsk date -v+15M "+%H:%M")
-message="Android build started on $BRANCH_NAME with $analyticsMessage analytics. It will be ready approximately at $end_time Omsk Time."
-execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$message" "message"
+message=":hammer_and_wrench: Android build started on \`$BRANCH_NAME\`
+:mag_right: Analytics look on $analyticsMessage
+:clock2: It will be ready approximately at $end_time"
+post_message "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$message"
 
 PROJECT_DIR="/Users/denispopkov/AndroidStudioProjects/SA_Neuro_Multiplatform"
 cd "$PROJECT_DIR" || { echo "Project directory not found!"; exit 1; }
@@ -64,11 +72,6 @@ PROD_SHARED_GRADLE_FILE="/Users/denispopkov/Desktop/prod/build.gradle.kts"
 # Extract versionCode and versionName from build.gradle.kts
 VERSION_CODE=$(grep "versionCode =" "$PROJECT_DIR/androidApp/build.gradle.kts" | awk -F '=' '{print $2}' | xargs)
 VERSION_NAME=$(grep "versionName =" "$PROJECT_DIR/androidApp/build.gradle.kts" | awk -F '"' '{print $2}' | xargs)
-
-if [ -z "$VERSION_CODE" ] || [ -z "$VERSION_NAME" ]; then
-  echo "Error: Unable to extract versionCode or versionName from build.gradle.kts"
-  exit 1
-fi
 
 OLD_VERSION=$VERSION_CODE
 
@@ -128,7 +131,7 @@ APK_PATH="$PROJECT_DIR/androidApp/build/outputs/apk/release/androidApp-release.a
 echo "path to APK = $APK_PATH"
 
 if [ ! -f "$APK_PATH" ]; then
-  execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "Android build failed :crycat: Because of rebuilding DSP lib" "message"
+  post_error_message "$BRANCH_NAME"
   echo "Error: APK not found"
   exit 1
 fi
@@ -165,7 +168,7 @@ if [ "$isUseDevAnalytics" == "false" ]; then
   AAB_PATH="$PROJECT_DIR/androidApp/build/outputs/bundle/release/androidApp-release.aab"
 
   if [ ! -f "$AAB_PATH" ]; then
-    execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "Android build failed :crycat:" "message"
+    post_error_message "$BRANCH_NAME"
     echo "Error: Signed APK not found at expected path: $AAB_PATH"
     exit 1
   fi
@@ -205,6 +208,7 @@ if [ "$isUseDevAnalytics" == "false" ]; then
     git push origin "$BRANCH_NAME" --no-rebase
   else
     echo "Error sending AAB to Slack."
+    post_error_message "$BRANCH_NAME"
     exit 1
   fi
 
@@ -223,7 +227,7 @@ else
   APK_PATH="$PROJECT_DIR/androidApp/build/outputs/apk/release/androidApp-release.apk"
 
   if [ ! -f "$APK_PATH" ]; then
-    execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "Android build failed :crycat:" "message"
+    post_error_message "$BRANCH_NAME"
     echo "Error: Signed APK not found at expected path: $APK_PATH"
     exit 1
   fi
@@ -257,6 +261,7 @@ else
     git push origin "$BRANCH_NAME"
   else
     echo "Error sending APK to Slack."
+    post_error_message "$BRANCH_NAME"
     exit 1
   fi
 fi

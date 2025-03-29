@@ -15,16 +15,36 @@ def build_mac():
         use_dev_analytics = data.get('isUseDevAnalytics', True)
 
         script_path = "./build_mac_signed.sh"
+        log_file = "/tmp/build_error_log.txt"
         use_dev_analytics_flag = "true" if use_dev_analytics else "false"
 
-        subprocess.run(["sh", script_path, branch_name, use_dev_analytics_flag], check=True)
+        with open(log_file, "w"):
+            pass
+
+        with open(log_file, "w") as log:
+            process = subprocess.Popen(
+                ["sh", script_path, branch_name, use_dev_analytics_flag],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True
+            )
+
+            for line in process.stdout:
+                sys.stdout.write(line)
+                sys.stdout.flush()
+                log.write(line)
+
+            process.wait()
+
+        if process.returncode != 0:
+            raise subprocess.CalledProcessError(process.returncode, script_path)
 
         return jsonify({
             "message": f"macOS build for branch {branch_name} signing executed successfully!"
         }), 200
 
-    except subprocess.CalledProcessError as e:
-        return jsonify({"error": str(e)}), 500
+    except subprocess.CalledProcessError:
+        return jsonify({"error": "Build script failed. Check Slack for full logs."}), 500
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
@@ -131,18 +151,37 @@ def build_android():
             return jsonify({"error": "Missing required parameter: branchName"}), 400
 
         script_path = "./build_android.sh"
+        log_file = "/tmp/build_error_log.txt"
         is_bundle_to_build_flag = "true" if not use_dev_analytics else "false"
         use_dev_analytics_flag = "true" if use_dev_analytics else "false"
 
-        subprocess.run(
-            ["sh", script_path, branch_name, is_bundle_to_build_flag, use_dev_analytics_flag],
-            check=True)
+        with open(log_file, "w"):
+            pass
+
+        with open(log_file, "w") as log:
+            process = subprocess.Popen(
+                ["sh", script_path, branch_name, is_bundle_to_build_flag, use_dev_analytics_flag],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True
+            )
+
+            for line in process.stdout:
+                sys.stdout.write(line)
+                sys.stdout.flush()
+                log.write(line)
+
+            process.wait()
+
+        if process.returncode != 0:
+            raise subprocess.CalledProcessError(process.returncode, script_path)
 
         return jsonify({
-            "message": f"Android build for branch {branch_name} executed successfully!"}), 200
+            "message": f"Android build for branch {branch_name} executed successfully!"
+        }), 200
 
-    except subprocess.CalledProcessError as e:
-        return jsonify({"error": str(e)}), 500
+    except subprocess.CalledProcessError:
+        return jsonify({"error": "Build script failed. Check Slack for full logs."}), 500
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
@@ -157,14 +196,35 @@ def build_ios():
         if not branch_name:
             return jsonify({"error": "Missing required parameter: branchName"}), 400
 
+        script_path = "./build_ios.sh"
+        log_file = "/tmp/build_error_log.txt"
         use_dev_analytics_flag = "true" if use_dev_analytics else "false"
 
-        script_path = "./build_ios.sh"
-        subprocess.run(["sh", script_path, branch_name, use_dev_analytics_flag], check=True)
+        with open(log_file, "w"):
+            pass
+
+        with open(log_file, "w") as log:
+            process = subprocess.Popen(
+                ["sh", script_path, branch_name, use_dev_analytics_flag],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True
+            )
+
+            for line in process.stdout:
+                sys.stdout.write(line)
+                sys.stdout.flush()
+                log.write(line)
+
+            process.wait()
+
+        if process.returncode != 0:
+            raise subprocess.CalledProcessError(process.returncode, script_path)
 
         return jsonify({"message": f"iOS build for branch {branch_name} executed successfully!"}), 200
-    except subprocess.CalledProcessError as e:
-        return jsonify({"error": str(e)}), 500
+
+    except subprocess.CalledProcessError:
+        return jsonify({"error": "Build script failed. Check Slack for full logs."}), 500
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 

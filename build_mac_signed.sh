@@ -20,10 +20,11 @@ while IFS='=' read -r key value; do
   esac
 done < "$SECRET_FILE"
 
-if [ -z "$TEAM_ID" ] || [ -z "$APPLE_ID" ] || [ -z "$NOTARY_PASSWORD" ] || [ -z "$USER_PASSWORD" ]; then
-  echo "Error: TEAM_ID, APPLE_ID, NOTARY_PASSWORD, or USER_PASSWORD is missing in $SECRET_FILE"
-  exit 1
-fi
+post_error_message() {
+  local branch_name=$1
+  local message=":x: Failed to build MacOS on \`$branch_name\`"
+  execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$message" "upload" "$ERROR_LOG_FILE"
+}
 
 BRANCH_NAME=$1
 isUseDevAnalytics=$2
@@ -54,11 +55,6 @@ git fetch && git checkout "$BRANCH_NAME" && git pull origin "$BRANCH_NAME" --no-
 
 VERSION_CODE=$(grep '^desktop\.build\.number\s*=' "$PROJECT_DIR/gradle.properties" | sed 's/.*=\s*\([0-9]*\)/\1/' | xargs)
 VERSION_NAME=$(grep '^desktop\.version\s*=' "$PROJECT_DIR/gradle.properties" | sed 's/.*=\s*\([0-9]*\.[0-9]*\.[0-9]*\)/\1/' | xargs)
-
-if [ -z "$VERSION_CODE" ] || [ -z "$VERSION_NAME" ]; then
-  echo "Error: Unable to extract versionCode or versionName from gradle.properties"
-  exit 1
-fi
 
 VERSION_CODE=$((VERSION_CODE + 1))
 sed -i '' "s/^desktop\.build\.number\s*=\s*[0-9]*$/desktop.build.number=$VERSION_CODE/" "$PROJECT_DIR/gradle.properties"
@@ -115,7 +111,7 @@ BUILD_PATH="$PROJECT_DIR/desktopApp/build/compose/binaries/main/app/Neuro Deskto
 
 if [ ! -d "$BUILD_PATH" ]; then
   echo "Error: Signed Build not found at expected path: $BUILD_PATH"
-  execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "macOS build failed :crycat:" "message"
+  post_error_message "$BRANCH_NAME"
   exit 1
 fi
 
@@ -130,6 +126,7 @@ zip -r "$(basename "$ZIP_PATH")" "$(basename "$BUILD_PATH")"
 if [ $? -eq 0 ]; then
   echo "ZIP file created successfully: $ZIP_PATH"
 else
+  post_error_message "$BRANCH_NAME"
   echo "Error creating ZIP file."
   exit 1
 fi
@@ -145,7 +142,7 @@ xcrun notarytool submit "$ZIP_PATH" \
 if [ $? -eq 0 ]; then
   echo "Notarization completed successfully."
 else
-  execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "macOS build failed :crycat:" "message"
+  post_error_message "$BRANCH_NAME"
   echo "Error during notarization."
   exit 1
 fi
@@ -239,7 +236,7 @@ SIGNATURE_CHECK=$(pkgutil --check-signature "$FINAL_PKG_PATH")
 if [[ "$SIGNATURE_CHECK" == *"Developer ID Installer: Source Audio LLC"* ]]; then
   echo "Signature verified successfully!"
 else
-  execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "macOS build failed :crycat:" "message"
+  post_error_message "$BRANCH_NAME"
   echo "Error: Signature verification failed."
   exit 1
 fi
@@ -259,15 +256,7 @@ git push origin "$BRANCH_NAME"
 if [ $? -eq 0 ]; then
     echo "Renamed .pkg sent to Slack successfully."
 else
-    execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "macOS build failed :crycat:" "message"
-    echo "Error sending renamed .pkg to Slack."
-    exit 1
-fi
-
-if [ $? -eq 0 ]; then
-    echo "Renamed .pkg sent to Slack successfully."
-else
-    execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "macOS build failed :crycat:" "message"
+    post_error_message "$BRANCH_NAME"
     echo "Error sending renamed .pkg to Slack."
     exit 1
 fi
