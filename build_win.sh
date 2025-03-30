@@ -8,9 +8,6 @@ isUseDevAnalytics=$2
 
 SECRET_FILE="/c/Users/BlackBricks/Desktop/secret.txt"
 PROJECT_DIR="/c/Users/BlackBricks/StudioProjects/SA_Neuro_Multiplatform"
-NEURO_WINDOW_FILE_PATH="$PROJECT_DIR/desktopApp/src/main/kotlin/presentation/neuro_window/NeuroWindow.kt"
-NEURO_WINDOW_DSP_FILE="/c/Users/BlackBricks/Desktop/build_dsp/NeuroWindow.kt"
-NEURO_WINDOW_N0_DSP_FILE="/c/Users/BlackBricks/Desktop/no_dsp/NeuroWindow.kt"
 ERROR_LOG_FILE="${ERROR_LOG_FILE:-/tmp/build_error_log.txt}"
 
 while IFS='=' read -r key value; do
@@ -75,16 +72,12 @@ else
   echo "Nothing to change with analytics"
 fi
 
-# Replace NeuroWindow.kt before building
-rm -f "$NEURO_WINDOW_FILE_PATH"
-cp "$NEURO_WINDOW_N0_DSP_FILE" "$NEURO_WINDOW_FILE_PATH"
+enable_windows_decorations
 
 echo "Building MSI package..."
 ./gradlew packageReleaseMsi
 
-# Restore original NeuroWindow.kt
-rm -f "$NEURO_WINDOW_FILE_PATH"
-cp "$NEURO_WINDOW_DSP_FILE" "$NEURO_WINDOW_FILE_PATH"
+disable_windows_decorations
 
 # Handle build output
 DESKTOP_BUILD_PATH="$PROJECT_DIR/desktopApp/build/compose/binaries/main-release/msi"
