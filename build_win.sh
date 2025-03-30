@@ -118,4 +118,4 @@ echo "Renamed file to: $NEW_MSI_PATH"
 
 # Upload to Slack
 echo "Uploading MSI to Slack..."
-execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" ":white_check_mark: Windows from $BRANCH_NAME" "upload" "$NEW_MSI_PATH"
+execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" ":white_check_mark: Windows from \`$BRANCH_NAME\`" "upload" "$NEW_MSI_PATH"
