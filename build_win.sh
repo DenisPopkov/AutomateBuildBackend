@@ -1,6 +1,5 @@
 #!/bin/bash
 
-# Load dependencies
 source "./slack_upload.sh"
 source "./utils.sh"
 
@@ -8,18 +7,12 @@ source "./utils.sh"
 BRANCH_NAME=$1
 isUseDevAnalytics=$2
 
-# Configuration - using mixed paths that work in Git Bash
 SECRET_FILE="/c/Users/BlackBricks/Desktop/secret.txt"
 PROJECT_DIR="/c/Users/BlackBricks/StudioProjects/SA_Neuro_Multiplatform"
 NEURO_WINDOW_FILE_PATH="$PROJECT_DIR/desktopApp/src/main/kotlin/presentation/neuro_window/NeuroWindow.kt"
 NEURO_WINDOW_DSP_FILE="/c/Users/BlackBricks/Desktop/build_dsp/NeuroWindow.kt"
 NEURO_WINDOW_N0_DSP_FILE="/c/Users/BlackBricks/Desktop/no_dsp/NeuroWindow.kt"
-ERROR_LOG_FILE="${ERROR_LOG_FILE:-/tmp/build_error_log.txt}"  # Use environment variable or default
-
-# Initialize error log
-echo "Build started at $(date)" > "$ERROR_LOG_FILE"
-echo "Branch: $BRANCH_NAME" >> "$ERROR_LOG_FILE"
-echo "Dev Analytics: $isUseDevAnalytics" >> "$ERROR_LOG_FILE"
+ERROR_LOG_FILE="${ERROR_LOG_FILE:-/tmp/build_error_log.txt}"
 
 while IFS='=' read -r key value; do
   key=$(echo "$key" | xargs)
@@ -33,7 +26,7 @@ done < "$SECRET_FILE"
 
 post_error_message() {
   local branch_name=$1
-  local message=":x: Failed to build MacOS on \`$branch_name\`"
+  local message=":x: Failed to build Windows on \`$branch_name\`"
   execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$message" "upload" "$ERROR_LOG_FILE"
 }
 
@@ -116,4 +109,4 @@ fi
 sleep 20
 
 echo "Uploading MSI to Slack..."
-execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "Windows from $BRANCH_NAME" "upload" "${NEW_MSI_PATH}"
+execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" ":white_check_mark: Windows from $BRANCH_NAME" "upload" "${NEW_MSI_PATH}"

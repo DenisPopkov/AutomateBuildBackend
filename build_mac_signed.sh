@@ -220,7 +220,7 @@ else
 fi
 
 echo "Uploading renamed .pkg to Slack..."
-execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "macOS signed from $BRANCH_NAME" "upload" "${NEW_PKG_PATH}"
+execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" ":white_check_mark: MacOS signed from $BRANCH_NAME" "upload" "${NEW_PKG_PATH}"
 
 sleep 10
 

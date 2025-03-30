@@ -144,10 +144,6 @@ def build_win():
         if not branch_name:
             return jsonify({"error": "Missing required parameter: branchName"}), 400
 
-        print(f"\n=== Starting Windows build for branch: {branch_name} ===")
-        print(f"Using {'DEV' if use_dev_analytics else 'PROD'} analytics\n")
-
-        # Configuration
         git_bash_path = r"C:\Program Files\Git\bin\bash.exe"
         base_dir = r"C:\Users\BlackBricks\PycharmProjects\AutomateBuildBackend"
         working_dir = f"/{base_dir[0].lower()}{base_dir[2:].replace('\\', '/')}"
@@ -155,16 +151,13 @@ def build_win():
         log_file = r"C:\Users\BlackBricks\AppData\Local\Temp\build_win_log.txt"
         use_dev_analytics_flag = "true" if use_dev_analytics else "false"
 
-        # Create temp directory if needed
         os.makedirs(os.path.dirname(log_file), exist_ok=True)
 
-        # Initialize log file with timestamp
         with open(log_file, 'w') as f:
             f.write(f"Build started at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
             f.write(f"Branch: {branch_name}\n")
             f.write(f"Dev Analytics: {use_dev_analytics_flag}\n\n")
 
-        # Build the command
         command = [
             git_bash_path,
             "-c",
@@ -173,7 +166,6 @@ def build_win():
             f"./build_win.sh {branch_name} {use_dev_analytics_flag}"
         ]
 
-        # Run with real-time output
         with open(log_file, 'a') as log:
             process = subprocess.Popen(
                 command,
@@ -184,7 +176,6 @@ def build_win():
                 universal_newlines=True
             )
 
-            # Stream output to console and log file
             for line in process.stdout:
                 sys.stdout.write(line)
                 sys.stdout.flush()
@@ -201,7 +192,6 @@ def build_win():
                 output=log_content
             )
 
-        print(f"\n=== Windows build for {branch_name} completed successfully ===")
         return jsonify({
             "status": "success",
             "message": f"Windows build for branch {branch_name} completed",
@@ -211,8 +201,6 @@ def build_win():
 
     except subprocess.CalledProcessError as e:
         error_msg = f"Build failed with return code {e.returncode}"
-        print(f"\n!!! {error_msg} !!!")
-        print(f"Error output:\n{e.output}\n")
 
         return jsonify({
             "status": "error",
@@ -224,13 +212,13 @@ def build_win():
 
     except Exception as e:
         error_msg = f"Unexpected error: {str(e)}"
-        print(f"\n!!! {error_msg} !!!")
 
         return jsonify({
             "status": "error",
             "message": error_msg,
             "log_file": log_file if 'log_file' in locals() else 'not created'
         }), 500
+
 
 @app.route('/build_android', methods=['POST'])
 def build_android():
