@@ -43,6 +43,9 @@ rm -rf "$JNI_LIBS_PATH"
 rm -rf "$BUILD_PATH"
 rm -rf "$RELEASE_PATH"
 
+echo "Opening Android Studio..."
+open -a "Android Studio"
+
 sleep 5
 
 osascript -e '

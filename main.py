@@ -378,22 +378,18 @@ def post_error_message(branch_name, secret_config):
     try:
         SLACK_BOT_TOKEN = secret_config.get("SLACK_BOT_TOKEN")
         SLACK_CHANNEL = secret_config.get("SLACK_CHANNEL")
-        ERROR_LOG_FILE = "/tmp/build_error_log.txt"
-
-        print(f"token: ${SLACK_BOT_TOKEN}")
 
         message = f":x: Failed to update DSP library on `{branch_name}`"
 
         subprocess.run(
             ["/bin/bash", "/Users/denispopkov/PycharmProjects/AutomateBuildBackend/slack_upload.sh",
-             SLACK_BOT_TOKEN, SLACK_CHANNEL, message, "upload", ERROR_LOG_FILE],
+             "post_message", SLACK_BOT_TOKEN, SLACK_CHANNEL, message],
             check=True
         )
     except subprocess.CalledProcessError as e:
         print(f"Error sending error message to Slack: {e}")
     except Exception as e:
         print(f"Error in post_error_message: {e}")
-
 
 if __name__ == "__main__":
     app.run(debug=True, host='0.0.0.0', port=5001)
