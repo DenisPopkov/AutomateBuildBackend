@@ -8,7 +8,6 @@ isUseDevAnalytics=$2
 
 SECRET_FILE="/c/Users/BlackBricks/Desktop/secret.txt"
 PROJECT_DIR="/c/Users/BlackBricks/StudioProjects/SA_Neuro_Multiplatform"
-NEURO_WINDOW_FILE_PATH="$PROJECT_DIR/desktopApp/src/main/kotlin/presentation/neuro_window/NeuroWindow.kt"
 ERROR_LOG_FILE="${ERROR_LOG_FILE:-/tmp/build_error_log.txt}"
 
 while IFS='=' read -r key value; do
@@ -73,12 +72,12 @@ else
   echo "Nothing to change with analytics"
 fi
 
-disable_windows_decorations
+enable_windows_decorations
 
 echo "Building MSI package..."
 ./gradlew packageReleaseMsi
 
-enable_windows_decorations
+disable_windows_decorations
 
 # Handle build output
 DESKTOP_BUILD_PATH="$PROJECT_DIR/desktopApp/build/compose/binaries/main-release/msi"
