@@ -5,9 +5,16 @@ source "/Users/denispopkov/PycharmProjects/AutomateBuildBackend/utils.sh"
 
 PROJECT_DIR="/Users/denispopkov/AndroidStudioProjects/SA_Neuro_Multiplatform"
 SECRET_FILE="/Users/denispopkov/Desktop/secret.txt"
+ERROR_LOG_FILE="/tmp/build_error_log.txt"
 JNI_LIBS_PATH="$PROJECT_DIR/androidApp/src/main/jniLibs"
 BUILD_PATH="$PROJECT_DIR/androidApp/build"
 RELEASE_PATH="$PROJECT_DIR/androidApp/release"
+
+post_error_message() {
+  local branch_name=$1
+  local message=":x: Failed to update DSP library on \`$branch_name\`"
+  execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$message" "upload" "$ERROR_LOG_FILE"
+}
 
 while IFS='=' read -r key value; do
   key=$(echo "$key" | xargs)
@@ -16,9 +23,6 @@ while IFS='=' read -r key value; do
   case "$key" in
     "SLACK_BOT_TOKEN") SLACK_BOT_TOKEN="$value" ;;
     "SLACK_CHANNEL") SLACK_CHANNEL="$value" ;;
-    "KEYFILE") KEYFILE="$value" ;;
-    "KEY_ALIAS") KEY_ALIAS="$value" ;;
-    "KEY_PASSWORD") KEY_PASSWORD="$value" ;;
   esac
 done < "$SECRET_FILE"
 
@@ -28,7 +32,7 @@ echo "Checking out branch: $BRANCH_NAME"
 git stash push -m "Pre-build stash"
 git fetch && git checkout "$BRANCH_NAME" && git pull origin "$BRANCH_NAME" --no-rebase
 
-message=":hammer_and_wrench: Start Android DSP library update on \`$BRANCH_NAME\`"
+message=":hammer_and_wrench: Start DSP library update on \`$BRANCH_NAME\`"
 post_message "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$message"
 
 echo "Opening Android Studio..."
@@ -43,7 +47,6 @@ rm -rf "$JNI_LIBS_PATH"
 rm -rf "$BUILD_PATH"
 rm -rf "$RELEASE_PATH"
 
-echo "Opening Android Studio..."
 open -a "Android Studio"
 
 sleep 5
@@ -69,6 +72,7 @@ APK_PATH="$PROJECT_DIR/androidApp/build/outputs/apk/release/androidApp-release.a
 echo "path to APK = $APK_PATH"
 
 if [ ! -f "$APK_PATH" ]; then
+  post_error_message "$BRANCH_NAME"
   echo "Error: APK not found"
   exit 1
 fi
@@ -76,8 +80,6 @@ fi
 # Rename the APK to .zip (no zipping necessary)
 APK_ZIP_PATH="${APK_PATH%.apk}.zip"
 mv "$APK_PATH" "$APK_ZIP_PATH"
-
-echo "unzip path = $APK_ZIP_PATH"
 
 # Unzip the APK (which is a zip file) directly
 unzip -o "$APK_ZIP_PATH" -d "$PROJECT_DIR/androidApp/build/outputs/apk/release/"
