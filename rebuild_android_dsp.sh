@@ -23,6 +23,9 @@ while IFS='=' read -r key value; do
   case "$key" in
     "SLACK_BOT_TOKEN") SLACK_BOT_TOKEN="$value" ;;
     "SLACK_CHANNEL") SLACK_CHANNEL="$value" ;;
+    "KEYFILE") KEYFILE="$value" ;;
+    "KEY_ALIAS") KEY_ALIAS="$value" ;;
+    "KEY_PASSWORD") KEY_PASSWORD="$value" ;;
   esac
 done < "$SECRET_FILE"
 
