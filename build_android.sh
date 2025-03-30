@@ -179,7 +179,7 @@ else
 
   # Upload APK to Slack
   echo "Uploading APK to Slack..."
-  execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" ":white_check_mark: Android APK from $BRANCH_NAME" "upload" "${FILE_PATH}"
+  execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" ":white_check_mark: Android APK from \`$BRANCH_NAME\`" "upload" "${FILE_PATH}"
 
   undo_enable_prod_keys
 fi
