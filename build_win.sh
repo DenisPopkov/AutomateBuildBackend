@@ -92,26 +92,30 @@ echo "Building MSI package..."
 
 disable_windows_decorations
 
-# Handle build output
 DESKTOP_BUILD_PATH="$PROJECT_DIR/desktopApp/build/compose/binaries/main-release/msi"
-FINAL_MSI_PATH="$DESKTOP_BUILD_PATH/Neuro Desktop-$VERSION_NAME.msi"
-NEW_MSI_PATH="$DESKTOP_BUILD_PATH/Neuro_Desktop-$VERSION_NAME-$VERSION_CODE.msi"
 
-if [ -f "$FINAL_MSI_PATH" ]; then
-  if [ -f "$NEW_MSI_PATH" ]; then
-    rm -f "$NEW_MSI_PATH"
-    echo "Deleted existing file: $NEW_MSI_PATH"
-  fi
+# Check for the MSI file (handle spaces in filename)
+MSI_FILE=$(find "$DESKTOP_BUILD_PATH" -name "Neuro*.msi" | head -n 1)
 
-  mv "$FINAL_MSI_PATH" "$NEW_MSI_PATH"
-  echo "Renamed file to: $NEW_MSI_PATH"
-else
-  echo "Error: Build file not found at $FINAL_MSI_PATH"
-  post_error_message "$BRANCH_NAME"
-  exit 1
+if [ -z "$MSI_FILE" ]; then
+    echo "Error: No MSI file found in $DESKTOP_BUILD_PATH"
+    post_error_message "$BRANCH_NAME"
+    exit 1
 fi
 
-sleep 20
+# Define the new filename (Neuro_Desktop-<version>-<build>.msi)
+NEW_MSI_PATH="$DESKTOP_BUILD_PATH/Neuro_Desktop-${VERSION_NAME}-${VERSION_CODE}.msi"
 
+# Remove existing file if present
+if [ -f "$NEW_MSI_PATH" ]; then
+    rm -f "$NEW_MSI_PATH"
+    echo "Deleted existing file: $NEW_MSI_PATH"
+fi
+
+# Rename the MSI file
+mv "$MSI_FILE" "$NEW_MSI_PATH"
+echo "Renamed file to: $NEW_MSI_PATH"
+
+# Upload to Slack
 echo "Uploading MSI to Slack..."
-execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" ":white_check_mark: Windows from $BRANCH_NAME" "upload" "${NEW_MSI_PATH}"
+execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" ":white_check_mark: Windows from $BRANCH_NAME" "upload" "$NEW_MSI_PATH"
