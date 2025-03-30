@@ -143,7 +143,7 @@ if fastlane testflight_upload; then
   git commit -m "iOS version bump to $NEW_VERSION"
   git push
 
-  execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "New iOS build uploaded to TestFlight with v$VERSION_NUMBER ($NEW_VERSION) from $BRANCH_NAME" "message"
+  execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" ":white_check_mark: iOS build uploaded to TestFlight with v$VERSION_NUMBER ($NEW_VERSION)" "message"
 else
   post_error_message "$BRANCH_NAME"
   echo "Fastlane failed. Not committing changes or sending Slack message."
