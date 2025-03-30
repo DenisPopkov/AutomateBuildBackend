@@ -77,6 +77,8 @@ fi
 APK_ZIP_PATH="${APK_PATH%.apk}.zip"
 mv "$APK_PATH" "$APK_ZIP_PATH"
 
+echo "unzip path = $APK_ZIP_PATH"
+
 # Unzip the APK (which is a zip file) directly
 unzip -o "$APK_ZIP_PATH" -d "$PROJECT_DIR/androidApp/build/outputs/apk/release/"
 
