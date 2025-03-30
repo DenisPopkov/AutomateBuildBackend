@@ -92,4 +92,4 @@ git commit -m "add: update dsp lib"
 git push origin "$BRANCH_NAME"
 
 message=":white_check_mark: DSP library successfully updated on \`$BRANCH_NAME\`"
-execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$message" "upload" "${SET_UPDATED_LIB_PATH}"
+post_message "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$message"
