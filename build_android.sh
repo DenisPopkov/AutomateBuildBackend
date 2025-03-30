@@ -4,6 +4,7 @@ source "/Users/denispopkov/PycharmProjects/AutomateBuildBackend/slack_upload.sh"
 source "/Users/denispopkov/PycharmProjects/AutomateBuildBackend/utils.sh"
 
 SECRET_FILE="/Users/denispopkov/Desktop/secret.txt"
+ERROR_LOG_FILE="/tmp/build_error_log.txt"
 
 if [ ! -f "$SECRET_FILE" ]; then
   echo "Error: secret.txt file not found at $SECRET_FILE"

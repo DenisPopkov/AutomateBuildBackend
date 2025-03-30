@@ -5,6 +5,7 @@ source "/Users/denispopkov/PycharmProjects/AutomateBuildBackend/utils.sh"
 
 SECRET_FILE="/Users/denispopkov/Desktop/secret.txt"
 BUILD_TOOL="/Users/denispopkov/AndroidStudioProjects/SA_Neuro_release/Neuro_desktop.pkgproj"
+ERROR_LOG_FILE="/tmp/build_error_log.txt"
 
 while IFS='=' read -r key value; do
   key=$(echo "$key" | xargs)

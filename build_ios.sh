@@ -14,6 +14,7 @@ SWIFT_FILE_SOURCE="/Users/denispopkov/Desktop/SA_Neuro_Multiplatform_shared.swif
 SWIFT_TARGET_DIR="/Users/denispopkov/AndroidStudioProjects/SA_Neuro_Multiplatform/shared/build/bin/iosArm64/podDebugFramework/sharedSwift"
 SWIFT_TARGET_FILE="$SWIFT_TARGET_DIR/SA_Neuro_Multiplatform_shared.swift"
 SECRET_FILE="/Users/denispopkov/Desktop/secret.txt"
+ERROR_LOG_FILE="/tmp/build_error_log.txt"
 
 PROJECT_DIR="/Users/denispopkov/AndroidStudioProjects/SA_Neuro_Multiplatform"
 cd "$PROJECT_DIR" || { echo "Project directory not found!"; exit 1; }
@@ -30,6 +31,12 @@ done < "$SECRET_FILE"
 
 BRANCH_NAME=$1
 isUseDevAnalytics=$2
+
+post_error_message() {
+  local branch_name=$1
+  local message=":x: Failed to build Android on \`$branch_name\`"
+  execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$message" "upload" "$ERROR_LOG_FILE"
+}
 
 analyticsMessage=""
 
@@ -61,6 +68,7 @@ if [ -f "$PBXPROJ_PATH" ]; then
   VERSION_NUMBER="$MARKETING_VERSION"
 else
   echo "project.pbxproj not found: $PBXPROJ_PATH"
+  post_error_message "$BRANCH_NAME"
   exit 1
 fi
 
@@ -69,6 +77,7 @@ if [ -f "$INFO_PLIST_PATH" ]; then
   /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $NEW_VERSION" "$INFO_PLIST_PATH"
 else
   echo "Info.plist not found: $INFO_PLIST_PATH"
+  post_error_message "$BRANCH_NAME"
   exit 1
 fi
 
@@ -136,6 +145,7 @@ if fastlane testflight_upload; then
 
   execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "New iOS build uploaded to TestFlight with v$VERSION_NUMBER ($NEW_VERSION) from $BRANCH_NAME" "message"
 else
+  post_error_message "$BRANCH_NAME"
   echo "Fastlane failed. Not committing changes or sending Slack message."
 fi
 
