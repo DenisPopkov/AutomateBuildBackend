@@ -88,26 +88,26 @@ mv "$APK_PATH" "$APK_ZIP_PATH"
 
 # Unzip the APK (which is a zip file) directly
 unzip -o "$APK_ZIP_PATH" -d "$PROJECT_DIR/androidApp/build/outputs/apk/release/"
-
-# Copy libraries to jniLibs
-mkdir -p "$JNI_LIBS_PATH/arm64-v8a" "$JNI_LIBS_PATH/x86_64"
-cp "$PROJECT_DIR/androidApp/build/outputs/apk/release/lib/arm64-v8a/libdspandroid.so" "$JNI_LIBS_PATH/x86_64/"
-cp "$PROJECT_DIR/androidApp/build/outputs/apk/release/lib/arm64-v8a/libdspandroid.so" "$JNI_LIBS_PATH/arm64-v8a/"
-
-# Cleanup after the build
-rm -rf "$BUILD_PATH"
-rm -rf "$RELEASE_PATH"
-
-sleep 5
-
-comment_android_dsp_gradle_task
-
-sleep 10
-
-git pull origin "$BRANCH_NAME" --no-rebase
-git add .
-git commit -m "add: update dsp lib"
-git push origin "$BRANCH_NAME"
-
-message=":white_check_mark: DSP library successfully updated on \`$BRANCH_NAME\`"
-post_message "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$message"
+#
+## Copy libraries to jniLibs
+#mkdir -p "$JNI_LIBS_PATH/arm64-v8a" "$JNI_LIBS_PATH/x86_64"
+#cp "$PROJECT_DIR/androidApp/build/outputs/apk/release/lib/arm64-v8a/libdspandroid.so" "$JNI_LIBS_PATH/x86_64/"
+#cp "$PROJECT_DIR/androidApp/build/outputs/apk/release/lib/arm64-v8a/libdspandroid.so" "$JNI_LIBS_PATH/arm64-v8a/"
+#
+## Cleanup after the build
+#rm -rf "$BUILD_PATH"
+#rm -rf "$RELEASE_PATH"
+#
+#sleep 5
+#
+#comment_android_dsp_gradle_task
+#
+#sleep 10
+#
+#git pull origin "$BRANCH_NAME" --no-rebase
+#git add .
+#git commit -m "add: update dsp lib"
+#git push origin "$BRANCH_NAME"
+#
+#message=":white_check_mark: DSP library successfully updated on \`$BRANCH_NAME\`"
+#post_message "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$message"
