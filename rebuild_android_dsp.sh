@@ -80,6 +80,8 @@ if [ ! -f "$APK_PATH" ]; then
   exit 1
 fi
 
+echo "zip path = $APK_ZIP_PATH"
+
 # Rename the APK to .zip (no zipping necessary)
 APK_ZIP_PATH="${APK_PATH%.apk}.zip"
 mv "$APK_PATH" "$APK_ZIP_PATH"
