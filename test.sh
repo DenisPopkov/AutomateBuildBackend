@@ -15,5 +15,7 @@ while IFS='=' read -r key value; do
   esac
 done < "$SECRET_FILE"
 
-message=":white_check_mark: Test message"
+message=":hammer_and_wrench: Android build started on \`d.popkov/desktop/feat/merge_win\`
+:mag_right: Analytics look on dev
+:clock2: It will be ready approximately at 13:28"
 post_message "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$message"
