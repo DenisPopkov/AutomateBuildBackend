@@ -1,9 +1,8 @@
 #!/bin/bash
 
-source "/Users/denispopkov/PycharmProjects/AutomateBuildBackend/slack_upload.sh"
-source "/Users/denispopkov/PycharmProjects/AutomateBuildBackend/utils.sh"
-
-SECRET_FILE="/Users/denispopkov/Desktop/secret.txt"
+source "./slack_upload.sh"
+source "./utils.sh"
+SECRET_FILE="/c/Users/BlackBricks/Desktop/secret.txt"
 
 while IFS='=' read -r key value; do
   key=$(echo "$key" | xargs)
@@ -15,7 +14,9 @@ while IFS='=' read -r key value; do
   esac
 done < "$SECRET_FILE"
 
-message=":hammer_and_wrench: Android build started on \`d.popkov/desktop/feat/merge_win\`
+echo "[at - $SLACK_BOT_TOKEN. $SLACK_CHANNEL"
+
+message=":hammer_and_wrench: Test msg \`d.popkov/desktop/feat/merge_win\`
 :mag_right: Analytics look on dev
 :clock2: It will be ready approximately at 13:28"
 post_message "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$message"

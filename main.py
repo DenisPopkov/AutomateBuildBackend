@@ -1,6 +1,7 @@
 import os
 import subprocess
 import sys
+from datetime import datetime
 
 from flask import Flask, jsonify, request
 
@@ -136,51 +137,100 @@ def rebuild_android_dsp():
 @app.route('/build_win', methods=['POST'])
 def build_win():
     try:
-        print("Received request to /build_win")
         data = request.json
         branch_name = data.get('branchName')
         use_dev_analytics = data.get('isUseDevAnalytics', True)
 
-        print(
-            f"Parsed data: branchName={branch_name}, isUseDevAnalytics={use_dev_analytics}")
-
         if not branch_name:
-            print("Error: Missing required parameter: branchName")
             return jsonify({"error": "Missing required parameter: branchName"}), 400
 
-        # Define the script path and flags
-        script_path = ".\\build_win.ps1"
+        print(f"\n=== Starting Windows build for branch: {branch_name} ===")
+        print(f"Using {'DEV' if use_dev_analytics else 'PROD'} analytics\n")
+
+        # Configuration
+        git_bash_path = r"C:\Program Files\Git\bin\bash.exe"
+        base_dir = r"C:\Users\BlackBricks\PycharmProjects\AutomateBuildBackend"
+        working_dir = f"/{base_dir[0].lower()}{base_dir[2:].replace('\\', '/')}"
+        script_path = f"{working_dir}/build_win.sh"
+        log_file = r"C:\Users\BlackBricks\AppData\Local\Temp\build_win_log.txt"
         use_dev_analytics_flag = "true" if use_dev_analytics else "false"
 
-        print("Changing working directory...")
-        os.chdir("C:\\Users\\BlackBricks\\PycharmProjects\\AutomateBuildBackend")
-        print("Current working directory:", os.getcwd())
+        # Create temp directory if needed
+        os.makedirs(os.path.dirname(log_file), exist_ok=True)
 
+        # Initialize log file with timestamp
+        with open(log_file, 'w') as f:
+            f.write(f"Build started at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+            f.write(f"Branch: {branch_name}\n")
+            f.write(f"Dev Analytics: {use_dev_analytics_flag}\n\n")
+
+        # Build the command
         command = [
-            "powershell", "-ExecutionPolicy", "Bypass", "-File", script_path,
-            "-BRANCH_NAME", branch_name,
-            "-USE_DEV_ANALYTICS", use_dev_analytics_flag
+            git_bash_path,
+            "-c",
+            f"cd {working_dir} && "
+            f"ERROR_LOG_FILE='/tmp/build_error_log.txt' "
+            f"./build_win.sh {branch_name} {use_dev_analytics_flag}"
         ]
 
-        print(f"Executing command: {' '.join(command)}")
+        # Run with real-time output
+        with open(log_file, 'a') as log:
+            process = subprocess.Popen(
+                command,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True,
+                bufsize=1,
+                universal_newlines=True
+            )
 
-        result = subprocess.run(command, check=True, capture_output=True, text=True)
+            # Stream output to console and log file
+            for line in process.stdout:
+                sys.stdout.write(line)
+                sys.stdout.flush()
+                log.write(line)
 
-        print(f"Script output: {result.stdout}")
-        if result.stderr:
-            print(f"Script error output: {result.stderr}")
+            process.wait()
 
+        if process.returncode != 0:
+            with open(log_file, 'r') as f:
+                log_content = f.read()
+            raise subprocess.CalledProcessError(
+                process.returncode,
+                command,
+                output=log_content
+            )
+
+        print(f"\n=== Windows build for {branch_name} completed successfully ===")
         return jsonify({
-            "message": f"Windows build for branch {branch_name} executed successfully!"
+            "status": "success",
+            "message": f"Windows build for branch {branch_name} completed",
+            "analytics": "dev" if use_dev_analytics else "prod",
+            "log_file": log_file
         }), 200
 
     except subprocess.CalledProcessError as e:
-        print(f"Subprocess failed: {e}")
-        return jsonify({"error": f"Build failed: {e}"}), 500
-    except Exception as e:
-        print(f"Unexpected error: {e}")
-        return jsonify({"error": f"Unexpected error: {str(e)}"}), 500
+        error_msg = f"Build failed with return code {e.returncode}"
+        print(f"\n!!! {error_msg} !!!")
+        print(f"Error output:\n{e.output}\n")
 
+        return jsonify({
+            "status": "error",
+            "message": error_msg,
+            "return_code": e.returncode,
+            "log_file": log_file,
+            "output": e.output
+        }), 500
+
+    except Exception as e:
+        error_msg = f"Unexpected error: {str(e)}"
+        print(f"\n!!! {error_msg} !!!")
+
+        return jsonify({
+            "status": "error",
+            "message": error_msg,
+            "log_file": log_file if 'log_file' in locals() else 'not created'
+        }), 500
 
 @app.route('/build_android', methods=['POST'])
 def build_android():
@@ -303,4 +353,4 @@ def get_remote_branches():
 
 
 if __name__ == "__main__":
-    app.run(debug=True, host='0.0.0.0', port=5001)
+    app.run(debug=True, host='0.0.0.0', port=5002)

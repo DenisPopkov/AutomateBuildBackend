@@ -1,9 +1,25 @@
 #!/bin/bash
 
-source "/Users/denispopkov/PycharmProjects/AutomateBuildBackend/slack_upload.sh"
-source "/Users/denispopkov/PycharmProjects/AutomateBuildBackend/utils.sh"
+# Load dependencies
+source "./slack_upload.sh"
+source "./utils.sh"
 
-SECRET_FILE="/Users/denispopkov/Desktop/secret.txt"
+# Parameters
+BRANCH_NAME=$1
+isUseDevAnalytics=$2
+
+# Configuration - using mixed paths that work in Git Bash
+SECRET_FILE="/c/Users/BlackBricks/Desktop/secret.txt"
+PROJECT_DIR="/c/Users/BlackBricks/StudioProjects/SA_Neuro_Multiplatform"
+NEURO_WINDOW_FILE_PATH="$PROJECT_DIR/desktopApp/src/main/kotlin/presentation/neuro_window/NeuroWindow.kt"
+NEURO_WINDOW_DSP_FILE="/c/Users/BlackBricks/Desktop/build_dsp/NeuroWindow.kt"
+NEURO_WINDOW_N0_DSP_FILE="/c/Users/BlackBricks/Desktop/no_dsp/NeuroWindow.kt"
+ERROR_LOG_FILE="${ERROR_LOG_FILE:-/tmp/build_error_log.txt}"  # Use environment variable or default
+
+# Initialize error log
+echo "Build started at $(date)" > "$ERROR_LOG_FILE"
+echo "Branch: $BRANCH_NAME" >> "$ERROR_LOG_FILE"
+echo "Dev Analytics: $isUseDevAnalytics" >> "$ERROR_LOG_FILE"
 
 while IFS='=' read -r key value; do
   key=$(echo "$key" | xargs)
@@ -12,15 +28,34 @@ while IFS='=' read -r key value; do
   case "$key" in
     "SLACK_BOT_TOKEN") SLACK_BOT_TOKEN="$value" ;;
     "SLACK_CHANNEL") SLACK_CHANNEL="$value" ;;
-    "USER_PASSWORD") USER_PASSWORD="$value" ;;
   esac
 done < "$SECRET_FILE"
 
-BRANCH_NAME=$1
-isUseDevAnalytics=$2
+post_error_message() {
+  local branch_name=$1
+  local message=":x: Failed to build MacOS on \`$branch_name\`"
+  execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$message" "upload" "$ERROR_LOG_FILE"
+}
 
 echo "Opening Android Studio..."
-open -a "Android Studio"
+"/c/Program Files/Android/Android Studio/bin/studio64.exe" &
+
+cd "$PROJECT_DIR" || { echo "Project directory not found!"; exit 1; }
+
+echo "Checking out branch: $BRANCH_NAME"
+git stash push -m "Pre-build stash"
+git fetch && git checkout "$BRANCH_NAME" && git pull origin "$BRANCH_NAME" --no-rebase
+
+# Extract version info
+VERSION_CODE=$(grep '^desktop\.build\.number\s*=' "$PROJECT_DIR/gradle.properties" | sed 's/.*=\s*\([0-9]*\)/\1/' | xargs)
+VERSION_NAME=$(grep '^desktop\.version\s*=' "$PROJECT_DIR/gradle.properties" | sed 's/.*=\s*\([0-9]*\.[0-9]*\.[0-9]*\)/\1/' | xargs)
+
+VERSION_CODE=$((VERSION_CODE + 1))
+sed -i "s/^desktop\.build\.number\s*=\s*[0-9]*$/desktop.build.number=$VERSION_CODE/" "$PROJECT_DIR/gradle.properties"
+git pull origin "$BRANCH_NAME" --no-rebase
+git add .
+git commit -m "Windows version bump to $VERSION_CODE"
+git push origin "$BRANCH_NAME"
 
 analyticsMessage=""
 
@@ -30,95 +65,55 @@ else
   analyticsMessage="prod"
 fi
 
-end_time=$(TZ=Asia/Omsk date -v+32M "+%H:%M")
-message=":hammer_and_wrench: MacOS build started on \`$BRANCH_NAME\`
+end_time=$(date -d "+15 minutes" +"%H:%M")
+message=":hammer_and_wrench: Windows build started on \`$BRANCH_NAME\`
 :mag_right: Analytics look on $analyticsMessage
 :clock2: It will be ready approximately at $end_time"
 post_message "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$message"
-
-PROJECT_DIR="/Users/denispopkov/AndroidStudioProjects/SA_Neuro_Multiplatform"
-cd "$PROJECT_DIR" || { echo "Project directory not found!"; exit 1; }
-
-echo "Checking out branch: $BRANCH_NAME"
-git stash push -m "Pre-build stash"
-git fetch && git checkout "$BRANCH_NAME" && git pull origin "$BRANCH_NAME" --no-rebase
-
-VERSION_CODE=$(grep '^desktop\.build\.number\s*=' "$PROJECT_DIR/gradle.properties" | sed 's/.*=\s*\([0-9]*\)/\1/' | xargs)
-VERSION_NAME=$(grep '^desktop\.version\s*=' "$PROJECT_DIR/gradle.properties" | sed 's/.*=\s*\([0-9]*\.[0-9]*\.[0-9]*\)/\1/' | xargs)
-
-VERSION_CODE=$((VERSION_CODE + 1))
-sed -i '' "s/^desktop\.build\.number\s*=\s*[0-9]*$/desktop.build.number=$VERSION_CODE/" "$PROJECT_DIR/gradle.properties"
-git pull origin "$BRANCH_NAME" --no-rebase
-git add .
-git commit -m "macOS version bump to $VERSION_CODE"
-git push origin "$BRANCH_NAME"
-
-BUILD_PATH="$PROJECT_DIR/desktopApp/build"
 
 if [ "$isUseDevAnalytics" == "false" ]; then
   enable_prod_keys
 
   sleep 5
 
-  osascript -e '
-    tell application "System Events"
-      tell process "Android Studio"
-        keystroke "O" using {command down, shift down}
-      end tell
-    end tell
-  '
+  powershell.exe -command "[System.Windows.Forms.SendKeys]::SendWait('^+O')"
 
   sleep 80
-  else
-    echo "Nothing to change with analytics"
+else
+  echo "Nothing to change with analytics"
 fi
 
-# Building
-echo "Building signed build..."
-./gradlew packageDmg
+# Replace NeuroWindow.kt before building
+rm -f "$NEURO_WINDOW_FILE_PATH"
+cp "$NEURO_WINDOW_N0_DSP_FILE" "$NEURO_WINDOW_FILE_PATH"
 
-# Find the build
-BUILD_PATH="$PROJECT_DIR/desktopApp/build/compose/binaries/main/app/Neuro Desktop.app"
+echo "Building MSI package..."
+./gradlew packageReleaseMsi
 
-if [ ! -d "$BUILD_PATH" ]; then
-  echo "Error: Signed Build not found at expected path: $BUILD_PATH"
+# Restore original NeuroWindow.kt
+rm -f "$NEURO_WINDOW_FILE_PATH"
+cp "$NEURO_WINDOW_DSP_FILE" "$NEURO_WINDOW_FILE_PATH"
+
+# Handle build output
+DESKTOP_BUILD_PATH="$PROJECT_DIR/desktopApp/build/compose/binaries/main-release/msi"
+FINAL_MSI_PATH="$DESKTOP_BUILD_PATH/Neuro Desktop-$VERSION_NAME.msi"
+NEW_MSI_PATH="$DESKTOP_BUILD_PATH/Neuro_Desktop-$VERSION_NAME-$VERSION_CODE.msi"
+
+if [ -f "$FINAL_MSI_PATH" ]; then
+  if [ -f "$NEW_MSI_PATH" ]; then
+    rm -f "$NEW_MSI_PATH"
+    echo "Deleted existing file: $NEW_MSI_PATH"
+  fi
+
+  mv "$FINAL_MSI_PATH" "$NEW_MSI_PATH"
+  echo "Renamed file to: $NEW_MSI_PATH"
+else
+  echo "Error: Build file not found at $FINAL_MSI_PATH"
+  post_error_message "$BRANCH_NAME"
   exit 1
 fi
 
-echo "Built successfully: $BUILD_PATH"
+sleep 20
 
-## Signing the .pkg
-SIGNED_PKG_PATH="/Users/denispopkov/AndroidStudioProjects/SA_Neuro_release/build/Neuro_desktopS.pkg"
-echo "Signing the .pkg file..."
-echo "$USER_PASSWORD" | sudo -S productsign --sign "Developer ID Installer: Source Audio LLC (Z2JAQC4DXV)" "$NOTARIZED_BUILD_PATH" "$SIGNED_PKG_PATH"
-
-# Rename signed .pkg to final format in-place
-BUILD_DIR="/Users/denispopkov/AndroidStudioProjects/SA_Neuro_release/build"
-BASE_NAME="neuro_desktop_${VERSION_NAME}-[${VERSION_CODE}]_installer_mac.pkg"
-NEW_PKG_PATH="$BUILD_DIR/$BASE_NAME"
-
-# Check for existing files and find unique name
-INDEX=1
-while [ -f "$NEW_PKG_PATH" ]; do
-    NEW_PKG_PATH="$BUILD_DIR/neuro_desktop_${VERSION_NAME}-[${VERSION_CODE}]_installer_mac_${INDEX}.pkg"
-    INDEX=$((INDEX + 1))
-done
-
-mv "$SIGNED_PKG_PATH" "$NEW_PKG_PATH" || { echo "Error renaming .pkg"; exit 1; }
-echo "Final package path: $NEW_PKG_PATH"
-
-echo "Uploading renamed .pkg to Slack..."
-execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "macOS signed from $BRANCH_NAME" "upload" "${NEW_PKG_PATH}"
-
-sleep 10
-
-undo_enable_prod_keys
-
-sleep 5
-
-echo "PKG sent to Slack successfully."
-git pull origin "$BRANCH_NAME" --no-rebase
-git add .
-git commit -m "Update hardcoded libs"
-git push origin "$BRANCH_NAME"
-
+echo "Uploading MSI to Slack..."
+execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "Windows from $BRANCH_NAME" "upload" "${NEW_MSI_PATH}"
