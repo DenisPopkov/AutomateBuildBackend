@@ -26,6 +26,12 @@ done < "$SECRET_FILE"
 BRANCH_NAME=$1
 isUseDevAnalytics=$2
 
+post_error_message() {
+  local branch_name=$1
+  local message=":x: Failed to build Android on \`$branch_name\`"
+  execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$message" "upload" "$ERROR_LOG_FILE"
+}
+
 open -a "Android Studio"
 
 analyticsMessage=""
@@ -95,6 +101,7 @@ if [ "$isUseDevAnalytics" == "false" ]; then
   AAB_PATH="$PROJECT_DIR/androidApp/build/outputs/bundle/release/androidApp-release.aab"
 
   if [ ! -f "$AAB_PATH" ]; then
+    post_error_message "$BRANCH_NAME"
     echo "Error: Signed AAB not found at expected path: $AAB_PATH"
     exit 1
   fi
@@ -131,6 +138,7 @@ if [ "$isUseDevAnalytics" == "false" ]; then
     git push origin "$BRANCH_NAME"
   else
     echo "Error sending AAB to Slack."
+    post_error_message "$BRANCH_NAME"
     exit 1
   fi
 
@@ -147,6 +155,7 @@ else
   APK_PATH="$PROJECT_DIR/androidApp/build/outputs/apk/release/androidApp-release.apk"
 
   if [ ! -f "$APK_PATH" ]; then
+    post_error_message "$BRANCH_NAME"
     echo "Error: Signed APK not found at expected path: $APK_PATH"
     exit 1
   fi
@@ -181,6 +190,7 @@ else
     git push origin "$BRANCH_NAME"
   else
     echo "Error sending APK to Slack."
+    post_error_message "$BRANCH_NAME"
     exit 1
   fi
 fi
