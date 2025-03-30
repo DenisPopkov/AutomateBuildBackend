@@ -101,13 +101,13 @@ comment_android_dsp_gradle_task() {
 }
 
 enable_windows_decorations() {
-    sed -i '' -e '/undecorated = DesktopPlatform.Current/s/!=/==/g' "$NEURO_WINDOW_KT"
-    sed -i '' -e '/transparent = DesktopPlatform.Current/s/!=/==/g' "$NEURO_WINDOW_KT"
-    echo "Windows decorations enabled (undecorated and transparent on Windows)."
-}
-
-disable_windows_decorations() {
     sed -i '' -e '/undecorated = DesktopPlatform.Current/s/==/!=/g' "$NEURO_WINDOW_KT"
     sed -i '' -e '/transparent = DesktopPlatform.Current/s/==/!=/g' "$NEURO_WINDOW_KT"
     echo "Windows decorations disabled (undecorated and transparent on non-Windows)."
+}
+
+disable_windows_decorations() {
+    sed -i '' -e '/undecorated = DesktopPlatform.Current/s/!=/==/g' "$NEURO_WINDOW_KT"
+    sed -i '' -e '/transparent = DesktopPlatform.Current/s/!=/==/g' "$NEURO_WINDOW_KT"
+    echo "Windows decorations enabled (undecorated and transparent on Windows)."
 }
