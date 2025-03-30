@@ -3,7 +3,6 @@
 source "./slack_upload.sh"
 source "./utils.sh"
 
-# Parameters
 BRANCH_NAME=$1
 isUseDevAnalytics=$2
 
