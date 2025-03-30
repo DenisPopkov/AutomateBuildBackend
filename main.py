@@ -21,20 +21,17 @@ def build_mac():
         log_file = "/tmp/build_error_log.txt"
         use_dev_analytics_flag = "true" if use_dev_analytics else "false"
 
-        # Clear any previous log file
         with open(log_file, "w"):
             pass
 
-        # Open the log file and execute the script
         with open(log_file, "w") as log:
             process = subprocess.Popen(
                 ["sh", script_path, branch_name, use_dev_analytics_flag],
                 stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,  # Capture stderr as well
+                stderr=subprocess.PIPE,
                 text=True
             )
 
-            # Read output and error streams
             for line in process.stdout:
                 sys.stdout.write(line)
                 sys.stdout.flush()
@@ -47,7 +44,6 @@ def build_mac():
 
             process.wait()
 
-            # Check for any errors in the process
             if process.returncode != 0:
                 post_error_message(branch_name, secret_config)
                 raise subprocess.CalledProcessError(process.returncode, script_path, output=line)
@@ -74,20 +70,17 @@ def rebuild_dsp():
         script_path = "./rebuild_dsp.sh"
         log_file = "/tmp/build_error_log.txt"
 
-        # Clear any previous log file
         with open(log_file, "w"):
             pass
 
-        # Open the log file and execute the script
         with open(log_file, "w") as log:
             process = subprocess.Popen(
                 ["sh", script_path, branch_name],
                 stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,  # Capture stderr as well
+                stderr=subprocess.PIPE,
                 text=True
             )
 
-            # Read and log both stdout and stderr streams
             for line in process.stdout:
                 sys.stdout.write(line)
                 sys.stdout.flush()
@@ -100,7 +93,6 @@ def rebuild_dsp():
 
             process.wait()
 
-            # Check if the script execution was successful
             if process.returncode != 0:
                 post_error_message(branch_name, secret_config)
                 raise subprocess.CalledProcessError(process.returncode, script_path)
@@ -127,20 +119,17 @@ def rebuild_android_dsp():
         script_path = "./rebuild_android_dsp.sh"
         log_file = "/tmp/build_error_log.txt"
 
-        # Clear any previous log file
         with open(log_file, "w"):
             pass
 
-        # Open the log file and execute the script
         with open(log_file, "w") as log:
             process = subprocess.Popen(
                 ["sh", script_path, branch_name],
                 stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,  # Capture stderr as well
+                stderr=subprocess.PIPE,
                 text=True
             )
 
-            # Read and log both stdout and stderr streams
             for line in process.stdout:
                 sys.stdout.write(line)
                 sys.stdout.flush()
@@ -153,8 +142,8 @@ def rebuild_android_dsp():
 
             process.wait()
 
-            # Check if the script execution was successful
             if process.returncode != 0:
+                print("error occurred")
                 post_error_message(branch_name, secret_config)
                 raise subprocess.CalledProcessError(process.returncode, script_path)
 
@@ -188,23 +177,20 @@ def build_win():
 
         os.chdir("C:\\Users\\BlackBricks\\PycharmProjects\\AutomateBuildBackend")
 
-        # Construct PowerShell command
         command = [
             "powershell", "-ExecutionPolicy", "Bypass", "-File", script_path,
             "-BRANCH_NAME", branch_name,
             "-USE_DEV_ANALYTICS", use_dev_analytics_flag
         ]
 
-        # Capture logs and errors using subprocess
         with open(log_file, "w") as log:
             process = subprocess.Popen(
-                command,  # Running PowerShell script
+                command,
                 stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,  # Capture both stdout and stderr
+                stderr=subprocess.PIPE,
                 text=True
             )
 
-            # Capture and write stdout and stderr to both console and log file
             for line in process.stdout:
                 sys.stdout.write(line)
                 sys.stdout.flush()
@@ -217,7 +203,6 @@ def build_win():
 
             process.wait()
 
-        # If the process fails (non-zero exit code), send error message
         if process.returncode != 0:
             post_error_message(branch_name, secret_config)
             raise subprocess.CalledProcessError(process.returncode, script_path)
@@ -248,24 +233,20 @@ def build_android():
         script_path = "./build_android.sh"
         log_file = "/tmp/build_error_log.txt"
 
-        # Set the flags based on the 'use_dev_analytics' parameter
         is_bundle_to_build_flag = "false" if use_dev_analytics else "true"
         use_dev_analytics_flag = "true" if use_dev_analytics else "false"
 
-        # Clear any previous log file
         with open(log_file, "w"):
             pass
 
-        # Open log file and execute the script
         with open(log_file, "w") as log:
             process = subprocess.Popen(
                 ["sh", script_path, branch_name, is_bundle_to_build_flag, use_dev_analytics_flag],
                 stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,  # Capture stderr explicitly
+                stderr=subprocess.PIPE,
                 text=True
             )
 
-            # Capture and log both stdout and stderr
             for line in process.stdout:
                 sys.stdout.write(line)
                 sys.stdout.flush()
@@ -278,7 +259,6 @@ def build_android():
 
             process.wait()
 
-        # Check for any errors in the process return code
         if process.returncode != 0:
             post_error_message(branch_name, secret_config)
             raise subprocess.CalledProcessError(process.returncode, script_path)
@@ -388,6 +368,7 @@ def read_secret_file(secret_file_path):
             for line in secret_file:
                 key, value = line.strip().split('=', 1)
                 config[key.strip()] = value.strip()
+                print(f"value: ${value.strip()}")
     except Exception as e:
         print(f"Error reading secret file: {e}")
     return config
@@ -398,6 +379,8 @@ def post_error_message(branch_name, secret_config):
         SLACK_BOT_TOKEN = secret_config.get("SLACK_BOT_TOKEN")
         SLACK_CHANNEL = secret_config.get("SLACK_CHANNEL")
         ERROR_LOG_FILE = "/tmp/build_error_log.txt"
+
+        print(f"token: ${SLACK_BOT_TOKEN}")
 
         message = f":x: Failed to update DSP library on `{branch_name}`"
 
