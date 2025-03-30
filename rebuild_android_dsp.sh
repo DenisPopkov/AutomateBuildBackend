@@ -82,32 +82,39 @@ fi
 
 echo "zip path = $APK_ZIP_PATH"
 
+if [ ! -f "$APK_PATH" ]; then
+  post_error_message "$BRANCH_NAME"
+  echo "Error: APK not found"
+  exit 1
+fi
+
 # Rename the APK to .zip (no zipping necessary)
 APK_ZIP_PATH="${APK_PATH%.apk}.zip"
 mv "$APK_PATH" "$APK_ZIP_PATH"
 
-# Unzip the APK (which is a zip file) directly
-unzip -o "$APK_ZIP_PATH" -d "$PROJECT_DIR/androidApp/build/outputs/apk/release/"
-#
-## Copy libraries to jniLibs
-#mkdir -p "$JNI_LIBS_PATH/arm64-v8a" "$JNI_LIBS_PATH/x86_64"
-#cp "$PROJECT_DIR/androidApp/build/outputs/apk/release/lib/arm64-v8a/libdspandroid.so" "$JNI_LIBS_PATH/x86_64/"
-#cp "$PROJECT_DIR/androidApp/build/outputs/apk/release/lib/arm64-v8a/libdspandroid.so" "$JNI_LIBS_PATH/arm64-v8a/"
-#
-## Cleanup after the build
-#rm -rf "$BUILD_PATH"
-#rm -rf "$RELEASE_PATH"
-#
-#sleep 5
-#
-#comment_android_dsp_gradle_task
-#
-#sleep 10
-#
-#git pull origin "$BRANCH_NAME" --no-rebase
-#git add .
-#git commit -m "add: update dsp lib"
-#git push origin "$BRANCH_NAME"
-#
-#message=":white_check_mark: DSP library successfully updated on \`$BRANCH_NAME\`"
-#post_message "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$message"
+# Unzip the APK into a dedicated androidApp-release folder
+UNZIP_DIR="$PROJECT_DIR/androidApp/build/outputs/apk/release/androidApp-release"
+unzip -o "$APK_ZIP_PATH" -d "$UNZIP_DIR"
+
+# Copy libraries to jniLibs from the unzipped directory
+mkdir -p "$JNI_LIBS_PATH/arm64-v8a" "$JNI_LIBS_PATH/x86_64"
+cp "$UNZIP_DIR/lib/arm64-v8a/libdspandroid.so" "$JNI_LIBS_PATH/arm64-v8a/"
+cp "$UNZIP_DIR/lib/x86_64/libdspandroid.so" "$JNI_LIBS_PATH/x86_64/"
+
+# Cleanup after the build
+rm -rf "$BUILD_PATH"
+rm -rf "$RELEASE_PATH"
+
+sleep 5
+
+comment_android_dsp_gradle_task
+
+sleep 10
+
+git pull origin "$BRANCH_NAME" --no-rebase
+git add .
+git commit -m "add: update dsp lib"
+git push origin "$BRANCH_NAME"
+
+message=":white_check_mark: DSP library successfully updated on \`$BRANCH_NAME\`"
+post_message "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$message"
