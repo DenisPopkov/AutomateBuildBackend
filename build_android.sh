@@ -36,6 +36,8 @@ open -a "Android Studio"
 
 analyticsMessage=""
 
+echo "anal = $isUseDevAnalytics"
+
 if [ "$isUseDevAnalytics" == "true" ]; then
   analyticsMessage="dev"
 else

@@ -194,7 +194,6 @@ def build_android():
 
         script_path = "./build_android.sh"
         log_file = "/tmp/build_error_log.txt"
-        is_bundle_to_build_flag = "true" if not use_dev_analytics else "false"
         use_dev_analytics_flag = "true" if use_dev_analytics else "false"
 
         with open(log_file, "w"):
@@ -202,7 +201,7 @@ def build_android():
 
         with open(log_file, "w") as log:
             process = subprocess.Popen(
-                ["sh", script_path, branch_name, is_bundle_to_build_flag, use_dev_analytics_flag],
+                ["sh", script_path, branch_name, use_dev_analytics_flag],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
                 text=True

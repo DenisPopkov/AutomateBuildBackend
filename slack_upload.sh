@@ -125,10 +125,11 @@ function post_message() {
     local channel_id=$2
     local initial_comment=$3
 
+    # Properly escape newlines and control characters in the text
     local json_payload=$(jq -n \
         --arg channel "$channel_id" \
         --arg text "$initial_comment" \
-        '{channel: $channel, text: $text}')
+        '{channel: $channel, text: ($text | gsub("\n"; "\\n"))}')
 
     local response=$(curl -s -X POST \
         -H "Authorization: Bearer ${slack_token}" \
