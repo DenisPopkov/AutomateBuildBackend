@@ -39,15 +39,6 @@ echo "Checking out branch: $BRANCH_NAME"
 git stash push -m "Pre-build stash"
 git fetch && git checkout "$BRANCH_NAME" && git pull origin "$BRANCH_NAME" --no-rebase
 
-ANDROID_BUILD_FILE="$PROJECT_DIR/androidApp/build.gradle.kts"
-
-rm -f "$ALL_BUILD_FILE"
-cp "$ANDROID_BUILD_FILE" "$ALL_BUILD_FILE"
-
-echo "Replacing $ANDROID_BUILD_FILE with $ARM_BUILD_FILE"
-rm -f "$ANDROID_BUILD_FILE"
-cp "$ARM_BUILD_FILE" "$ANDROID_BUILD_FILE"
-
 JNI_LIBS_PATH="$PROJECT_DIR/androidApp/src/main/jniLibs"
 BUILD_PATH="$PROJECT_DIR/androidApp/build"
 RELEASE_PATH="$PROJECT_DIR/androidApp/release"
@@ -55,6 +46,10 @@ RELEASE_PATH="$PROJECT_DIR/androidApp/release"
 rm -rf "$JNI_LIBS_PATH"
 rm -rf "$BUILD_PATH"
 rm -rf "$RELEASE_PATH"
+
+uncomment_android_dsp_gradle_task
+
+sleep 5
 
 ./gradlew assembleRelease \
   -Pandroid.injected.signing.store.file="$KEYFILE" \
@@ -82,3 +77,15 @@ cp "$PROJECT_DIR/androidApp/build/outputs/apk/release/lib/arm64-v8a/libdspandroi
 
 rm -rf "$BUILD_PATH"
 rm -rf "$RELEASE_PATH"
+
+comment_android_dsp_gradle_task
+
+sleep 5
+
+git pull origin "$BRANCH_NAME" --no-rebase
+git add .
+git commit -m "add: update dsp lib"
+git push origin "$BRANCH_NAME"
+
+message=":white_check_mark: DSP library successfully updated on \`$BRANCH_NAME\`"
+execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$message" "upload" "${SET_UPDATED_LIB_PATH}"
