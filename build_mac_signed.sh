@@ -226,14 +226,6 @@ sleep 10
 
 undo_enable_prod_keys
 
-sleep 5
-
-echo "PKG sent to Slack successfully."
-git pull origin "$BRANCH_NAME" --no-rebase
-git add .
-git commit -m "Update hardcoded libs"
-git push origin "$BRANCH_NAME"
-
 if [ $? -eq 0 ]; then
     echo "Renamed .pkg sent to Slack successfully."
 else

@@ -182,16 +182,4 @@ else
   execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "Android APK from $BRANCH_NAME" "upload" "${FILE_PATH}"
 
   undo_enable_prod_keys
-
-  if [ $? -eq 0 ]; then
-    echo "APK sent to Slack successfully."
-    git pull origin "$BRANCH_NAME" --no-rebase
-    git add .
-    git commit -m "Update hardcoded libs"
-    git push origin "$BRANCH_NAME"
-  else
-    echo "Error sending APK to Slack."
-    post_error_message "$BRANCH_NAME"
-    exit 1
-  fi
 fi
