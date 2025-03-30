@@ -3,7 +3,6 @@
 FILE="/Users/denispopkov/AndroidStudioProjects/SA_Neuro_Multiplatform/desktopApp/build.gradle.kts"
 SHARED_GRADLE="/Users/denispopkov/AndroidStudioProjects/SA_Neuro_Multiplatform/shared/build.gradle.kts"
 ANDROID_GRADLE="/Users/denispopkov/AndroidStudioProjects/SA_Neuro_Multiplatform/androidApp/build.gradle.kts"
-NEURO_WINDOW_KT="/Users/BlackBricks/StudioProjects/SA_Neuro_Multiplatform/desktopApp/src/main/kotlin/presentation/neuro_window/NeuroWindow.kt"
 SECRET_FILE="/Users/denispopkov/Desktop/secret.txt"
 
 while IFS='=' read -r key value; do
@@ -98,16 +97,4 @@ comment_android_dsp_gradle_task() {
   }' "$ANDROID_GRADLE"
 
   echo "Android DSP Gradle tasks commented"
-}
-
-enable_windows_decorations() {
-    sed -i '' -e '/undecorated = DesktopPlatform.Current/s/!=/==/g' "$NEURO_WINDOW_KT"
-    sed -i '' -e '/transparent = DesktopPlatform.Current/s/!=/==/g' "$NEURO_WINDOW_KT"
-    echo "Windows decorations enabled (undecorated and transparent on Windows)."
-}
-
-disable_windows_decorations() {
-    sed -i '' -e '/undecorated = DesktopPlatform.Current/s/==/!=/g' "$NEURO_WINDOW_KT"
-    sed -i '' -e '/transparent = DesktopPlatform.Current/s/==/!=/g' "$NEURO_WINDOW_KT"
-    echo "Windows decorations disabled (undecorated and transparent on non-Windows)."
 }

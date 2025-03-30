@@ -8,7 +8,20 @@ isUseDevAnalytics=$2
 
 SECRET_FILE="/c/Users/BlackBricks/Desktop/secret.txt"
 PROJECT_DIR="/c/Users/BlackBricks/StudioProjects/SA_Neuro_Multiplatform"
+NEURO_WINDOW_KT="$PROJECT_DIR/desktopApp/src/main/kotlin/presentation/neuro_window/NeuroWindow.kt"
 ERROR_LOG_FILE="${ERROR_LOG_FILE:-/tmp/build_error_log.txt}"
+
+enable_windows_decorations() {
+    sed -i '' -e '/undecorated = DesktopPlatform.Current/s/!=/==/g' "$NEURO_WINDOW_KT"
+    sed -i '' -e '/transparent = DesktopPlatform.Current/s/!=/==/g' "$NEURO_WINDOW_KT"
+    echo "Windows decorations enabled (undecorated and transparent on Windows)."
+}
+
+disable_windows_decorations() {
+    sed -i '' -e '/undecorated = DesktopPlatform.Current/s/==/!=/g' "$NEURO_WINDOW_KT"
+    sed -i '' -e '/transparent = DesktopPlatform.Current/s/==/!=/g' "$NEURO_WINDOW_KT"
+    echo "Windows decorations disabled (undecorated and transparent on non-Windows)."
+}
 
 while IFS='=' read -r key value; do
   key=$(echo "$key" | xargs)
@@ -35,16 +48,16 @@ echo "Checking out branch: $BRANCH_NAME"
 git stash push -m "Pre-build stash"
 git fetch && git checkout "$BRANCH_NAME" && git pull origin "$BRANCH_NAME" --no-rebase
 
-# Extract version info
-VERSION_CODE=$(grep '^desktop\.build\.number\s*=' "$PROJECT_DIR/gradle.properties" | sed 's/.*=\s*\([0-9]*\)/\1/' | xargs)
-VERSION_NAME=$(grep '^desktop\.version\s*=' "$PROJECT_DIR/gradle.properties" | sed 's/.*=\s*\([0-9]*\.[0-9]*\.[0-9]*\)/\1/' | xargs)
-
-VERSION_CODE=$((VERSION_CODE + 1))
-sed -i "s/^desktop\.build\.number\s*=\s*[0-9]*$/desktop.build.number=$VERSION_CODE/" "$PROJECT_DIR/gradle.properties"
-git pull origin "$BRANCH_NAME" --no-rebase
-git add .
-git commit -m "Windows version bump to $VERSION_CODE"
-git push origin "$BRANCH_NAME"
+## Extract version info
+#VERSION_CODE=$(grep '^desktop\.build\.number\s*=' "$PROJECT_DIR/gradle.properties" | sed 's/.*=\s*\([0-9]*\)/\1/' | xargs)
+#VERSION_NAME=$(grep '^desktop\.version\s*=' "$PROJECT_DIR/gradle.properties" | sed 's/.*=\s*\([0-9]*\.[0-9]*\.[0-9]*\)/\1/' | xargs)
+#
+#VERSION_CODE=$((VERSION_CODE + 1))
+#sed -i "s/^desktop\.build\.number\s*=\s*[0-9]*$/desktop.build.number=$VERSION_CODE/" "$PROJECT_DIR/gradle.properties"
+#git pull origin "$BRANCH_NAME" --no-rebase
+#git add .
+#git commit -m "Windows version bump to $VERSION_CODE"
+#git push origin "$BRANCH_NAME"
 
 analyticsMessage=""
 
