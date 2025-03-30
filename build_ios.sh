@@ -34,7 +34,7 @@ isUseDevAnalytics=$2
 
 post_error_message() {
   local branch_name=$1
-  local message=":x: Failed to build Android on \`$branch_name\`"
+  local message=":x: Failed to build iOS on \`$branch_name\`"
   execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$message" "upload" "$ERROR_LOG_FILE"
 }
 
