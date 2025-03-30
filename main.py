@@ -106,7 +106,8 @@ def rebuild_android_dsp():
                 ["sh", script_path, branch_name],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
-                text=True
+                text=True,
+                errors="replace"
             )
 
             for line in process.stdout:
@@ -117,14 +118,17 @@ def rebuild_android_dsp():
             process.wait()
 
         if process.returncode != 0:
-            raise subprocess.CalledProcessError(process.returncode, script_path)
+            with open(log_file, "r") as log:
+                error_logs = log.read()
+            return jsonify({
+                "error": "Build script failed. Check Slack for full logs.",
+                "logs": error_logs[-500:]  # Return last 500 chars of logs for debugging
+            }), 500
 
         return jsonify({
             "message": f"macOS build for branch {branch_name} signing executed successfully!"
         }), 200
 
-    except subprocess.CalledProcessError:
-        return jsonify({"error": "Build script failed. Check Slack for full logs."}), 500
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 

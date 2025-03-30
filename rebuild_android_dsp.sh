@@ -58,6 +58,7 @@ sleep 5
   -Pandroid.injected.signing.key.password="$KEY_PASSWORD"
 
 APK_PATH="$PROJECT_DIR/androidApp/build/outputs/apk/release/androidApp-release.apk"
+echo "path to APK = $APK_PATH"
 
 if [ ! -f "$APK_PATH" ]; then
   post_error_message "$BRANCH_NAME"
@@ -67,7 +68,12 @@ fi
 
 APK_ZIP_PATH="${APK_PATH%.apk}.zip"
 mv "$APK_PATH" "$APK_ZIP_PATH"
-unzip -q "$APK_ZIP_PATH" -d "${APK_ZIP_PATH%.zip}"
+
+if ! unzip -o "$APK_ZIP_PATH" -d "$PROJECT_DIR/androidApp/build/outputs/apk/release/"; then
+  echo "Error: Failed to unzip APK" >> "$ERROR_LOG_FILE"
+  post_error_message "$BRANCH_NAME"
+  exit 1
+fi
 
 mkdir -p "$JNI_LIBS_PATH/arm64-v8a" "$JNI_LIBS_PATH/x86_64"
 cp "$PROJECT_DIR/androidApp/build/outputs/apk/release/lib/arm64-v8a/libdspandroid.so" "$JNI_LIBS_PATH/x86_64/"
