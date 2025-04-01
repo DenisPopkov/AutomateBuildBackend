@@ -9,8 +9,8 @@ isUseDevAnalytics=$2
 SECRET_FILE="/c/Users/BlackBricks/Desktop/secret.txt"
 PROJECT_DIR="/c/Users/BlackBricks/StudioProjects/SA_Neuro_Multiplatform"
 NEURO_WINDOW_KT="$PROJECT_DIR/desktopApp/src/main/kotlin/presentation/neuro_window/NeuroWindow.kt"
-SET_UPDATED_LIB_PATH="$PROJECT_DIR/shared/src/commonMain/resources/MR/files/libdspmac.dylib"
-CACHE_UPDATED_LIB_PATH="$PROJECT_DIR/desktopApp/build/native/libdspmac.dylib"
+SET_UPDATED_LIB_PATH="$PROJECT_DIR/shared/src/commonMain/resources/MR/files/libs/dspmac.dll"
+CACHE_UPDATED_LIB_PATH="$PROJECT_DIR/desktopApp/resources/common/dsp/Debug/dspmac.dll"
 ERROR_LOG_FILE="${ERROR_LOG_FILE:-/tmp/build_error_log.txt}"
 
 enable_windows_decorations() {

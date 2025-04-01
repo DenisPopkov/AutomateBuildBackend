@@ -1,22 +1,8 @@
 #!/bin/bash
 
-source "./slack_upload.sh"
-source "./utils.sh"
-SECRET_FILE="/c/Users/BlackBricks/Desktop/secret.txt"
+echo "Opening Android Studio..."
+"/c/Program Files/Android/Android Studio/bin/studio64.exe" &
 
-while IFS='=' read -r key value; do
-  key=$(echo "$key" | xargs)
-  value=$(echo "$value" | xargs)
+cd "$PROJECT_DIR" || { echo "Project directory not found!"; exit 1; }
 
-  case "$key" in
-    "SLACK_BOT_TOKEN") SLACK_BOT_TOKEN="$value" ;;
-    "SLACK_CHANNEL") SLACK_CHANNEL="$value" ;;
-  esac
-done < "$SECRET_FILE"
-
-echo "[at - $SLACK_BOT_TOKEN. $SLACK_CHANNEL"
-
-message=":hammer_and_wrench: Test msg \`d.popkov/desktop/feat/merge_win\`
-:mag_right: Analytics look on dev
-:clock2: It will be ready approximately at 13:28"
-post_message "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$message"
+echo CreateObject("WScript.Shell").SendKeys "^(+O" > sendkeys.vbs & cscript //nologo sendkeys.vbs & del sendkeys.vbs
