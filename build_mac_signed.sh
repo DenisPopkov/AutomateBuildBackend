@@ -5,6 +5,9 @@ source "/Users/denispopkov/PycharmProjects/AutomateBuildBackend/utils.sh"
 
 SECRET_FILE="/Users/denispopkov/Desktop/secret.txt"
 BUILD_TOOL="/Users/denispopkov/AndroidStudioProjects/SA_Neuro_release/Neuro_desktop.pkgproj"
+SET_UPDATED_LIB_PATH="$PROJECT_DIR/shared/src/commonMain/resources/MR/files/libdspmac.dylib"
+CACHE_UPDATED_LIB_PATH="$PROJECT_DIR/desktopApp/build/native/libdspmac.dylib"
+BUILD_PATH="$PROJECT_DIR/desktopApp/build"
 ERROR_LOG_FILE="/tmp/build_error_log.txt"
 
 while IFS='=' read -r key value; do
@@ -64,7 +67,42 @@ git add .
 git commit -m "macOS version bump to $VERSION_CODE"
 git push origin "$BRANCH_NAME"
 
-BUILD_PATH="$PROJECT_DIR/desktopApp/build"
+enable_dsp_gradle_task
+
+sleep 5
+
+osascript -e '
+  tell application "System Events"
+    tell process "Android Studio"
+        keystroke "O" using {command down, shift down}
+    end tell
+  end tell
+'
+
+sleep 80
+
+if ! ./gradlew compileKotlin --stacktrace --info; then
+  echo "Error: Gradle build failed"
+  post_error_message "$BRANCH_NAME"
+  disable_dsp_gradle_task
+  exit 1
+fi
+
+sleep 5
+
+disable_dsp_gradle_task
+
+rm -f "$SET_UPDATED_LIB_PATH"
+cp "$CACHE_UPDATED_LIB_PATH" "$SET_UPDATED_LIB_PATH"
+
+sleep 10
+
+git pull origin "$BRANCH_NAME" --no-rebase
+git add .
+git commit -m "add: update MacOS DSP lib"
+git push origin "$BRANCH_NAME"
+
+sleep 10
 
 if [ "$isUseDevAnalytics" == "false" ]; then
   enable_prod_keys
