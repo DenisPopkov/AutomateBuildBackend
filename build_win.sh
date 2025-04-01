@@ -76,7 +76,13 @@ message=":hammer_and_wrench: Windows build started on \`$BRANCH_NAME\`
 post_message "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$message"
 
 enable_dsp_gradle_task
-powershell.exe -command "[System.Windows.Forms.SendKeys]::SendWait('^+O')"
+
+sleep 5
+
+powershell -command "\
+Add-Type -AssemblyName System.Windows.Forms; \
+[System.Windows.Forms.SendKeys]::SendWait('^(+o)'); \
+Start-Sleep -Milliseconds 100"
 
 sleep 80
 
@@ -108,7 +114,10 @@ if [ "$isUseDevAnalytics" == "false" ]; then
 
   sleep 5
 
-  powershell.exe -command "[System.Windows.Forms.SendKeys]::SendWait('^+O')"
+  powershell -command "\
+  Add-Type -AssemblyName System.Windows.Forms; \
+  [System.Windows.Forms.SendKeys]::SendWait('^(+o)'); \
+  Start-Sleep -Milliseconds 100"
 
   sleep 80
 else
