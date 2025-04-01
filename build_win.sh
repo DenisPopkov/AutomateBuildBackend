@@ -9,6 +9,8 @@ isUseDevAnalytics=$2
 SECRET_FILE="/c/Users/BlackBricks/Desktop/secret.txt"
 PROJECT_DIR="/c/Users/BlackBricks/StudioProjects/SA_Neuro_Multiplatform"
 NEURO_WINDOW_KT="$PROJECT_DIR/desktopApp/src/main/kotlin/presentation/neuro_window/NeuroWindow.kt"
+SET_UPDATED_LIB_PATH="$PROJECT_DIR/shared/src/commonMain/resources/MR/files/libdspmac.dylib"
+CACHE_UPDATED_LIB_PATH="$PROJECT_DIR/desktopApp/build/native/libdspmac.dylib"
 ERROR_LOG_FILE="${ERROR_LOG_FILE:-/tmp/build_error_log.txt}"
 
 enable_windows_decorations() {
@@ -72,6 +74,34 @@ message=":hammer_and_wrench: Windows build started on \`$BRANCH_NAME\`
 :mag_right: Analytics look on $analyticsMessage
 :clock2: It will be ready approximately at $end_time"
 post_message "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$message"
+
+enable_dsp_gradle_task
+powershell.exe -command "[System.Windows.Forms.SendKeys]::SendWait('^+O')"
+
+sleep 80
+
+if ! ./gradlew compileKotlin --stacktrace --info; then
+  echo "Error: Gradle build failed"
+  post_error_message "$BRANCH_NAME"
+  disable_dsp_gradle_task
+  exit 1
+fi
+
+sleep 5
+
+disable_dsp_gradle_task
+
+rm -f "$SET_UPDATED_LIB_PATH"
+cp "$CACHE_UPDATED_LIB_PATH" "$SET_UPDATED_LIB_PATH"
+
+sleep 10
+
+git pull origin "$BRANCH_NAME" --no-rebase
+git add .
+git commit -m "add: update Windows DSP lib"
+git push origin "$BRANCH_NAME"
+
+sleep 10
 
 if [ "$isUseDevAnalytics" == "false" ]; then
   enable_prod_keys
