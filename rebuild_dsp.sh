@@ -5,8 +5,8 @@ source "/Users/denispopkov/PycharmProjects/AutomateBuildBackend/utils.sh"
 
 PROJECT_DIR="/Users/denispopkov/AndroidStudioProjects/SA_Neuro_Multiplatform"
 SECRET_FILE="/Users/denispopkov/Desktop/secret.txt"
-SET_UPDATED_LIB_PATH="$PROJECT_DIR/shared/src/commonMain/resources/MR/files/libdspmac.dylib"
-CACHE_UPDATED_LIB_PATH="$PROJECT_DIR/desktopApp/build/native/libdspmac.dylib"
+SET_UPDATED_LIB_PATH="$PROJECT_DIR/shared/src/commonMain/resources/MR/files/libs/dspmac.dll"
+CACHE_UPDATED_LIB_PATH="$PROJECT_DIR/desktopApp/resources/common/dsp/Debug/dspmac.dll"
 ERROR_LOG_FILE="/tmp/build_error_log.txt"
 
 post_error_message() {
@@ -54,13 +54,10 @@ enable_dsp_gradle_task
 
 sleep 5
 
-osascript -e '
-  tell application "System Events"
-    tell process "Android Studio"
-        keystroke "O" using {command down, shift down}
-    end tell
-  end tell
-'
+powershell -command "\
+Add-Type -AssemblyName System.Windows.Forms; \
+[System.Windows.Forms.SendKeys]::SendWait('^(+o)'); \
+Start-Sleep -Milliseconds 100"
 
 sleep 80
 
