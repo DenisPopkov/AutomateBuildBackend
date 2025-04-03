@@ -64,14 +64,14 @@ post_message "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$message"
 
 enable_dsp_gradle_task
 
-sleep 5
+sleep 10
 
 powershell -command "\
 Add-Type -AssemblyName System.Windows.Forms; \
 [System.Windows.Forms.SendKeys]::SendWait('^(+o)'); \
 Start-Sleep -Milliseconds 100"
 
-sleep 80
+sleep 50
 
 if ! ./gradlew compileKotlin --stacktrace --info; then
   echo "Error: Gradle build failed"
