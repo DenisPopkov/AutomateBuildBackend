@@ -50,8 +50,8 @@ git fetch --all
 git checkout "$BRANCH_NAME"
 git pull origin "$BRANCH_NAME" --no-rebase
 
-message=":hammer_and_wrench: Start Desktop DSP library update on \`$BRANCH_NAME\`"
-post_message "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$message"
+#message=":hammer_and_wrench: Start Desktop DSP library update on \`$BRANCH_NAME\`"
+#post_message "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$message"
 
 enable_dsp_gradle_task
 
