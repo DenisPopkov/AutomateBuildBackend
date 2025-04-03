@@ -77,13 +77,13 @@ disable_dsp_gradle_task
 
 rm -f "$SET_UPDATED_LIB_PATH"
 cp "$CACHE_UPDATED_LIB_PATH" "$SET_UPDATED_LIB_PATH"
-
-sleep 10
-
-git pull origin "$BRANCH_NAME" --no-rebase
-git add .
-git commit -m "add: update dsp lib"
-git push origin "$BRANCH_NAME"
-
-message=":white_check_mark: DSP library successfully updated on \`$BRANCH_NAME\`"
-execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$message" "upload" "${SET_UPDATED_LIB_PATH}"
+#
+#sleep 10
+#
+#git pull origin "$BRANCH_NAME" --no-rebase
+#git add .
+#git commit -m "add: update dsp lib"
+#git push origin "$BRANCH_NAME"
+#
+#message=":white_check_mark: DSP library successfully updated on \`$BRANCH_NAME\`"
+#execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$message" "upload" "${SET_UPDATED_LIB_PATH}"
