@@ -56,18 +56,37 @@ def rebuild_dsp():
         data = request.json
         branch_name = data.get('branchName')
 
-        script_path = "./rebuild_dsp.sh"
-        log_file = "/tmp/build_error_log.txt"
+        if not branch_name:
+            return jsonify({"error": "Missing required parameter: branchName"}), 400
 
-        with open(log_file, "w"):
-            pass
+        git_bash_path = r"C:\Program Files\Git\bin\bash.exe"
+        base_dir = r"C:\Users\BlackBricks\PycharmProjects\AutomateBuildBackend"
+        working_dir = f"/{base_dir[0].lower()}{base_dir[2:].replace('\\', '/')}"
+        script_path = f"{working_dir}/rebuild_dsp.sh"
+        log_file = r"C:\Users\BlackBricks\AppData\Local\Temp\rebuild_dsp_log.txt"
 
-        with open(log_file, "w") as log:
+        os.makedirs(os.path.dirname(log_file), exist_ok=True)
+
+        with open(log_file, 'w') as f:
+            f.write(f"Build started at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+            f.write(f"Branch: {branch_name}\n\n")
+
+        command = [
+            git_bash_path,
+            "-c",
+            f"cd {working_dir} && "
+            f"ERROR_LOG_FILE='/tmp/build_error_log.txt' "
+            f"./rebuild_dsp.sh {branch_name}"
+        ]
+
+        with open(log_file, 'a') as log:
             process = subprocess.Popen(
-                ["sh", script_path, branch_name],
+                command,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
-                text=True
+                text=True,
+                bufsize=1,
+                universal_newlines=True
             )
 
             for line in process.stdout:
@@ -78,16 +97,39 @@ def rebuild_dsp():
             process.wait()
 
         if process.returncode != 0:
-            raise subprocess.CalledProcessError(process.returncode, script_path)
+            with open(log_file, 'r') as f:
+                log_content = f.read()
+            raise subprocess.CalledProcessError(
+                process.returncode,
+                command,
+                output=log_content
+            )
 
         return jsonify({
-            "message": f"macOS build for branch {branch_name} signing executed successfully!"
+            "status": "success",
+            "message": f"macOS build for branch {branch_name} completed successfully",
+            "log_file": log_file
         }), 200
 
-    except subprocess.CalledProcessError:
-        return jsonify({"error": "Build script failed. Check Slack for full logs."}), 500
+    except subprocess.CalledProcessError as e:
+        error_msg = f"Build failed with return code {e.returncode}"
+
+        return jsonify({
+            "status": "error",
+            "message": error_msg,
+            "return_code": e.returncode,
+            "log_file": log_file,
+            "output": e.output
+        }), 500
+
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        error_msg = f"Unexpected error: {str(e)}"
+
+        return jsonify({
+            "status": "error",
+            "message": error_msg,
+            "log_file": log_file if 'log_file' in locals() else 'not created'
+        }), 500
 
 
 @app.route('/rebuild_android_dsp', methods=['POST'])

@@ -1,13 +1,13 @@
 #!/bin/bash
 
-source "/Users/denispopkov/PycharmProjects/AutomateBuildBackend/slack_upload.sh"
-source "/Users/denispopkov/PycharmProjects/AutomateBuildBackend/utils.sh"
+source "./slack_upload.sh"
+source "./utils.sh"
 
-PROJECT_DIR="/Users/denispopkov/AndroidStudioProjects/SA_Neuro_Multiplatform"
-SECRET_FILE="/Users/denispopkov/Desktop/secret.txt"
+SECRET_FILE="/c/Users/BlackBricks/Desktop/secret.txt"
+PROJECT_DIR="/c/Users/BlackBricks/StudioProjects/SA_Neuro_Multiplatform"
 SET_UPDATED_LIB_PATH="$PROJECT_DIR/shared/src/commonMain/resources/MR/files/libs/dspmac.dll"
 CACHE_UPDATED_LIB_PATH="$PROJECT_DIR/desktopApp/resources/common/dsp/Debug/dspmac.dll"
-ERROR_LOG_FILE="/tmp/build_error_log.txt"
+ERROR_LOG_FILE="${ERROR_LOG_FILE:-/tmp/build_error_log.txt}"
 
 post_error_message() {
   local branch_name=$1
