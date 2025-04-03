@@ -1,9 +1,9 @@
 #!/bin/bash
 
-FILE="/Users/denispopkov/AndroidStudioProjects/SA_Neuro_Multiplatform/desktopApp/build.gradle.kts"
-SHARED_GRADLE="/Users/denispopkov/AndroidStudioProjects/SA_Neuro_Multiplatform/shared/build.gradle.kts"
-ANDROID_GRADLE="/Users/denispopkov/AndroidStudioProjects/SA_Neuro_Multiplatform/androidApp/build.gradle.kts"
-SECRET_FILE="/Users/denispopkov/Desktop/secret.txt"
+FILE="/c/Users/denispopkov/AndroidStudioProjects/SA_Neuro_Multiplatform/desktopApp/build.gradle.kts"
+SHARED_GRADLE="/c/Users/denispopkov/AndroidStudioProjects/SA_Neuro_Multiplatform/shared/build.gradle.kts"
+ANDROID_GRADLE="/c/Users/denispopkov/AndroidStudioProjects/SA_Neuro_Multiplatform/androidApp/build.gradle.kts"
+SECRET_FILE="/c/Users/BlackBricks/Desktop/secret.txt"
 
 while IFS='=' read -r key value; do
   key=$(echo "$key" | xargs)
