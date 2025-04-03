@@ -13,18 +13,6 @@ SET_UPDATED_LIB_PATH="$PROJECT_DIR/shared/src/commonMain/resources/MR/files/libs
 CACHE_UPDATED_LIB_PATH="$PROJECT_DIR/desktopApp/resources/common/dsp/Debug/dspmac.dll"
 ERROR_LOG_FILE="${ERROR_LOG_FILE:-/tmp/build_error_log.txt}"
 
-enable_windows_decorations() {
-    sed -i '' -e '/undecorated = DesktopPlatform.Current/s/!=/==/g' "$NEURO_WINDOW_KT"
-    sed -i '' -e '/transparent = DesktopPlatform.Current/s/!=/==/g' "$NEURO_WINDOW_KT"
-    echo "Windows decorations enabled (undecorated and transparent on Windows)."
-}
-
-disable_windows_decorations() {
-    sed -i '' -e '/undecorated = DesktopPlatform.Current/s/==/!=/g' "$NEURO_WINDOW_KT"
-    sed -i '' -e '/transparent = DesktopPlatform.Current/s/==/!=/g' "$NEURO_WINDOW_KT"
-    echo "Windows decorations disabled (undecorated and transparent on non-Windows)."
-}
-
 while IFS='=' read -r key value; do
   key=$(echo "$key" | xargs)
   value=$(echo "$value" | xargs)
@@ -124,12 +112,8 @@ else
   echo "Nothing to change with analytics"
 fi
 
-enable_windows_decorations
-
 echo "Building MSI package..."
 ./gradlew packageReleaseMsi
-
-disable_windows_decorations
 
 DESKTOP_BUILD_PATH="$PROJECT_DIR/desktopApp/build/compose/binaries/main-release/msi"
 
