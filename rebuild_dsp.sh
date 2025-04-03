@@ -37,19 +37,17 @@ fi
 
 BRANCH_NAME=$1
 
-echo "Checking out branch: $BRANCH_NAME"
-git stash push -m "Pre-build stash"
-git fetch --prune origin
-git checkout -b "$BRANCH_NAME" "origin/$BRANCH_NAME"
-git pull origin "$BRANCH_NAME" --no-rebase
-
-message=":hammer_and_wrench: Start Desktop DSP library update on \`$BRANCH_NAME\`"
-post_message "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$message"
-
 echo "Opening Android Studio..."
 "/c/Program Files/Android/Android Studio/bin/studio64.exe" &
 
 cd "$PROJECT_DIR" || { echo "Project directory not found!"; exit 1; }
+
+echo "Checking out branch: $BRANCH_NAME"
+git stash push -m "Pre-build stash"
+git fetch && git checkout "$BRANCH_NAME" && git pull origin "$BRANCH_NAME" --no-rebase
+
+message=":hammer_and_wrench: Start Desktop DSP library update on \`$BRANCH_NAME\`"
+post_message "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$message"
 
 enable_dsp_gradle_task
 
