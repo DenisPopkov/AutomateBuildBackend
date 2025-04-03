@@ -1,8 +1,9 @@
 #!/bin/bash
 
-FILE="/c/Users/denispopkov/AndroidStudioProjects/SA_Neuro_Multiplatform/desktopApp/build.gradle.kts"
-SHARED_GRADLE="/c/Users/denispopkov/AndroidStudioProjects/SA_Neuro_Multiplatform/shared/build.gradle.kts"
-ANDROID_GRADLE="/c/Users/denispopkov/AndroidStudioProjects/SA_Neuro_Multiplatform/androidApp/build.gradle.kts"
+PROJECT_DIR="/c/Users/BlackBricks/StudioProjects/SA_Neuro_Multiplatform"
+FILE="$PROJECT_DIR/desktopApp/build.gradle.kts"
+SHARED_GRADLE="$PROJECT_DIR/shared/build.gradle.kts"
+ANDROID_GRADLE="$PROJECT_DIR/androidApp/build.gradle.kts"
 SECRET_FILE="/c/Users/BlackBricks/Desktop/secret.txt"
 
 while IFS='=' read -r key value; do
