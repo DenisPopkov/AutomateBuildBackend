@@ -39,8 +39,8 @@ BRANCH_NAME=$1
 
 echo "Checking out branch: $BRANCH_NAME"
 git stash push -m "Pre-build stash"
-git fetch --all
-git checkout "$BRANCH_NAME"
+git fetch --prune origin
+git checkout -b "$BRANCH_NAME" "origin/$BRANCH_NAME"
 git pull origin "$BRANCH_NAME" --no-rebase
 
 message=":hammer_and_wrench: Start Desktop DSP library update on \`$BRANCH_NAME\`"
