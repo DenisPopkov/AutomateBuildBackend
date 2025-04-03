@@ -45,9 +45,8 @@ message=":hammer_and_wrench: Start Desktop DSP library update on \`$BRANCH_NAME\
 post_message "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$message"
 
 echo "Opening Android Studio..."
-open -a "Android Studio"
+"/c/Program Files/Android/Android Studio/bin/studio64.exe" &
 
-PROJECT_DIR="/Users/denispopkov/AndroidStudioProjects/SA_Neuro_Multiplatform"
 cd "$PROJECT_DIR" || { echo "Project directory not found!"; exit 1; }
 
 enable_dsp_gradle_task
