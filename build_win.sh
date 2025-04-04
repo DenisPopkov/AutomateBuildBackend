@@ -64,38 +64,6 @@ message=":hammer_and_wrench: Windows build started on \`$BRANCH_NAME\`
 :clock2: It will be ready approximately at $end_time"
 post_message "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$message"
 
-enable_dsp_gradle_task
-
-sleep 10
-
-powershell -command "\
-Add-Type -AssemblyName System.Windows.Forms; \
-[System.Windows.Forms.SendKeys]::SendWait('^(+o)')"
-
-sleep 50
-
-if ! ./gradlew compileKotlin --stacktrace --info; then
-  echo "Error: Gradle build failed"
-  post_error_message "$BRANCH_NAME"
-  disable_dsp_gradle_task
-  exit 1
-fi
-
-sleep 5
-
-disable_dsp_gradle_task
-
-rm -f "$SET_UPDATED_LIB_PATH"
-cp "$CACHE_UPDATED_LIB_PATH" "$SET_UPDATED_LIB_PATH"
-
-sleep 10
-
-git add .
-git commit -m "add: update Windows DSP lib"
-git push origin "$BRANCH_NAME"
-
-sleep 10
-
 if [ "$isUseDevAnalytics" == "false" ]; then
   enable_prod_keys
 
@@ -103,10 +71,9 @@ if [ "$isUseDevAnalytics" == "false" ]; then
 
   powershell -command "\
   Add-Type -AssemblyName System.Windows.Forms; \
-  [System.Windows.Forms.SendKeys]::SendWait('^(+o)'); \
-  Start-Sleep -Milliseconds 100"
+  [System.Windows.Forms.SendKeys]::SendWait('^(+o)')"
 
-  sleep 80
+  sleep 50
 else
   echo "Nothing to change with analytics"
 fi
