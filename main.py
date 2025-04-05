@@ -1,7 +1,6 @@
 import os
 import subprocess
 import sys
-from datetime import datetime
 
 from flask import Flask, jsonify, request
 
@@ -88,6 +87,7 @@ def rebuild_dsp():
         return jsonify({"error": "Build script failed. Check Slack for full logs."}), 500
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
 
 @app.route('/rebuild_windows_dsp', methods=['POST'])
 def rebuild_windows_dsp():
@@ -178,21 +178,19 @@ def build_win():
     try:
         data = request.json
         branch_name = data.get('branchName')
-        use_dev_analytics = data.get('isUseDevAnalytics', True)
 
         if not branch_name:
             return jsonify({"error": "Missing required parameter: branchName"}), 400
 
         script_path = "./build_win.sh"
         log_file = "/tmp/build_error_log.txt"
-        use_dev_analytics_flag = "true" if use_dev_analytics else "false"
 
         with open(log_file, "w"):
             pass
 
         with open(log_file, "w") as log:
             process = subprocess.Popen(
-                ["sh", script_path, branch_name, use_dev_analytics_flag],
+                ["sh", script_path, branch_name],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
                 text=True
