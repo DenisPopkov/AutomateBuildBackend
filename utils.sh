@@ -17,32 +17,6 @@ while IFS='=' read -r key value; do
   esac
 done < "$SECRET_FILE"
 
-disable_dsp_gradle_task() {
-sed -i '' -e '/tasks.named("compileKotlin") {/ {
-    N
-    N
-    s/^/\/\*\
-/
-    s/$/\
-\*\//
-}' "$FILE"
-}
-
-enable_dsp_gradle_task() {
-  sed -i '' -e '/\/\*$/,/\*\// {
-    /\/\*/ {
-        s/\/\*//
-        N
-    }
-    /\*\// {
-        s/\*\///
-        N
-    }
-    s/\n//g
-  }' "$FILE"
-  echo "Block uncommented"
-}
-
 enable_prod_keys() {
     sed -i '' -e "/name = \"MIXPANEL_API_KEY_WINDOWS\"/,/const = true/s/$DEV_DESKTOP_KEY/$PROD_DESKTOP_KEY/g" "$SHARED_GRADLE"
     sed -i '' -e "/name = \"MIXPANEL_API_KEY_MACOS\"/,/const = true/s/$DEV_DESKTOP_KEY/$PROD_DESKTOP_KEY/g" "$SHARED_GRADLE"

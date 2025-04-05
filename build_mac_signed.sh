@@ -67,30 +67,13 @@ git add .
 git commit -m "macOS version bump to $VERSION_CODE"
 git push origin "$BRANCH_NAME"
 
-enable_dsp_gradle_task
-
-sleep 5
-
-osascript -e '
-  tell application "System Events"
-    tell process "Android Studio"
-        keystroke "O" using {command down, shift down}
-    end tell
-  end tell
-'
-
-sleep 80
-
 if ! ./gradlew compileKotlin --stacktrace --info; then
   echo "Error: Gradle build failed"
   post_error_message "$BRANCH_NAME"
-  disable_dsp_gradle_task
   exit 1
 fi
 
 sleep 5
-
-disable_dsp_gradle_task
 
 rm -f "$SET_UPDATED_LIB_PATH"
 cp "$CACHE_UPDATED_LIB_PATH" "$SET_UPDATED_LIB_PATH"
