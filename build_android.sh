@@ -125,7 +125,7 @@ if [ "$isUseDevAnalytics" == "false" ]; then
 
   # Upload AAB to Slack
   echo "Uploading AAB to Slack..."
-  execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "Android App Bundle from $BRANCH_NAME" "upload" "${FILE_PATH}"
+  execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" ":white_check_mark: Android App Bundle from $BRANCH_NAME" "upload" "${FILE_PATH}"
 
   sleep 20
 
