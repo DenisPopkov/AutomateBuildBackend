@@ -96,25 +96,13 @@ def rebuild_windows_dsp():
         branch_name = data.get('branchName')
 
         script_path = "./rebuild_windows_dsp.sh"
-        log_file = "/tmp/build_error_log.txt"
 
-        with open(log_file, "w"):
-            pass
-
-        with open(log_file, "w") as log:
-            process = subprocess.Popen(
-                ["sh", script_path, branch_name],
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                text=True
-            )
-
-            for line in process.stdout:
-                sys.stdout.write(line)
-                sys.stdout.flush()
-                log.write(line)
-
-            process.wait()
+        process = subprocess.Popen(
+            ["sh", script_path, branch_name],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True
+        )
 
         if process.returncode != 0:
             raise subprocess.CalledProcessError(process.returncode, script_path)
@@ -183,25 +171,13 @@ def build_win():
             return jsonify({"error": "Missing required parameter: branchName"}), 400
 
         script_path = "./build_win.sh"
-        log_file = "/tmp/build_error_log.txt"
 
-        with open(log_file, "w"):
-            pass
-
-        with open(log_file, "w") as log:
-            process = subprocess.Popen(
-                ["sh", script_path, branch_name],
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                text=True
-            )
-
-            for line in process.stdout:
-                sys.stdout.write(line)
-                sys.stdout.flush()
-                log.write(line)
-
-            process.wait()
+        process = subprocess.Popen(
+            ["sh", script_path, branch_name],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True
+        )
 
         if process.returncode != 0:
             raise subprocess.CalledProcessError(process.returncode, script_path)

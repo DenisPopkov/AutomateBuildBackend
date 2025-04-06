@@ -64,7 +64,7 @@ VERSION_CODE=$((VERSION_CODE + 1))
 sed -i '' "s/^desktop\.build\.number\s*=\s*[0-9]*$/desktop.build.number=$VERSION_CODE/" "$PROJECT_DIR/gradle.properties"
 git pull origin "$BRANCH_NAME" --no-rebase
 git add .
-git commit -m "macOS version bump to $VERSION_CODE"
+git commit -m "add: MacOS version bump"
 git push origin "$BRANCH_NAME"
 
 if ! ./gradlew compileKotlin --stacktrace --info; then
