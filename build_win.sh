@@ -34,7 +34,7 @@ echo "Checking out branch: $BRANCH_NAME"
 git stash push -m "Pre-build stash"
 git fetch && git checkout "$BRANCH_NAME" && git pull origin "$BRANCH_NAME" --no-rebase
 
-WORKFLOW_FILENAME="build_win.yml"
+WORKFLOW_FILENAME="build_windows.yml"
 
 echo "Triggering GitHub Actions workflow '$WORKFLOW_FILENAME' on branch '$BRANCH_NAME'..."
 
