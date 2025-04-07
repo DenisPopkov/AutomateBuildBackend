@@ -1,6 +1,11 @@
 #!/bin/bash
 
+source "/Users/denispopkov/PycharmProjects/AutomateBuildBackend/slack_upload.sh"
+source "/Users/denispopkov/PycharmProjects/AutomateBuildBackend/utils.sh"
+
 BRANCH_NAME=$1
+isUseDevAnalytics=$2
+
 SECRET_FILE="/Users/denispopkov/Desktop/secret.txt"
 ERROR_LOG_FILE="/tmp/build_error_log.txt"
 
@@ -37,6 +42,12 @@ git fetch && git checkout "$BRANCH_NAME" && git pull origin "$BRANCH_NAME" --no-
 VERSION_CODE=$(grep '^desktop\.build\.number\s*=' "$PROJECT_DIR/gradle.properties" | sed 's/.*=\s*\([0-9]*\)/\1/' | xargs)
 VERSION_CODE=$((VERSION_CODE + 1))
 
+if [ "$isUseDevAnalytics" == "false" ]; then
+  enable_prod_keys
+else
+  echo "Nothing to change with analytics"
+fi
+
 sed -i '' "s/^desktop\.build\.number\s*=\s*[0-9]*$/desktop.build.number=$VERSION_CODE/" "$PROJECT_DIR/gradle.properties"
 git pull origin "$BRANCH_NAME" --no-rebase
 git add .
@@ -55,3 +66,18 @@ curl -X POST \
   https://api.github.com/repos/"$REPO_OWNER"/"$REPO_NAME"/actions/workflows/$WORKFLOW_FILENAME/dispatches \
   -d "{\"ref\":\"$BRANCH_NAME\"}" \
   || echo "❌ Failed to trigger workflow" >> "$ERROR_LOG_FILE"
+
+sleep 1000
+
+if [ "$isUseDevAnalytics" == "false" ]; then
+  undo_enable_prod_keys
+
+  sleep 10
+
+  git pull origin "$BRANCH_NAME" --no-rebase
+  git add .
+  git commit -m "add: revoke prod analytics"
+  git push origin "$BRANCH_NAME"
+else
+  echo "Nothing to change with analytics"
+fi

@@ -166,14 +166,16 @@ def build_win():
     try:
         data = request.json
         branch_name = data.get('branchName')
+        use_dev_analytics = data.get('isUseDevAnalytics', True)
 
         if not branch_name:
             return jsonify({"error": "Missing required parameter: branchName"}), 400
 
         script_path = "./build_win.sh"
+        use_dev_analytics_flag = "true" if use_dev_analytics else "false"
 
         process = subprocess.Popen(
-            ["sh", script_path, branch_name],
+            ["sh", script_path, branch_name, use_dev_analytics_flag],
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             text=True
