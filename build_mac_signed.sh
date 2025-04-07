@@ -67,26 +67,6 @@ git add .
 git commit -m "add: MacOS version bump"
 git push origin "$BRANCH_NAME"
 
-if ! ./gradlew compileKotlin --stacktrace --info; then
-  echo "Error: Gradle build failed"
-  post_error_message "$BRANCH_NAME"
-  exit 1
-fi
-
-sleep 5
-
-rm -f "$SET_UPDATED_LIB_PATH"
-cp "$CACHE_UPDATED_LIB_PATH" "$SET_UPDATED_LIB_PATH"
-
-sleep 10
-
-git pull origin "$BRANCH_NAME" --no-rebase
-git add .
-git commit -m "add: update MacOS DSP lib"
-git push origin "$BRANCH_NAME"
-
-sleep 10
-
 if [ "$isUseDevAnalytics" == "false" ]; then
   enable_prod_keys
 
