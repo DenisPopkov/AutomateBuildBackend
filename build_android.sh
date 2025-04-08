@@ -47,7 +47,7 @@ end_time=$(TZ=Asia/Omsk date -v+15M "+%H:%M")
 message=":hammer_and_wrench: Android build started on \`$BRANCH_NAME\`
 :mag_right: Analytics look on $analyticsMessage
 :clock2: It will be ready approximately at $end_time"
-message_ts=$(post_message "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$message")
+post_message "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$message"
 
 PROJECT_DIR="/Users/denispopkov/AndroidStudioProjects/SA_Neuro_Multiplatform"
 cd "$PROJECT_DIR" || { echo "Project directory not found!"; exit 1; }
@@ -182,8 +182,4 @@ else
   execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" ":white_check_mark: Android APK from \`$BRANCH_NAME\` (analytics=${analyticsMessage})" "upload" "${FILE_PATH}"
 
   undo_enable_prod_keys
-fi
-
-if [ -n "$message_ts" ]; then
-  delete_message "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$message_ts"
 fi
