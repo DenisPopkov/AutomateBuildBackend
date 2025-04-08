@@ -42,7 +42,7 @@ git stash push -m "Pre-build stash"
 git fetch && git checkout "$BRANCH_NAME" && git pull origin "$BRANCH_NAME" --no-rebase
 
 message=":hammer_and_wrench: Start Desktop DSP library update on \`$BRANCH_NAME\`"
-post_message "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$message"
+message_ts=$(post_message "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$message")
 
 echo "Opening Android Studio..."
 open -a "Android Studio"
@@ -64,6 +64,10 @@ sleep 10
 git add .
 git commit -m "add: update dsp lib"
 git push origin "$BRANCH_NAME"
+
+if [ -n "$message_ts" ]; then
+  delete_message "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$message_ts"
+fi
 
 message=":white_check_mark: DSP library successfully updated on \`$BRANCH_NAME\`"
 execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$message" "upload" "${SET_UPDATED_LIB_PATH}"

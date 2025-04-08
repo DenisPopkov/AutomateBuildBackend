@@ -36,8 +36,6 @@ git fetch && git checkout "$BRANCH_NAME" && git pull origin "$BRANCH_NAME" --no-
 
 WORKFLOW_FILENAME="rebuild_windows_dsp.yml"
 
-echo "Triggering GitHub Actions workflow '$WORKFLOW_FILENAME' on branch '$BRANCH_NAME'..."
-
 curl -X POST \
   -H "Authorization: Bearer $GITHUB_TOKEN" \
   -H "Accept: application/vnd.github+json" \

@@ -58,8 +58,6 @@ sleep 10
 
 WORKFLOW_FILENAME="build_windows.yml"
 
-echo "Triggering GitHub Actions workflow '$WORKFLOW_FILENAME' on branch '$BRANCH_NAME'..."
-
 curl -X POST \
   -H "Authorization: Bearer $GITHUB_TOKEN" \
   -H "Accept: application/vnd.github+json" \

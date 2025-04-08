@@ -5,8 +5,6 @@ source "/Users/denispopkov/PycharmProjects/AutomateBuildBackend/utils.sh"
 
 SECRET_FILE="/Users/denispopkov/Desktop/secret.txt"
 BUILD_TOOL="/Users/denispopkov/AndroidStudioProjects/SA_Neuro_release/Neuro_desktop.pkgproj"
-SET_UPDATED_LIB_PATH="$PROJECT_DIR/shared/src/commonMain/resources/MR/files/libdspmac.dylib"
-CACHE_UPDATED_LIB_PATH="$PROJECT_DIR/desktopApp/build/native/libdspmac.dylib"
 BUILD_PATH="$PROJECT_DIR/desktopApp/build"
 ERROR_LOG_FILE="/tmp/build_error_log.txt"
 
@@ -48,7 +46,7 @@ end_time=$(TZ=Asia/Omsk date -v+32M "+%H:%M")
 message=":hammer_and_wrench: MacOS build started on \`$BRANCH_NAME\`
 :mag_right: Analytics look on $analyticsMessage
 :clock2: It will be ready approximately at $end_time"
-post_message "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$message"
+message_ts=$(post_message "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$message")
 
 PROJECT_DIR="/Users/denispopkov/AndroidStudioProjects/SA_Neuro_Multiplatform"
 cd "$PROJECT_DIR" || { echo "Project directory not found!"; exit 1; }
@@ -220,8 +218,12 @@ else
   exit 1
 fi
 
+if [ -n "$message_ts" ]; then
+  delete_message "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$message_ts"
+fi
+
 echo "Uploading renamed .pkg to Slack..."
-execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" ":white_check_mark: MacOS signed from \`$BRANCH_NAME\`" "upload" "${NEW_PKG_PATH}"
+execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" ":white_check_mark: MacOS signed from \`$BRANCH_NAME\` (analytics=${analyticsMessage})" "upload" "${NEW_PKG_PATH}"
 
 sleep 10
 

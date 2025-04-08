@@ -149,10 +149,12 @@ function post_message() {
         if [ "$(echo "$response" | jq -r '.ok')" = "true" ]; then
             echo "Successfully posted message:"
             echo "$response" | jq .
+            echo "$response" | jq -r '.ts'
             return 0
         else
             echo "Failed to post message:"
             echo "$response" | jq .
+            echo "$response" | jq -r '.ts'
             exit 1
         fi
     else
@@ -161,11 +163,35 @@ function post_message() {
         if grep -q '"ok":true' <<< "$response"; then
             echo "Successfully posted message (fallback detection):"
             echo "$response"
+            echo "$response" | jq -r '.ts'
             return 0
         else
             echo "Failed to post message (fallback detection):"
             echo "$response"
             exit 1
         fi
+    fi
+}
+
+function delete_message() {
+    local slack_token=$1
+    local channel_id=$2
+    local message_ts=$3
+
+    local json_payload=$(jq -n \
+        --arg channel "$channel_id" \
+        --arg ts "$message_ts" \
+        '{channel: $channel, ts: $ts}')
+
+    local response=$(curl -s -X POST \
+        -H "Authorization: Bearer ${slack_token}" \
+        -H "Content-Type: application/json; charset=UTF-8" \
+        -d "$json_payload" \
+        'https://slack.com/api/chat.delete')
+
+    if [ "$(echo "$response" | jq -r '.ok')" = "true" ]; then
+        echo "Message deleted successfully"
+    else
+        echo "Failed to delete message: $response"
     fi
 }

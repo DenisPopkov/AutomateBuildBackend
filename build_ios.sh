@@ -57,7 +57,7 @@ end_time=$(TZ=Asia/Omsk date -v+15M "+%H:%M")
 message=":hammer_and_wrench: iOS build started on \`$BRANCH_NAME\`
 :mag_right: Analytics look on $analyticsMessage
 :clock2: It will be ready approximately at $end_time"
-post_message "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$message"
+message_ts=$(post_message "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$message")
 
 # Update project.pbxproj
 if [ -f "$PBXPROJ_PATH" ]; then
@@ -143,7 +143,11 @@ if fastlane testflight_upload; then
   git commit -m "iOS version bump to $NEW_VERSION"
   git push
 
-  execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" ":white_check_mark: iOS build uploaded to TestFlight with v$VERSION_NUMBER ($NEW_VERSION)" "message"
+  if [ -n "$message_ts" ]; then
+    delete_message "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$message_ts"
+  fi
+
+  execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" ":white_check_mark: iOS build uploaded to TestFlight with v$VERSION_NUMBER ($NEW_VERSION) (analytics=${analyticsMessage})" "message"
 else
   post_error_message "$BRANCH_NAME"
   echo "Fastlane failed. Not committing changes or sending Slack message."
