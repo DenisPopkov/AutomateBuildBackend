@@ -9,6 +9,7 @@ ERROR_LOG_FILE="/tmp/build_error_log.txt"
 JNI_LIBS_PATH="$PROJECT_DIR/androidApp/src/main/jniLibs"
 BUILD_PATH="$PROJECT_DIR/androidApp/build"
 RELEASE_PATH="$PROJECT_DIR/androidApp/release"
+UPDATED_LIB_PATH="$PROJECT_DIR/androidApp/src/main/jniLibs/arm64-v8a/libdspandroid.so"
 
 post_error_message() {
   local branch_name=$1
@@ -95,4 +96,4 @@ git commit -m "add: update dsp lib"
 git push origin "$BRANCH_NAME"
 
 message=":white_check_mark: DSP library successfully updated on \`$BRANCH_NAME\`"
-post_message "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$message"
+execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$message" "upload" "${UPDATED_LIB_PATH}"
