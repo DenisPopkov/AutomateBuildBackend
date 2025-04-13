@@ -5,7 +5,7 @@ source "/Users/denispopkov/PycharmProjects/AutomateBuildBackend/utils.sh"
 
 PROJECT_DIR="/Users/denispopkov/AndroidStudioProjects/SA_Neuro_Multiplatform"
 HEROKU_PROD="/Users/denispopkov/AndroidStudioProjects/neuro-production/"
-HEROKU_LIBRARY="/Users/denispopkov/AndroidStudioProjects/neuro-production/public/libdspandroid.so"
+HEROKU_LIBRARY="/Users/denispopkov/AndroidStudioProjects/neuro-production/public/"
 SECRET_FILE="/Users/denispopkov/Desktop/secret.txt"
 ERROR_LOG_FILE="/tmp/build_error_log.txt"
 BUILD_PATH="$PROJECT_DIR/androidApp/build"
@@ -96,7 +96,7 @@ sleep 5
 git stash push -m "Pre-build stash"
 git fetch && git pull origin "master" --no-rebase
 
-rm -rf "$HEROKU_LIBRARY"
+rm -rf "$HEROKU_LIBRARY/libdspandroid.so"
 cp "$PROJECT_DIR/androidApp/build/outputs/apk/release/lib/arm64-v8a/libdspandroid.so" "$HEROKU_LIBRARY"
 
 git add .
