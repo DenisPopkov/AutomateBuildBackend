@@ -104,7 +104,7 @@ sleep 5
 git stash push -m "Pre-build stash"
 git fetch && git pull origin "master" --no-rebase
 
-rm -rf "$HEROKU_LIBRARY"
+rm -rf "$HEROKU_LIBRARY/libdspandroid.so"
 cp "$PROJECT_DIR/androidApp/build/outputs/apk/release/lib/arm64-v8a/libdspandroid.so" "$HEROKU_LIBRARY"
 
 git add .
