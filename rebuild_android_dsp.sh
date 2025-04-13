@@ -4,6 +4,8 @@ source "/Users/denispopkov/PycharmProjects/AutomateBuildBackend/slack_upload.sh"
 source "/Users/denispopkov/PycharmProjects/AutomateBuildBackend/utils.sh"
 
 PROJECT_DIR="/Users/denispopkov/AndroidStudioProjects/SA_Neuro_Multiplatform"
+HEROKU_PROD="/Users/denispopkov/AndroidStudioProjects/neuro-production/"
+HEROKU_LIBRARY="/Users/denispopkov/AndroidStudioProjects/neuro-production/public/libdspandroid.so"
 SECRET_FILE="/Users/denispopkov/Desktop/secret.txt"
 ERROR_LOG_FILE="/tmp/build_error_log.txt"
 JNI_LIBS_PATH="$PROJECT_DIR/androidApp/src/main/jniLibs"
@@ -94,6 +96,20 @@ git pull origin "$BRANCH_NAME" --no-rebase
 git add .
 git commit -m "add: update dsp lib"
 git push origin "$BRANCH_NAME"
+
+cd "$HEROKU_PROD" || { echo "Project directory not found!"; exit 1; }
+
+sleep 5
+
+git stash push -m "Pre-build stash"
+git fetch && git pull origin "master" --no-rebase
+
+rm -rf "$HEROKU_LIBRARY"
+cp "$PROJECT_DIR/androidApp/build/outputs/apk/release/lib/arm64-v8a/libdspandroid.so" "$HEROKU_LIBRARY"
+
+git add .
+git commit -m "add: update dsp lib"
+git push origin "master"
 
 message=":white_check_mark: DSP library successfully updated on \`$BRANCH_NAME\`"
 execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$message" "upload" "${UPDATED_LIB_PATH}"
