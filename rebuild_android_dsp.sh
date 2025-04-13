@@ -77,9 +77,6 @@ if ! unzip -o "$APK_ZIP_PATH" -d "$PROJECT_DIR/androidApp/build/outputs/apk/rele
   exit 1
 fi
 
-rm -rf "$BUILD_PATH"
-rm -rf "$RELEASE_PATH"
-
 comment_android_dsp_gradle_task
 
 sleep 5
@@ -102,6 +99,9 @@ cp "$PROJECT_DIR/androidApp/build/outputs/apk/release/lib/arm64-v8a/libdspandroi
 git add .
 git commit -m "add: update dsp lib"
 git push origin "master"
+
+rm -rf "$BUILD_PATH"
+rm -rf "$RELEASE_PATH"
 
 message=":white_check_mark: DSP library successfully updated on \`$BRANCH_NAME\`"
 execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$message" "upload" "${UPDATED_LIB_PATH}"
