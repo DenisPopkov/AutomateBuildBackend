@@ -8,10 +8,8 @@ HEROKU_PROD="/Users/denispopkov/AndroidStudioProjects/neuro-production/"
 HEROKU_LIBRARY="/Users/denispopkov/AndroidStudioProjects/neuro-production/public/libdspandroid.so"
 SECRET_FILE="/Users/denispopkov/Desktop/secret.txt"
 ERROR_LOG_FILE="/tmp/build_error_log.txt"
-JNI_LIBS_PATH="$PROJECT_DIR/androidApp/src/main/jniLibs"
 BUILD_PATH="$PROJECT_DIR/androidApp/build"
 RELEASE_PATH="$PROJECT_DIR/androidApp/release"
-UPDATED_LIB_PATH="$PROJECT_DIR/androidApp/src/main/jniLibs/arm64-v8a/libdspandroid.so"
 
 post_error_message() {
   local branch_name=$1
@@ -45,11 +43,9 @@ echo "Checking out branch: $BRANCH_NAME"
 git stash push -m "Pre-build stash"
 git fetch && git checkout "$BRANCH_NAME" && git pull origin "$BRANCH_NAME" --no-rebase
 
-JNI_LIBS_PATH="$PROJECT_DIR/androidApp/src/main/jniLibs"
 BUILD_PATH="$PROJECT_DIR/androidApp/build"
 RELEASE_PATH="$PROJECT_DIR/androidApp/release"
 
-rm -rf "$JNI_LIBS_PATH"
 rm -rf "$BUILD_PATH"
 rm -rf "$RELEASE_PATH"
 
@@ -80,10 +76,6 @@ if ! unzip -o "$APK_ZIP_PATH" -d "$PROJECT_DIR/androidApp/build/outputs/apk/rele
   post_error_message "$BRANCH_NAME"
   exit 1
 fi
-
-mkdir -p "$JNI_LIBS_PATH/arm64-v8a" "$JNI_LIBS_PATH/x86_64"
-cp "$PROJECT_DIR/androidApp/build/outputs/apk/release/lib/arm64-v8a/libdspandroid.so" "$JNI_LIBS_PATH/x86_64/"
-cp "$PROJECT_DIR/androidApp/build/outputs/apk/release/lib/arm64-v8a/libdspandroid.so" "$JNI_LIBS_PATH/arm64-v8a/"
 
 rm -rf "$BUILD_PATH"
 rm -rf "$RELEASE_PATH"
