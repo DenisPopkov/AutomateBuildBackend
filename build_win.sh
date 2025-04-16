@@ -24,6 +24,9 @@ while IFS='=' read -r key value; do
   value=$(echo "$value" | xargs)
 
   case "$key" in
+    "SLACK_BOT_TOKEN") SLACK_BOT_TOKEN="$value" ;;
+    "SLACK_CHANNEL") SLACK_CHANNEL="$value" ;;
+    "TEAM_ID") TEAM_ID="$value" ;;
     "GITHUB_TOKEN") GITHUB_TOKEN="$value" ;;
     "REPO_OWNER") REPO_OWNER="$value" ;;
     "REPO_NAME") REPO_NAME="$value" ;;
@@ -41,6 +44,20 @@ git fetch && git checkout "$BRANCH_NAME" && git pull origin "$BRANCH_NAME" --no-
 
 VERSION_CODE=$(grep '^desktop\.build\.number\s*=' "$PROJECT_DIR/gradle.properties" | sed 's/.*=\s*\([0-9]*\)/\1/' | xargs)
 VERSION_CODE=$((VERSION_CODE + 1))
+
+analyticsMessage=""
+
+if [ "$isUseDevAnalytics" == "true" ]; then
+  analyticsMessage="dev"
+else
+  analyticsMessage="prod"
+fi
+
+end_time=$(TZ=Asia/Omsk date -v+25M "+%H:%M")
+message=":hammer_and_wrench: Windows build started on \`$BRANCH_NAME\`
+:mag_right: Analytics look on $analyticsMessage
+:clock2: It will be ready approximately at $end_time"
+post_message "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$message"
 
 if [ "$isUseDevAnalytics" == "false" ]; then
   enable_prod_keys
