@@ -41,6 +41,8 @@ fi
 
 BRANCH_NAME=$1
 
+cd "$PROJECT_DIR" || { echo "Project directory not found!"; exit 1; }
+
 echo "Checking out branch: $BRANCH_NAME"
 git stash push -m "Pre-build stash"
 git fetch && git checkout "$BRANCH_NAME" && git pull origin "$BRANCH_NAME" --no-rebase
@@ -50,8 +52,6 @@ post_message "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$message"
 
 echo "Opening Android Studio..."
 open -a "Android Studio"
-
-cd "$PROJECT_DIR" || { echo "Project directory not found!"; exit 1; }
 
 if ! ./gradlew compileKotlin --stacktrace --info; then
   echo "Error: Gradle build failed"
