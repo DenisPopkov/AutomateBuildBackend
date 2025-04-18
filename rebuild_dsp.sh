@@ -5,7 +5,6 @@ source "/Users/denispopkov/PycharmProjects/AutomateBuildBackend/utils.sh"
 
 PROJECT_DIR="/Users/denispopkov/AndroidStudioProjects/SA_Neuro_Multiplatform"
 SECRET_FILE="/Users/denispopkov/Desktop/secret.txt"
-SET_UPDATED_DSP_LIB_PATH="$PROJECT_DIR/shared/src/commonMain/resources/MR/files/libdspmac.dylib"
 CACHE_UPDATED_DSP_LIB_PATH="$PROJECT_DIR/desktopApp/build/native/libdspmac.dylib"
 SET_UPDATED_KEYCHAIN_LIB_PATH="$PROJECT_DIR/shared/src/commonMain/resources/MR/files/libkeychainbridge.dylib"
 CACHE_UPDATED_KEYCHAIN_LIB_PATH="$PROJECT_DIR/desktopApp/build/keychain/universal/libkeychainbridge.dylib"
@@ -59,10 +58,6 @@ if ! ./gradlew compileKotlin --stacktrace --info; then
   exit 1
 fi
 
-# Update DSP lib
-rm -f "$SET_UPDATED_DSP_LIB_PATH"
-cp "$CACHE_UPDATED_DSP_LIB_PATH" "$SET_UPDATED_DSP_LIB_PATH"
-
 # Update Keychain lib
 rm -f "$SET_UPDATED_KEYCHAIN_LIB_PATH"
 cp "$CACHE_UPDATED_KEYCHAIN_LIB_PATH" "$SET_UPDATED_KEYCHAIN_LIB_PATH"
@@ -82,11 +77,11 @@ git fetch && git pull origin "master" --no-rebase
 
 # Update DSP lib in Heroku
 rm -rf "$HEROKU_LIBRARY/x86/libdspmac.dylib"
-cp "$SET_UPDATED_DSP_LIB_PATH" "$HEROKU_LIBRARY/x86"
+cp "$CACHE_UPDATED_DSP_LIB_PATH" "$HEROKU_LIBRARY/x86"
 
 git add .
 git commit -m "add: update dsp lib"
 git push origin "master"
 
 message=":white_check_mark: DSP library successfully updated on \`$BRANCH_NAME\`"
-execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$message" "upload" "${SET_UPDATED_DSP_LIB_PATH}" "${SET_UPDATED_KEYCHAIN_LIB_PATH}"
+execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$message" "upload" "${CACHE_UPDATED_DSP_LIB_PATH}" "${SET_UPDATED_KEYCHAIN_LIB_PATH}"
