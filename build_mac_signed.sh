@@ -90,6 +90,8 @@ echo "Building signed build..."
 # Find the build
 BUILD_PATH="$PROJECT_DIR/desktopApp/build/compose/binaries/main/app/Neuro Desktop.app"
 
+sleep 20
+
 if [ ! -d "$BUILD_PATH" ]; then
   echo "Error: Signed Build not found at expected path: $BUILD_PATH"
   post_error_message "$BRANCH_NAME"
