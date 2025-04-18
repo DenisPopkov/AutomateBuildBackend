@@ -81,8 +81,8 @@ git stash push -m "Pre-build stash"
 git fetch && git pull origin "master" --no-rebase
 
 # Update DSP lib in Heroku
-rm -rf "$HEROKU_LIBRARY/libdspmac.dylib"
-cp "$SET_UPDATED_DSP_LIB_PATH" "$HEROKU_LIBRARY"
+rm -rf "$HEROKU_LIBRARY/x86/libdspmac.dylib"
+cp "$SET_UPDATED_DSP_LIB_PATH" "$HEROKU_LIBRARY/x86"
 
 git add .
 git commit -m "add: update dsp lib"
