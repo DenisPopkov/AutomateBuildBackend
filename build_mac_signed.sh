@@ -42,7 +42,7 @@ else
   analyticsMessage="prod"
 fi
 
-end_time=$(TZ=Asia/Omsk date -v+40M "+%H:%M")
+end_time=$(TZ=Asia/Omsk date -v+60M "+%H:%M")
 message=":hammer_and_wrench: MacOS build started on \`$BRANCH_NAME\`
 :mag_right: Analytics look on $analyticsMessage
 :clock2: It will be ready approximately at $end_time"

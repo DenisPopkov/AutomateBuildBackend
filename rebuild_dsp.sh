@@ -5,10 +5,7 @@ source "/Users/denispopkov/PycharmProjects/AutomateBuildBackend/utils.sh"
 
 PROJECT_DIR="/Users/denispopkov/AndroidStudioProjects/SA_Neuro_Multiplatform"
 SECRET_FILE="/Users/denispopkov/Desktop/secret.txt"
-SET_UPDATED_DSP_LIB_PATH="$PROJECT_DIR/shared/src/commonMain/resources/MR/files/libdspmac.dylib"
 CACHE_UPDATED_DSP_LIB_PATH="$PROJECT_DIR/desktopApp/build/native/libdspmac.dylib"
-SET_UPDATED_KEYCHAIN_LIB_PATH="$PROJECT_DIR/shared/src/commonMain/resources/MR/files/libkeychainbridge.dylib"
-CACHE_UPDATED_KEYCHAIN_LIB_PATH="$PROJECT_DIR/desktopApp/build/keychain/libkeychainbridge.dylib"
 HEROKU_PROD="/Users/denispopkov/AndroidStudioProjects/neuro-production/"
 HEROKU_LIBRARY="/Users/denispopkov/AndroidStudioProjects/neuro-production/public/"
 ERROR_LOG_FILE="/tmp/build_error_log.txt"
@@ -59,18 +56,10 @@ if ! ./gradlew compileKotlin --stacktrace --info; then
   exit 1
 fi
 
-# Update DSP lib
-rm -f "$SET_UPDATED_DSP_LIB_PATH"
-cp "$CACHE_UPDATED_DSP_LIB_PATH" "$SET_UPDATED_DSP_LIB_PATH"
-
-# Update Keychain lib
-rm -f "$SET_UPDATED_KEYCHAIN_LIB_PATH"
-cp "$CACHE_UPDATED_KEYCHAIN_LIB_PATH" "$SET_UPDATED_KEYCHAIN_LIB_PATH"
-
 sleep 10
 
 git add .
-git commit -m "add: update dsp and keychain libraries"
+git commit -m "add: update DSP"
 git push origin "$BRANCH_NAME"
 
 cd "$HEROKU_PROD" || { echo "Heroku project directory not found!"; exit 1; }
@@ -81,12 +70,12 @@ git stash push -m "Pre-build stash"
 git fetch && git pull origin "master" --no-rebase
 
 # Update DSP lib in Heroku
-rm -rf "$HEROKU_LIBRARY/libdspmac.dylib"
-cp "$SET_UPDATED_DSP_LIB_PATH" "$HEROKU_LIBRARY"
+rm -rf "$HEROKU_LIBRARY/x86/libdspmac.dylib"
+cp "$CACHE_UPDATED_DSP_LIB_PATH" "$HEROKU_LIBRARY/x86"
 
 git add .
-git commit -m "add: update dsp lib"
+git commit -m "add: update DSP lib"
 git push origin "master"
 
 message=":white_check_mark: DSP library successfully updated on \`$BRANCH_NAME\`"
-execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$message" "upload" "${SET_UPDATED_DSP_LIB_PATH}" "${SET_UPDATED_KEYCHAIN_LIB_PATH}"
+execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$message" "upload" "${CACHE_UPDATED_DSP_LIB_PATH}" "${SET_UPDATED_KEYCHAIN_LIB_PATH}"
