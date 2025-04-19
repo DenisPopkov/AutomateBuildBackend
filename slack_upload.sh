@@ -125,47 +125,51 @@ function post_message() {
     local channel_id=$2
     local initial_comment=$3
 
-    # Construct JSON payload with jq to ensure proper escaping
     local json_payload=$(jq -n \
         --arg channel "$channel_id" \
         --arg text "$initial_comment" \
         '{channel: $channel, text: $text}')
 
-    # Make the API call
     local response=$(curl -s -X POST \
         -H "Authorization: Bearer ${slack_token}" \
         -H "Content-Type: application/json; charset=UTF-8" \
         -d "$json_payload" \
         'https://slack.com/api/chat.postMessage')
 
-    # First check if we got any response at all
     if [ -z "$response" ]; then
         echo "Error: Empty response from Slack API"
-        exit 1
+        return 1
     fi
 
-    # Try to parse the response normally first
-    if echo "$response" | jq -e '.ok' >/dev/null 2>&1; then
-        if [ "$(echo "$response" | jq -r '.ok')" = "true" ]; then
-            echo "Successfully posted message:"
-            echo "$response" | jq .
-            return 0
-        else
-            echo "Failed to post message:"
-            echo "$response" | jq .
-            exit 1
-        fi
+    local ok=$(echo "$response" | jq -r '.ok')
+    if [ "$ok" == "true" ]; then
+        local ts=$(echo "$response" | jq -r '.ts')
+        echo "$ts"
+        return 0
     else
-        # If normal parsing fails, try a more lenient approach
-        echo "Warning: Standard JSON parsing failed, attempting fallback method..."
-        if grep -q '"ok":true' <<< "$response"; then
-            echo "Successfully posted message (fallback detection):"
-            echo "$response"
-            return 0
-        else
-            echo "Failed to post message (fallback detection):"
-            echo "$response"
-            exit 1
-        fi
+        echo "Failed to post message:"
+        echo "$response" | jq .
+        return 1
+    fi
+}
+
+function delete_message() {
+    local slack_token=$1
+    local channel_id=$2
+    local message_ts=$3
+
+    local response=$(curl -s -X POST \
+        -H "Authorization: Bearer ${slack_token}" \
+        -H "Content-Type: application/json; charset=UTF-8" \
+        -d "{
+            \"channel\": \"${channel_id}\",
+            \"ts\": \"${message_ts}\"
+        }" "https://slack.com/api/chat.delete")
+
+    if [ "$(echo "$response" | jq -r '.ok')" == "true" ]; then
+        echo "Successfully deleted message with ts: $message_ts"
+    else
+        echo "Failed to delete message:"
+        echo "$response" | jq .
     fi
 }

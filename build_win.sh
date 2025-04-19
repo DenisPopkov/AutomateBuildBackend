@@ -57,7 +57,7 @@ end_time=$(TZ=Asia/Omsk date -v+25M "+%H:%M")
 message=":hammer_and_wrench: Windows build started on \`$BRANCH_NAME\`
 :mag_right: Analytics look on $analyticsMessage
 :clock2: It will be ready approximately at $end_time"
-post_message "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$message"
+first_ts=$(post_message "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$message")
 
 if [ "$isUseDevAnalytics" == "false" ]; then
   enable_prod_keys
@@ -96,3 +96,5 @@ if [ "$isUseDevAnalytics" == "false" ]; then
 else
   echo "Nothing to change with analytics"
 fi
+
+delete_message "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$first_ts"

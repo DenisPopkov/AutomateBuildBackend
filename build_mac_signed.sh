@@ -46,7 +46,7 @@ end_time=$(TZ=Asia/Omsk date -v+60M "+%H:%M")
 message=":hammer_and_wrench: MacOS build started on \`$BRANCH_NAME\`
 :mag_right: Analytics look on $analyticsMessage
 :clock2: It will be ready approximately at $end_time"
-post_message "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$message"
+first_ts=$(post_message "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$message")
 
 PROJECT_DIR="/Users/denispopkov/AndroidStudioProjects/SA_Neuro_Multiplatform"
 cd "$PROJECT_DIR" || { echo "Project directory not found!"; exit 1; }
@@ -254,3 +254,5 @@ if [ -f "$NOTARIZED_BUILD_PATH" ]; then
 else
     echo "File not found: $NOTARIZED_BUILD_PATH"
 fi
+
+delete_message "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$first_ts"

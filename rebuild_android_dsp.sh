@@ -35,7 +35,7 @@ done < "$SECRET_FILE"
 BRANCH_NAME=$1
 
 message=":hammer_and_wrench: Start Android DSP library update on \`$BRANCH_NAME\`"
-post_message "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$message"
+first_ts=$(post_message "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$message")
 
 open -a "Android Studio"
 

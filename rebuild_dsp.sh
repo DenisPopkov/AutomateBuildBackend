@@ -44,8 +44,8 @@ echo "Checking out branch: $BRANCH_NAME"
 git stash push -m "Pre-build stash"
 git fetch && git checkout "$BRANCH_NAME" && git pull origin "$BRANCH_NAME" --no-rebase
 
-message=":hammer_and_wrench: Start Desktop library update on \`$BRANCH_NAME\`"
-post_message "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$message"
+message=":hammer_and_wrench: Start MacOS DSP update on \`$BRANCH_NAME\`"
+first_ts=$(post_message "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$message")
 
 echo "Opening Android Studio..."
 open -a "Android Studio"
@@ -79,3 +79,4 @@ git push origin "master"
 
 message=":white_check_mark: DSP library successfully updated on \`$BRANCH_NAME\`"
 execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$message" "upload" "${CACHE_UPDATED_DSP_LIB_PATH}" "${SET_UPDATED_KEYCHAIN_LIB_PATH}"
+delete_message "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$first_ts"

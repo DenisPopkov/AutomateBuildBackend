@@ -34,6 +34,9 @@ echo "Checking out branch: $BRANCH_NAME"
 git stash push -m "Pre-build stash"
 git fetch && git checkout "$BRANCH_NAME" && git pull origin "$BRANCH_NAME" --no-rebase
 
+message=":hammer_and_wrench: Start Windows DSP update on \`$BRANCH_NAME\`"
+first_ts=$(post_message "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$message")
+
 WORKFLOW_FILENAME="rebuild_windows_dsp.yml"
 
 curl -X POST \
@@ -42,3 +45,5 @@ curl -X POST \
   https://api.github.com/repos/"$REPO_OWNER"/"$REPO_NAME"/actions/workflows/$WORKFLOW_FILENAME/dispatches \
   -d "{\"ref\":\"$BRANCH_NAME\"}" \
   || echo "❌ Failed to trigger workflow" >> "$ERROR_LOG_FILE"
+
+delete_message "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$first_ts"
