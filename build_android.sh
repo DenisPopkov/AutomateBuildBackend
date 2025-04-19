@@ -44,7 +44,7 @@ else
 fi
 
 end_time=$(TZ=Asia/Omsk date -v+15M "+%H:%M")
-message="Android build started on \`$BRANCH_NAME\` with $analyticsMessage analytics. It will be ready approximately at $end_time"
+message=":hammer_and_wrench: Android build started on \`$BRANCH_NAME\` with $analyticsMessage analytics. It will be ready approximately at $end_time"
 first_ts=$(post_message "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$message")
 
 PROJECT_DIR="/Users/denispopkov/AndroidStudioProjects/SA_Neuro_Multiplatform"

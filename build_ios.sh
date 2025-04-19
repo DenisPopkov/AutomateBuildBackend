@@ -54,7 +54,7 @@ LAST_BUILD_NUMBER=$(agvtool what-version -terse)
 NEW_VERSION=$((LAST_BUILD_NUMBER + 1))
 
 end_time=$(TZ=Asia/Omsk date -v+15M "+%H:%M")
-message="iOS build started on \`$BRANCH_NAME\` with $analyticsMessage analytics. It will be ready approximately at $end_time"
+message=":hammer_and_wrench: iOS build started on \`$BRANCH_NAME\` with $analyticsMessage analytics. It will be ready approximately at $end_time"
 first_ts=$(post_message "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$message")
 
 # Update project.pbxproj

@@ -53,7 +53,7 @@ else
 fi
 
 end_time=$(TZ=Asia/Omsk date -v+25M "+%H:%M")
-message="Windows build started on \`$BRANCH_NAME\` with $analyticsMessage analytics. It will be ready approximately at $end_time"
+message=":hammer_and_wrench: Windows build started on \`$BRANCH_NAME\` with $analyticsMessage analytics. It will be ready approximately at $end_time"
 first_ts=$(post_message "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$message")
 
 if [ "$isUseDevAnalytics" == "false" ]; then

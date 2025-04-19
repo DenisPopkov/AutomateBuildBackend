@@ -43,7 +43,7 @@ else
 fi
 
 end_time=$(TZ=Asia/Omsk date -v+60M "+%H:%M")
-message="MacOS build started on \`$BRANCH_NAME\` with $analyticsMessage analytics. It will be ready approximately at $end_time"
+message=":hammer_and_wrench: MacOS build started on \`$BRANCH_NAME\` with $analyticsMessage analytics. It will be ready approximately at $end_time"
 first_ts=$(post_message "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$message")
 echo "first_ts=$first_ts"
 
