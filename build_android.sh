@@ -123,7 +123,7 @@ if [ "$isUseDevAnalytics" == "false" ]; then
 
   # Upload AAB to Slack
   echo "Uploading AAB to Slack..."
-  execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" ":white_check_mark: Android App Bundle from \`$BRANCH_NAME\` (analytics=${analyticsMessage})" "upload" "${FILE_PATH}"
+  execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" ":white_check_mark: Android App Bundle from \`$BRANCH_NAME\` with ${analyticsMessage} analytics" "upload" "${FILE_PATH}"
 
   sleep 20
 
@@ -177,7 +177,7 @@ else
 
   # Upload APK to Slack
   echo "Uploading APK to Slack..."
-  execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" ":white_check_mark: Android APK from \`$BRANCH_NAME\` (analytics=${analyticsMessage})" "upload" "${FILE_PATH}"
+  execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" ":white_check_mark: Android APK from \`$BRANCH_NAME\` with ${analyticsMessage} analytics" "upload" "${FILE_PATH}"
 
   undo_enable_prod_keys
 fi
