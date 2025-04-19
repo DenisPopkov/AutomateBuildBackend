@@ -46,6 +46,7 @@ git fetch && git checkout "$BRANCH_NAME" && git pull origin "$BRANCH_NAME" --no-
 
 message=":hammer_and_wrench: Start MacOS DSP update on \`$BRANCH_NAME\`"
 first_ts=$(post_message "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$message")
+echo "Первое сообщение отправлено с ts: $first_ts"
 
 echo "Opening Android Studio..."
 open -a "Android Studio"
