@@ -65,8 +65,11 @@ git add .
 git commit -m "add: MacOS version bump"
 git push origin "$BRANCH_NAME"
 
+rm -rf "$BUILD_PATH"
+
 if [ "$isUseDevAnalytics" == "false" ]; then
   enable_prod_keys
+  comment_desktop_build_native_lib
 
   sleep 5
 
@@ -80,8 +83,22 @@ if [ "$isUseDevAnalytics" == "false" ]; then
 
   sleep 80
   else
+    comment_desktop_build_native_lib
+    osascript -e '
+    tell application "System Events"
+      tell process "Android Studio"
+        keystroke "O" using {command down, shift down}
+      end tell
+    end tell
+  '
+
+    sleep 80
     echo "Nothing to change with analytics"
 fi
+
+git stash push -m "Pre-build stash"
+
+sleep 15
 
 # Building
 echo "Building signed build..."

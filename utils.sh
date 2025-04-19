@@ -72,3 +72,14 @@ comment_android_dsp_gradle_task() {
 
   echo "Android DSP Gradle tasks commented"
 }
+
+comment_desktop_build_native_lib() {
+  awk '
+    /tasks.named\("compileKotlin"\) {/ { in_block=1 }
+    in_block && /^[[:space:]]*dependsOn\(buildNativeLib\)/ {
+      $0 = "// " $0
+    }
+    /}/ && in_block { in_block=0 }
+    { print }
+  ' "$FILE" > "$FILE.tmp" && mv "$FILE.tmp" "$FILE"
+}

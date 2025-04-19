@@ -1,24 +1,13 @@
 #!/bin/bash
 
-source "./slack_upload.sh"
-SECRET_FILE="/Users/denispopkov/Desktop/secret.txt"
+source "/Users/denispopkov/PycharmProjects/AutomateBuildBackend/slack_upload.sh"
+source "/Users/denispopkov/PycharmProjects/AutomateBuildBackend/utils.sh"
 
-while IFS='=' read -r key value; do
-  key=$(echo "$key" | xargs)
-  value=$(echo "$value" | xargs)
-  case "$key" in
-    "SLACK_BOT_TOKEN") SLACK_BOT_TOKEN="$value" ;;
-    "SLACK_CHANNEL") SLACK_CHANNEL="$value" ;;
-  esac
-done < "$SECRET_FILE"
+PROJECT_DIR="/Users/denispopkov/AndroidStudioProjects/SA_Neuro_Multiplatform"
 
-# Отправляем первое сообщение и сохраняем ts
-first_ts=$(post_message "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "Первое сообщение")
-echo "Первое сообщение отправлено с ts: $first_ts"
+cd "$PROJECT_DIR" || { echo "Project directory not found!"; exit 1; }
 
-# Отправляем второе сообщение
-second_ts=$(post_message "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "Второе сообщение")
-echo "Второе сообщение отправлено с ts: $second_ts"
+echo "Opening Android Studio..."
+open -a "Android Studio"
 
-# Удаляем первое сообщение
-delete_message "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$first_ts"
+comment_desktop_build_native_lib

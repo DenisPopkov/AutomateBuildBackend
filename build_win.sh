@@ -26,7 +26,6 @@ while IFS='=' read -r key value; do
   case "$key" in
     "SLACK_BOT_TOKEN") SLACK_BOT_TOKEN="$value" ;;
     "SLACK_CHANNEL") SLACK_CHANNEL="$value" ;;
-    "TEAM_ID") TEAM_ID="$value" ;;
     "GITHUB_TOKEN") GITHUB_TOKEN="$value" ;;
     "REPO_OWNER") REPO_OWNER="$value" ;;
     "REPO_NAME") REPO_NAME="$value" ;;
@@ -72,6 +71,23 @@ git commit -m "add: Windows version bump"
 git push origin "$BRANCH_NAME"
 
 sleep 10
+
+rm -rf "$BUILD_PATH"
+
+comment_desktop_build_native_lib
+osascript -e '
+  tell application "System Events"
+      tell process "Android Studio"
+        keystroke "O" using {command down, shift down}
+      end tell
+    end tell
+'
+
+sleep 80
+
+git stash push -m "Pre-build stash"
+
+sleep 15
 
 WORKFLOW_FILENAME="build_windows.yml"
 
