@@ -72,21 +72,6 @@ sleep 10
 
 rm -rf "$BUILD_PATH"
 
-comment_desktop_build_native_lib
-osascript -e '
-  tell application "System Events"
-      tell process "Android Studio"
-        keystroke "O" using {command down, shift down}
-      end tell
-    end tell
-'
-
-sleep 80
-
-git stash push -m "Pre-build stash"
-
-sleep 15
-
 WORKFLOW_FILENAME="build_windows.yml"
 
 curl -X POST \
