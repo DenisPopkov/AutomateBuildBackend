@@ -81,9 +81,10 @@ if [ "$isUseDevAnalytics" == "false" ]; then
   '
 
   sleep 80
-  else
-    comment_desktop_build_native_lib
-    osascript -e '
+else
+  comment_desktop_build_native_lib
+
+  osascript -e '
     tell application "System Events"
       tell process "Android Studio"
         keystroke "O" using {command down, shift down}
@@ -91,8 +92,8 @@ if [ "$isUseDevAnalytics" == "false" ]; then
     end tell
   '
 
-    sleep 80
-    echo "Nothing to change with analytics"
+  sleep 80
+  echo "Nothing to change with analytics"
 fi
 
 git stash push -m "Pre-build stash"
