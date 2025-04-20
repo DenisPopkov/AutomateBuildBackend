@@ -3,12 +3,8 @@
 source "/Users/denispopkov/PycharmProjects/AutomateBuildBackend/slack_upload.sh"
 source "/Users/denispopkov/PycharmProjects/AutomateBuildBackend/utils.sh"
 
-PROJECT_DIR="/Users/denispopkov/AndroidStudioProjects/SA_Neuro_Multiplatform"
 SECRET_FILE="/Users/denispopkov/Desktop/secret.txt"
 BUILD_TOOL="/Users/denispopkov/AndroidStudioProjects/SA_Neuro_release/Neuro_desktop.pkgproj"
-DYLIB_PATH="$PROJECT_DIR/shared/src/commonMain/resources/MR/files/libkeychainbridge.dylib"
-SIGNED_PKG_PATH="$PROJECT_DIR/build/Neuro_desktopS.pkg"
-NOTARIZED_BUILD_PATH="/Users/denispopkov/AndroidStudioProjects/SA_Neuro_release/build/Neuro_desktop.pkg"
 BUILD_PATH="$PROJECT_DIR/desktopApp/build"
 ERROR_LOG_FILE="/tmp/build_error_log.txt"
 
@@ -51,6 +47,7 @@ message=":hammer_and_wrench: MacOS build started on \`$BRANCH_NAME\` with $analy
 first_ts=$(post_message "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$message")
 echo "first_ts=$first_ts"
 
+PROJECT_DIR="/Users/denispopkov/AndroidStudioProjects/SA_Neuro_Multiplatform"
 cd "$PROJECT_DIR" || { echo "Project directory not found!"; exit 1; }
 
 echo "Checking out branch: $BRANCH_NAME"
@@ -167,6 +164,7 @@ trigger_build
 
 echo "Waiting for notarized build to complete..."
 
+NOTARIZED_BUILD_PATH="/Users/denispopkov/AndroidStudioProjects/SA_Neuro_release/build/Neuro_desktop.pkg"
 elapsed_time=0
 while [ ! -f "$NOTARIZED_BUILD_PATH" ]; do
   sleep $INTERVAL
@@ -183,6 +181,7 @@ done
 sleep 20
 
 ## Signing the .pkg
+SIGNED_PKG_PATH="/Users/denispopkov/AndroidStudioProjects/SA_Neuro_release/build/Neuro_desktopS.pkg"
 echo "Signing the .pkg file..."
 echo "$USER_PASSWORD" | sudo -S productsign --sign "Developer ID Installer: Source Audio LLC (Z2JAQC4DXV)" "$NOTARIZED_BUILD_PATH" "$SIGNED_PKG_PATH"
 
