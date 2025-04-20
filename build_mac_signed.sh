@@ -8,6 +8,7 @@ SECRET_FILE="/Users/denispopkov/Desktop/secret.txt"
 BUILD_TOOL="/Users/denispopkov/AndroidStudioProjects/SA_Neuro_release/Neuro_desktop.pkgproj"
 DYLIB_PATH="$PROJECT_DIR/shared/src/commonMain/resources/MR/files/libkeychainbridge.dylib"
 SIGNED_PKG_PATH="$PROJECT_DIR/build/Neuro_desktopS.pkg"
+NOTARIZED_BUILD_PATH="/Users/denispopkov/AndroidStudioProjects/SA_Neuro_release/build/Neuro_desktop.pkg"
 BUILD_PATH="$PROJECT_DIR/desktopApp/build"
 ERROR_LOG_FILE="/tmp/build_error_log.txt"
 
@@ -166,7 +167,6 @@ trigger_build
 
 echo "Waiting for notarized build to complete..."
 
-NOTARIZED_BUILD_PATH="/Users/denispopkov/AndroidStudioProjects/SA_Neuro_release/build/Neuro_desktop.pkg"
 elapsed_time=0
 while [ ! -f "$NOTARIZED_BUILD_PATH" ]; do
   sleep $INTERVAL
