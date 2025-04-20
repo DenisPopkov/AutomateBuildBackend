@@ -5,7 +5,7 @@ source "/Users/denispopkov/PycharmProjects/AutomateBuildBackend/utils.sh"
 
 PROJECT_DIR="/Users/denispopkov/AndroidStudioProjects/SA_Neuro_Multiplatform"
 HEROKU_PROD="/Users/denispopkov/AndroidStudioProjects/neuro-production/"
-HEROKU_LIBRARY="/Users/denispopkov/AndroidStudioProjects/neuro-production/public/"
+HEROKU_LIBRARY="/Users/denispopkov/AndroidStudioProjects/neuro-production/files/"
 SECRET_FILE="/Users/denispopkov/Desktop/secret.txt"
 ERROR_LOG_FILE="/tmp/build_error_log.txt"
 JNI_LIBS_PATH="$PROJECT_DIR/androidApp/src/main/jniLibs"
