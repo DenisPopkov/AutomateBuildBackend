@@ -7,7 +7,7 @@ PROJECT_DIR="/Users/denispopkov/AndroidStudioProjects/SA_Neuro_Multiplatform"
 SECRET_FILE="/Users/denispopkov/Desktop/secret.txt"
 CACHE_UPDATED_DSP_LIB_PATH="$PROJECT_DIR/desktopApp/build/native/libdspmac.dylib"
 HEROKU_PROD="/Users/denispopkov/AndroidStudioProjects/neuro-production/"
-HEROKU_LIBRARY="/Users/denispopkov/AndroidStudioProjects/neuro-production/public/"
+HEROKU_LIBRARY="/Users/denispopkov/AndroidStudioProjects/neuro-production/files/"
 ERROR_LOG_FILE="/tmp/build_error_log.txt"
 
 post_error_message() {
