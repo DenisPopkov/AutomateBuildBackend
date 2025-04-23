@@ -26,18 +26,6 @@ post_error_message() {
   execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$message" "upload" "$ERROR_LOG_FILE"
 }
 
-enable_windows_decorations() {
-    sed -i '' -e '/undecorated = DesktopPlatform.Current/s/!=/==/g' "$NEURO_WINDOW_KT"
-    sed -i '' -e '/transparent = DesktopPlatform.Current/s/!=/==/g' "$NEURO_WINDOW_KT"
-    echo "Windows decorations enabled (undecorated and transparent on Windows)."
-}
-
-disable_windows_decorations() {
-    sed -i '' -e '/undecorated = DesktopPlatform.Current/s/==/!=/g' "$NEURO_WINDOW_KT"
-    sed -i '' -e '/transparent = DesktopPlatform.Current/s/==/!=/g' "$NEURO_WINDOW_KT"
-    echo "Windows decorations disabled (undecorated and transparent on non-Windows)."
-}
-
 echo "Opening Android Studio..."
 "/c/Program Files/Android/Android Studio/bin/studio64.exe" &
 
@@ -86,12 +74,8 @@ else
   echo "Nothing to change with analytics"
 fi
 
-enable_windows_decorations
-
 echo "Building MSI package..."
 ./gradlew packageReleaseMsi
-
-disable_windows_decorations
 
 DESKTOP_BUILD_PATH="$PROJECT_DIR/desktopApp/build/compose/binaries/main-release/msi"
 
