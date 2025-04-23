@@ -57,10 +57,8 @@ else
 fi
 
 end_time=$(date -d "+15 minutes" +"%H:%M")
-message=":hammer_and_wrench: Windows build started on \`$BRANCH_NAME\`
-:mag_right: Analytics look on $analyticsMessage
-:clock2: It will be ready approximately at $end_time"
-post_message "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$message"
+message=":hammer_and_wrench: Windows build started on \`$BRANCH_NAME\` with $analyticsMessage analytics. It will be ready approximately at $end_time"
+first_ts=$(post_message "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$message")
 
 if [ "$isUseDevAnalytics" == "false" ]; then
   enable_prod_keys
@@ -90,7 +88,6 @@ if [ -z "$MSI_FILE" ]; then
     exit 1
 fi
 
-# Define the new filename (Neuro_Desktop-<version>-<build>.msi)
 NEW_MSI_PATH="$DESKTOP_BUILD_PATH/Neuro_Desktop-${VERSION_NAME}-${VERSION_CODE}.msi"
 
 # Remove existing file if present
@@ -105,4 +102,6 @@ echo "Renamed file to: $NEW_MSI_PATH"
 
 # Upload to Slack
 echo "Uploading MSI to Slack..."
-execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" ":white_check_mark: Windows from \`$BRANCH_NAME\`" "upload" "$NEW_MSI_PATH"
+execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" ":white_check_mark: Windows from \`$BRANCH_NAME\` with $analyticsMessage analytics" "upload" "$NEW_MSI_PATH"
+
+delete_message "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$first_ts"
