@@ -9,7 +9,9 @@ INFO_PLIST_PATH="$IOS_APP_PATH/iosApp/app/Info.plist"
 FASTFILE_PATH="/Users/denispopkov/AndroidStudioProjects/SA_Neuro_Multiplatform/iosApp/fastlane/Fastfile"
 CACHE_PATH="/Users/denispopkov/AndroidStudioProjects/SA_Neuro_Multiplatform/shared/build"
 FILE_TO_DELETE="/Users/denispopkov/AndroidStudioProjects/SA_Neuro_Multiplatform/shared/src/commonMain/resources/MR/files/libdspmac.dylib"
+DYLIB_PATH="/Users/denispopkov/AndroidStudioProjects/SA_Neuro_Multiplatform/shared/src/commonMain/resources/MR/files/libkeychainbridge.dylib"
 FILE_BACKUP_PATH="/Users/denispopkov/Desktop/libdspmac.dylib"
+DYLIB_FILE_BACKUP_PATH="/Users/denispopkov/Desktop/libkeychainbridge.dylib"
 SWIFT_FILE_SOURCE="/Users/denispopkov/Desktop/SA_Neuro_Multiplatform_shared.swift"
 SWIFT_TARGET_DIR="/Users/denispopkov/AndroidStudioProjects/SA_Neuro_Multiplatform/shared/build/bin/iosArm64/podDebugFramework/sharedSwift"
 SWIFT_TARGET_FILE="$SWIFT_TARGET_DIR/SA_Neuro_Multiplatform_shared.swift"
@@ -104,17 +106,24 @@ if [ "$isUseDevAnalytics" == "false" ]; then
   '
 
   sleep 80
-  else
-    echo "Nothing to change with analytics"
+else
+  echo "Nothing to change with analytics"
 fi
 
-# Move file to backup location
-if [ -f "$FILE_TO_DELETE" ]; then
-  mv "$FILE_TO_DELETE" "$FILE_BACKUP_PATH"
-  echo "Moved file from $FILE_TO_DELETE to $FILE_BACKUP_PATH"
-else
-  echo "File not found at $FILE_TO_DELETE, skipping move"
-fi
+# Move files to backup locations
+move_file() {
+  local file_path=$1
+  local backup_path=$2
+  if [ -f "$file_path" ]; then
+    mv "$file_path" "$backup_path"
+    echo "Moved file from $file_path to $backup_path"
+  else
+    echo "File not found at $file_path, skipping move"
+  fi
+}
+
+move_file "$FILE_TO_DELETE" "$FILE_BACKUP_PATH"
+move_file "$DYLIB_PATH" "$DYLIB_FILE_BACKUP_PATH"
 
 # Delete cache directory
 if [ -d "$CACHE_PATH" ]; then
@@ -147,18 +156,21 @@ else
   echo "Fastlane failed. Not committing changes or sending Slack message."
 fi
 
-# Restore the file after Fastlane execution
-if [ -f "$FILE_BACKUP_PATH" ]; then
-  mv "$FILE_BACKUP_PATH" "$FILE_TO_DELETE"
-  echo "Restored file from $FILE_BACKUP_PATH to $FILE_TO_DELETE"
+restore_file() {
+  local backup_path=$1
+  local file_path=$2
+  if [ -f "$backup_path" ]; then
+    mv "$backup_path" "$file_path"
+    echo "Restored file from $backup_path to $file_path"
 
-  # Delete the backup file after restoration
-  if [ -f "$FILE_BACKUP_PATH" ]; then
-    rm "$FILE_BACKUP_PATH"
-    echo "Deleted backup file: $FILE_BACKUP_PATH"
+    rm "$backup_path"
+    echo "Deleted backup file: $backup_path"
+  else
+    echo "Backup file not found at $backup_path, skipping restore"
   fi
-else
-  echo "Backup file not found at $FILE_BACKUP_PATH, skipping restore"
-fi
+}
+
+restore_file "$FILE_BACKUP_PATH" "$FILE_TO_DELETE"
+restore_file "$DYLIB_FILE_BACKUP_PATH" "$DYLIB_PATH"
 
 delete_message "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$first_ts"
