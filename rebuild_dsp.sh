@@ -71,7 +71,14 @@ git fetch && git pull origin "master" --no-rebase
 
 # Update DSP lib in Heroku
 rm -rf "$HEROKU_LIBRARY/x86/libdspmac.dylib"
-cp "$CACHE_UPDATED_DSP_LIB_PATH" "$HEROKU_LIBRARY/x86"
+
+if [ -f "$CACHE_UPDATED_DSP_LIB_PATH" ]; then
+  cp "$CACHE_UPDATED_DSP_LIB_PATH" "$HEROKU_LIBRARY/x86/"
+else
+  echo "Error: DSP library not found at $CACHE_UPDATED_DSP_LIB_PATH"
+  post_error_message "$BRANCH_NAME"
+  exit 1
+fi
 
 git add .
 git commit -m "add: update DSP lib"
