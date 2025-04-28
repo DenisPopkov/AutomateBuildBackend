@@ -181,14 +181,14 @@ done
 
 sleep 20
 
+# Sign the dylib
+echo "Signing the libkeychainbridge.dylib..."
+echo "$USER_PASSWORD" | sudo -S codesign --force --deep --options runtime --sign "Developer ID Application: Source Audio LLC (Z2JAQC4DXV)" "$DYLIB_PATH"
+
 ## Signing the .pkg
 SIGNED_PKG_PATH="/Users/denispopkov/AndroidStudioProjects/SA_Neuro_release/build/Neuro_desktopS.pkg"
 echo "Signing the .pkg file..."
 echo "$USER_PASSWORD" | sudo -S productsign --sign "Developer ID Installer: Source Audio LLC (Z2JAQC4DXV)" "$NOTARIZED_BUILD_PATH" "$SIGNED_PKG_PATH"
-
-# Sign the dylib
-echo "Signing the libkeychainbridge.dylib..."
-codesign --timestamp --options runtime --sign "Developer ID Application: Source Audio LLC (Z2JAQC4DXV)" "$DYLIB_PATH"
 
 sleep 20
 
