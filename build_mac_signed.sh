@@ -8,6 +8,7 @@ SECRET_FILE="/Users/denispopkov/Desktop/secret.txt"
 BUILD_TOOL="/Users/denispopkov/AndroidStudioProjects/SA_Neuro_release/Neuro_desktop.pkgproj"
 DYLIB_PATH="$PROJECT_DIR/shared/src/commonMain/resources/MR/files/libkeychainbridge.dylib"
 BUILD_PATH="$PROJECT_DIR/desktopApp/build"
+DYLIB_RELATIVE_PATH="shared/src/commonMain/resources/MR/files/libkeychainbridge.dylib"
 ERROR_LOG_FILE="/tmp/build_error_log.txt"
 
 while IFS='=' read -r key value; do
@@ -183,7 +184,7 @@ sleep 20
 
 # Sign the dylib
 echo "Signing the libkeychainbridge.dylib..."
-echo "$USER_PASSWORD" | sudo -S codesign --force --deep --options runtime --sign "Developer ID Application: Source Audio LLC (Z2JAQC4DXV)" "$DYLIB_PATH"
+echo "$USER_PASSWORD" | sudo -S codesign --force --deep --options runtime --entitlements "$PROJECT_DIR/desktopApp/macos/entitlements/entitlements.plist" --sign "Developer ID Application: Source Audio LLC (Z2JAQC4DXV)" "$DYLIB_PATH"
 
 ## Signing the .pkg
 SIGNED_PKG_PATH="/Users/denispopkov/AndroidStudioProjects/SA_Neuro_release/build/Neuro_desktopS.pkg"
