@@ -6,9 +6,7 @@ source "/Users/denispopkov/PycharmProjects/AutomateBuildBackend/utils.sh"
 PROJECT_DIR="/Users/denispopkov/AndroidStudioProjects/SA_Neuro_Multiplatform"
 SECRET_FILE="/Users/denispopkov/Desktop/secret.txt"
 BUILD_TOOL="/Users/denispopkov/AndroidStudioProjects/SA_Neuro_release/Neuro_desktop.pkgproj"
-DYLIB_PATH="$PROJECT_DIR/shared/src/commonMain/resources/MR/files/libkeychainbridge.dylib"
 BUILD_PATH="$PROJECT_DIR/desktopApp/build"
-DYLIB_RELATIVE_PATH="shared/src/commonMain/resources/MR/files/libkeychainbridge.dylib"
 ERROR_LOG_FILE="/tmp/build_error_log.txt"
 
 while IFS='=' read -r key value; do
