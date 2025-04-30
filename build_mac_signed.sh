@@ -186,10 +186,6 @@ SIGNED_PKG_PATH="/Users/denispopkov/AndroidStudioProjects/SA_Neuro_release/build
 echo "Signing the .pkg file..."
 echo "$USER_PASSWORD" | sudo -S productsign --sign "Developer ID Installer: Source Audio LLC (Z2JAQC4DXV)" "$NOTARIZED_BUILD_PATH" "$SIGNED_PKG_PATH"
 
-# Sign the dylib
-echo "Signing the libkeychainbridge.dylib..."
-codesign --timestamp --options runtime --sign "Developer ID Application: Source Audio LLC (Z2JAQC4DXV)" "$DYLIB_PATH"
-
 sleep 20
 
 # Final Notarization of Signed .pkg
