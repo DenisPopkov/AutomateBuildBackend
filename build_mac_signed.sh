@@ -182,10 +182,6 @@ done
 
 sleep 20
 
-# Sign the dylib
-echo "Signing the libkeychainbridge.dylib..."
-echo "$USER_PASSWORD" | sudo -S codesign --force --deep --options runtime --entitlements "$PROJECT_DIR/desktopApp/macos/entitlements/entitlements.plist" --sign "Developer ID Application: Source Audio LLC (Z2JAQC4DXV)" "$DYLIB_PATH"
-
 ## Signing the .pkg
 SIGNED_PKG_PATH="/Users/denispopkov/AndroidStudioProjects/SA_Neuro_release/build/Neuro_desktopS.pkg"
 echo "Signing the .pkg file..."
