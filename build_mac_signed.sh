@@ -3,10 +3,11 @@
 source "/Users/denispopkov/PycharmProjects/AutomateBuildBackend/slack_upload.sh"
 source "/Users/denispopkov/PycharmProjects/AutomateBuildBackend/utils.sh"
 
-PROJECT_DIR="/Users/denispopkov/AndroidStudioProjects/SA_Neuro_Multiplatform"
 SECRET_FILE="/Users/denispopkov/Desktop/secret.txt"
-BUILD_TOOL="/Users/denispopkov/AndroidStudioProjects/SA_Neuro_release/Neuro_desktop.pkgproj"
+PROJECT_DIR="/Users/denispopkov/AndroidStudioProjects/SA_Neuro_Multiplatform"
 BUILD_PATH="$PROJECT_DIR/desktopApp/build"
+RESOURCE_DIR="$PROJECT_DIR/desktopApp/resources"
+RESOURCE_BACKUP="$PROJECT_DIR/desktopApp/resources_backup"
 
 while IFS='=' read -r key value; do
   key=$(echo "$key" | xargs)
@@ -21,38 +22,62 @@ while IFS='=' read -r key value; do
   esac
 done < "$SECRET_FILE"
 
+echo "Opening Android Studio..."
 open -a "Android Studio"
+
+cd "$PROJECT_DIR" || { echo "Project directory not found!"; exit 1; }
 
 end_time=$(TZ=Asia/Omsk date -v+30M "+%H:%M")
 message=":hammer_and_wrench: ARM MacOS build started. It will be ready approximately at $end_time"
 first_ts=$(post_message "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$message")
 
-cd "$PROJECT_DIR" || exit 1
-
 VERSION_CODE=$(grep '^desktop\.build\.number\s*=' "$PROJECT_DIR/gradle.properties" | sed 's/.*=\s*\([0-9]*\)/\1/' | xargs)
-VERSION_NAME=$(grep '^desktop\.version\s*=' "$PROJECT_DIR/gradle.properties" | sed 's/.*=\s*\([0-9]*\.[0-9]*\.[0-9]*\)/\1/' | xargs)
+VERSION_CODE=$((VERSION_CODE + 1))
 
+# Backup and remove resources
+if [ -d "$RESOURCE_DIR" ]; then
+  echo "Backing up and removing resources directory..."
+  rm -rf "$RESOURCE_BACKUP"
+  cp -R "$RESOURCE_DIR" "$RESOURCE_BACKUP"
+  rm -rf "$RESOURCE_DIR"
+else
+  echo "No resources directory found to back up."
+fi
+
+# Build the app
+echo "Building signed build..."
 ./gradlew packageDmg
 
+# Create ZIP
 BUILD_PATH="$PROJECT_DIR/desktopApp/build/compose/binaries/main/app/Neuro Desktop.app"
-sleep 20
-
-if [ ! -d "$BUILD_PATH" ]; then exit 1; fi
-
 ZIP_PATH="$PROJECT_DIR/desktopApp/build/compose/binaries/main/app/Neuro.zip"
-
-find "$BUILD_PATH" -name "CMakeFiles" -type d -exec rm -rf {} +
+echo "Creating ZIP file: $ZIP_PATH"
 cd "$(dirname "$BUILD_PATH")" || exit 1
-ditto -c -k --keepParent "$(basename "$BUILD_PATH")" "$(basename "$ZIP_PATH")"
-if [ $? -ne 0 ]; then exit 1; fi
+zip -r "$(basename "$ZIP_PATH")" "$(basename "$BUILD_PATH")"
 
+if [ $? -eq 0 ]; then
+  echo "ZIP file created successfully: $ZIP_PATH"
+else
+  post_error_message "$BRANCH_NAME"
+  echo "Error creating ZIP file."
+  # Restore resources before exit
+  rm -rf "$RESOURCE_DIR"
+  mv "$RESOURCE_BACKUP" "$RESOURCE_DIR"
+  exit 1
+fi
+
+# Submit for notarization
+echo "Submitting build for notarization..."
 xcrun notarytool submit "$ZIP_PATH" \
   --apple-id "$APPLE_ID" \
   --team-id "$TEAM_ID" \
   --password "$NOTARY_PASSWORD" \
   --wait
 
-if [ $? -ne 0 ]; then exit 1; fi
+# Restore resources directory
+echo "Restoring resources directory..."
+rm -rf "$RESOURCE_DIR"
+mv "$RESOURCE_BACKUP" "$RESOURCE_DIR"
 
 sleep 20
 open "$BUILD_TOOL"
