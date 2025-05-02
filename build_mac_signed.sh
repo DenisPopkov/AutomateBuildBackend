@@ -7,6 +7,7 @@ SECRET_FILE="/Users/denispopkov/Desktop/secret.txt"
 PROJECT_DIR="/Users/denispopkov/AndroidStudioProjects/SA_Neuro_Multiplatform"
 BUILD_PATH="$PROJECT_DIR/desktopApp/build"
 RESOURCE_DIR="$PROJECT_DIR/desktopApp/resources"
+BUILD_TOOL="/Users/denispopkov/AndroidStudioProjects/SA_Neuro_release/Neuro_desktop.pkgproj"
 RESOURCE_BACKUP="$PROJECT_DIR/desktopApp/resources_backup"
 
 while IFS='=' read -r key value; do
