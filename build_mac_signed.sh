@@ -74,11 +74,6 @@ xcrun notarytool submit "$ZIP_PATH" \
   --password "$NOTARY_PASSWORD" \
   --wait
 
-# Restore resources directory
-echo "Restoring resources directory..."
-rm -rf "$RESOURCE_DIR"
-mv "$RESOURCE_BACKUP" "$RESOURCE_DIR"
-
 sleep 20
 open "$BUILD_TOOL"
 sleep 5
@@ -145,6 +140,11 @@ DESKTOP_BUILD_PATH="$PROJECT_DIR/desktopApp/build/compose/binaries/main"
 if [ -d "$DESKTOP_BUILD_PATH" ]; then rm -r "$DESKTOP_BUILD_PATH"; fi
 
 pkill -f "$PROCESS_NAME"
+
+# Restore resources directory
+echo "Restoring resources directory..."
+rm -rf "$RESOURCE_DIR"
+mv "$RESOURCE_BACKUP" "$RESOURCE_DIR"
 
 if [ -f "$NOTARIZED_BUILD_PATH" ]; then rm "$NOTARIZED_BUILD_PATH"; fi
 
