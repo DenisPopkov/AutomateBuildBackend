@@ -33,7 +33,7 @@ message=":hammer_and_wrench: ARM MacOS build started. It will be ready approxima
 first_ts=$(post_message "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$message")
 
 VERSION_CODE=$(grep '^desktop\.build\.number\s*=' "$PROJECT_DIR/gradle.properties" | sed 's/.*=\s*\([0-9]*\)/\1/' | xargs)
-VERSION_CODE=$((VERSION_CODE + 1))
+VERSION_NAME=$(grep '^desktop\.version\s*=' "$PROJECT_DIR/gradle.properties" | sed 's/.*=\s*\([0-9]*\.[0-9]*\.[0-9]*\)/\1/' | xargs)
 
 # Backup and remove resources
 if [ -d "$RESOURCE_DIR" ]; then
