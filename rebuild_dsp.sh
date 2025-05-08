@@ -5,8 +5,9 @@ source "./utils.sh"
 
 SECRET_FILE="/c/Users/BlackBricks/Desktop/secret.txt"
 PROJECT_DIR="/c/Users/BlackBricks/StudioProjects/SA_Neuro_Multiplatform"
-SET_UPDATED_LIB_PATH="$PROJECT_DIR/shared/src/commonMain/resources/MR/files/libs/dspmac.dll"
 CACHE_UPDATED_LIB_PATH="$PROJECT_DIR/desktopApp/resources/common/dsp/Debug/dspmac.dll"
+HEROKU_PROD="/c/Users/BlackBricks/StudioProjects/neuro-production"
+HEROKU_LIBRARY="$HEROKU_PROD/files"
 ERROR_LOG_FILE="${ERROR_LOG_FILE:-/tmp/build_error_log.txt}"
 
 post_error_message() {
@@ -50,7 +51,7 @@ git fetch --all
 git checkout "$BRANCH_NAME"
 git pull origin "$BRANCH_NAME" --no-rebase
 
-message=":hammer_and_wrench: Start Desktop DSP library update on \`$BRANCH_NAME\`"
+message=":hammer_and_wrench: Start Windows DSP library update on \`$BRANCH_NAME\`"
 first_ts=$(post_message "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$message")
 
 sleep 5
@@ -67,18 +68,27 @@ if ! ./gradlew compileKotlin --stacktrace --info; then
   exit 1
 fi
 
+cd "$HEROKU_PROD" || { echo "Heroku project directory not found!"; exit 1; }
+
 sleep 5
 
-rm -f "$SET_UPDATED_LIB_PATH"
-cp "$CACHE_UPDATED_LIB_PATH" "$SET_UPDATED_LIB_PATH"
+git stash push -m "Pre-build stash"
+git fetch && git pull origin "master" --no-rebase
 
-sleep 10
+rm -rf "$HEROKU_LIBRARY/dspmac.dll"
+
+if [ -f "$CACHE_UPDATED_LIB_PATH" ]; then
+  cp "$CACHE_UPDATED_LIB_PATH" "$HEROKU_LIBRARY"
+else
+  echo "Error: DSP library not found at $CACHE_UPDATED_LIB_PATH"
+  post_error_message "$BRANCH_NAME"
+  exit 1
+fi
 
 git add .
-git commit -m "add: update dsp lib"
-git push origin "$BRANCH_NAME"
+git commit -m "add: update DSP lib"
+git push origin "master"
 
 message=":white_check_mark: DSP library successfully updated on \`$BRANCH_NAME\`"
-execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$message" "upload" "${SET_UPDATED_LIB_PATH}"
-
+execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$message" "upload" "${CACHE_UPDATED_LIB_PATH}"
 delete_message "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$first_ts"
