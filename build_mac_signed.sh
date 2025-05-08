@@ -44,7 +44,7 @@ else
 fi
 
 end_time=$(TZ=Asia/Omsk date -v+60M "+%H:%M")
-message=":hammer_and_wrench: MacOS build started on \`$BRANCH_NAME\` with $analyticsMessage analytics. It will be ready approximately at $end_time"
+message=":hammer_and_wrench: X86 MacOS build started on \`$BRANCH_NAME\` with $analyticsMessage analytics. It will be ready approximately at $end_time"
 first_ts=$(post_message "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$message")
 echo "first_ts=$first_ts"
 
@@ -223,7 +223,7 @@ else
 fi
 
 echo "Uploading renamed .pkg to Slack..."
-execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" ":white_check_mark: MacOS signed from \`$BRANCH_NAME\` with ${analyticsMessage} analytics" "upload" "${NEW_PKG_PATH}"
+execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" ":white_check_mark: X86 MacOS from \`$BRANCH_NAME\` with ${analyticsMessage} analytics" "upload" "${NEW_PKG_PATH}"
 
 sleep 10
 
