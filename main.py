@@ -89,34 +89,6 @@ def rebuild_dsp():
         return jsonify({"error": str(e)}), 500
 
 
-@app.route('/rebuild_windows_dsp', methods=['POST'])
-def rebuild_windows_dsp():
-    try:
-        data = request.json
-        branch_name = data.get('branchName')
-
-        script_path = "./rebuild_windows_dsp.sh"
-
-        process = subprocess.Popen(
-            ["sh", script_path, branch_name],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            text=True
-        )
-
-        if process.returncode != 0:
-            raise subprocess.CalledProcessError(process.returncode, script_path)
-
-        return jsonify({
-            "message": f"macOS build for branch {branch_name} signing executed successfully!"
-        }), 200
-
-    except subprocess.CalledProcessError:
-        return jsonify({"error": "Build script failed. Check Slack for full logs."}), 500
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-
 @app.route('/rebuild_android_dsp', methods=['POST'])
 def rebuild_android_dsp():
     try:
@@ -157,39 +129,6 @@ def rebuild_android_dsp():
             "message": f"macOS build for branch {branch_name} signing executed successfully!"
         }), 200
 
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-
-@app.route('/build_win', methods=['POST'])
-def build_win():
-    try:
-        data = request.json
-        branch_name = data.get('branchName')
-        use_dev_analytics = data.get('isUseDevAnalytics', True)
-
-        if not branch_name:
-            return jsonify({"error": "Missing required parameter: branchName"}), 400
-
-        script_path = "./build_win.sh"
-        use_dev_analytics_flag = "true" if use_dev_analytics else "false"
-
-        process = subprocess.Popen(
-            ["sh", script_path, branch_name, use_dev_analytics_flag],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            text=True
-        )
-
-        if process.returncode != 0:
-            raise subprocess.CalledProcessError(process.returncode, script_path)
-
-        return jsonify({
-            "message": f"Windows build executed successfully!"
-        }), 200
-
-    except subprocess.CalledProcessError:
-        return jsonify({"error": "Build script failed. Check Slack for full logs."}), 500
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
