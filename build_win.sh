@@ -11,12 +11,10 @@ PROJECT_DIR="/c/Users/BlackBricks/StudioProjects/SA_Neuro_Multiplatform"
 ERROR_LOG_FILE="${ERROR_LOG_FILE:-/tmp/build_error_log.txt}"
 ADVANCED_INSTALLER_CONFIG="/c/Users/BlackBricks/Applications/Neuro installer/installer_win/Neuro Desktop 2.aip"
 ADVANCED_INSTALLER_SETUP_FILES="/c/Users/BlackBricks/Applications/Neuro installer/installer_win/Neuro Desktop-SetupFiles"
-ADVANCED_INSTALLER_CLI="/c/Program Files (x86)/Caphyon/Advanced Installer 20.6/bin/x86/AdvancedInstaller.com"
 
 while IFS='=' read -r key value; do
   key=$(echo "$key" | xargs)
   value=$(echo "$value" | xargs)
-
   case "$key" in
     "SLACK_BOT_TOKEN") SLACK_BOT_TOKEN="$value" ;;
     "SLACK_CHANNEL") SLACK_CHANNEL="$value" ;;
@@ -47,7 +45,7 @@ git push origin "$BRANCH_NAME"
 analyticsMessage="prod"
 [ "$isUseDevAnalytics" == "true" ] && analyticsMessage="dev"
 
-end_time=$(date -d "+25 minutes" +"%H:%M")
+end_time=$(date -d "+15 minutes" +"%H:%M")
 message=":hammer_and_wrench: Windows build started on \`$BRANCH_NAME\` with $analyticsMessage analytics. It will be ready approximately at $end_time"
 first_ts=$(post_message "$SLACK_BOT_TOKEN" "$SLACK_CHANNEL" "$message")
 
@@ -76,17 +74,16 @@ rm -rf "$ADVANCED_INSTALLER_SETUP_FILES/app" "$ADVANCED_INSTALLER_SETUP_FILES/re
 cp -r "$EXTRACTED_APP_PATH/app" "$ADVANCED_INSTALLER_SETUP_FILES/"
 cp -r "$EXTRACTED_APP_PATH/realtime" "$ADVANCED_INSTALLER_SETUP_FILES/"
 
-OLD_VERSION=$(grep -oP 'Property Id="ProductVersion" Value="\K[^"]+' "$ADVANCED_INSTALLER_CONFIG")
+OLD_VERSION=$(grep 'Property Id="ProductVersion"' "$ADVANCED_INSTALLER_CONFIG" | grep -oP 'Value="\K[^"]+')
 sed -i "s/Property Id=\"ProductVersion\" Value=\"$OLD_VERSION\"/Property Id=\"ProductVersion\" Value=\"$VERSION_NAME\"/" "$ADVANCED_INSTALLER_CONFIG"
 
-GENERATE_CODE=$(grep -oP 'Property Id="GenerateCode" Value="\K[^"]+' "$ADVANCED_INSTALLER_CONFIG")
-NEXT_GENERATE_CODE=$((GENERATE_CODE + 1))
-sed -i "s/Property Id=\"GenerateCode\" Value=\"$GENERATE_CODE\"/Property Id=\"GenerateCode\" Value=\"$NEXT_GENERATE_CODE\"/" "$ADVANCED_INSTALLER_CONFIG"
-
-"$ADVANCED_INSTALLER_CLI" /build "$ADVANCED_INSTALLER_CONFIG"
+OLD_GENERATE_CODE=$(grep 'Property Id="GenerateCode"' "$ADVANCED_INSTALLER_CONFIG" | grep -oP 'Value="\K[^"]+')
+NEW_GENERATE_CODE=$((OLD_GENERATE_CODE + 1))
+sed -i "s/Property Id=\"GenerateCode\" Value=\"$OLD_GENERATE_CODE\"/Property Id=\"GenerateCode\" Value=\"$NEW_GENERATE_CODE\"/" "$ADVANCED_INSTALLER_CONFIG"
 
 SIGNED_MSI_PATH="$ADVANCED_INSTALLER_SETUP_FILES/Neuro_Desktop-${VERSION_NAME}-${VERSION_CODE}.msi"
-# signtool sign /fd sha256 /tr http://ts.ssl.com /td sha256 /sha1 20fbd34014857033bcc6dabfae390411b22b0b1e "$SIGNED_MSI_PATH"
+
+#signtool sign /fd sha256 /tr http://ts.ssl.com /td sha256 /sha1 20fbd34014857033bcc6dabfae390411b22b0b1e "$SIGNED_MSI_PATH"
 
 execute_file_upload "$SLACK_BOT_TOKEN" "$SLACK_CHANNEL" ":white_check_mark: Windows build for \`$BRANCH_NAME\`" "upload" "$SIGNED_MSI_PATH"
 delete_message "$SLACK_BOT_TOKEN" "$SLACK_CHANNEL" "$first_ts"
