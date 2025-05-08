@@ -9,7 +9,6 @@ isUseDevAnalytics=$2
 SECRET_FILE="/c/Users/BlackBricks/Desktop/secret.txt"
 PROJECT_DIR="/c/Users/BlackBricks/StudioProjects/SA_Neuro_Multiplatform"
 ERROR_LOG_FILE="${ERROR_LOG_FILE:-/tmp/build_error_log.txt}"
-APP_DIR="/c/Users/BlackBricks/AppData/Local/Neuro Desktop"
 ADVANCED_INSTALLER_CONFIG="/c/Users/BlackBricks/Applications/Neuro installer/installer_win/Neuro Desktop 2.aip"
 ADVANCED_INSTALLER_SETUP_FILES="/c/Users/BlackBricks/Applications/Neuro installer/installer_win/Neuro Desktop-SetupFiles"
 MSI_OUTPUT_DIR="$ADVANCED_INSTALLER_SETUP_FILES"
@@ -91,26 +90,26 @@ NEW_MSI_PATH="$DESKTOP_BUILD_PATH/Neuro_Desktop-${VERSION_NAME}-${VERSION_CODE}.
 
 if [ -f "$NEW_MSI_PATH" ]; then
     rm -f "$NEW_MSI_PATH"
-    echo "Deleted existing file: $NEW_MSI_PATH"
 fi
 
 mv "$MSI_FILE" "$NEW_MSI_PATH"
-echo "Renamed file to: $NEW_MSI_PATH"
+
+lessmsi x "$NEW_MSI_PATH" "$ADVANCED_INSTALLER_SETUP_FILES/Neuro_Desktop-${VERSION_NAME}-${VERSION_CODE}"
+
+EXTRACTED_APP_PATH="$ADVANCED_INSTALLER_SETUP_FILES/Neuro_Desktop-${VERSION_NAME}-${VERSION_CODE}/SourceDir/ProgramFilesFolder/Source Audio/Neuro Desktop 3"
 
 rm -rf "$ADVANCED_INSTALLER_SETUP_FILES/app" "$ADVANCED_INSTALLER_SETUP_FILES/realtime"
-cp -r "$APP_DIR/app" "$ADVANCED_INSTALLER_SETUP_FILES/"
-cp -r "$APP_DIR/realtime" "$ADVANCED_INSTALLER_SETUP_FILES/"
+cp -r "$EXTRACTED_APP_PATH/app" "$ADVANCED_INSTALLER_SETUP_FILES/"
+cp -r "$EXTRACTED_APP_PATH/realtime" "$ADVANCED_INSTALLER_SETUP_FILES/"
 
 OLD_VERSION=$(grep -oP 'Property Id="ProductVersion" Value="\K[^"]+' "$ADVANCED_INSTALLER_CONFIG")
 sed -i "s/Property Id=\"ProductVersion\" Value=\"$OLD_VERSION\"/Property Id=\"ProductVersion\" Value=\"$VERSION_NAME\"/" "$ADVANCED_INSTALLER_CONFIG"
 
-echo "Building with Advanced Installer..."
 "/c/Users/BlackBricks/Applications/Neuro installer/installer_win/AdvancedInstaller.com" /build "$ADVANCED_INSTALLER_CONFIG"
 
-MSI_FILE_PATH="$MSI_OUTPUT_DIR/Neuro_Desktop-${VERSION_NAME}-${VERSION_CODE}.msi"
-echo "Uploading MSI to Slack..."
-execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" ":white_check_mark: Windows build for \`$BRANCH_NAME\`" "upload" "$MSI_FILE_PATH"
+# powershell -command "signtool sign /fd sha256 /tr http://ts.ssl.com /td sha256 /sha1 20fbd34014857033bcc6dabfae390411b22b0b1e \"$MSI_FILE_PATH\""
 
-#powershell -command "signtool sign /fd sha256 /tr http://ts.ssl.com /td sha256 /sha1 20fbd34014857033bcc6dabfae390411b22b0b1e \"$MSI_FILE_PATH\""
+MSI_FILE_PATH="$MSI_OUTPUT_DIR/Neuro_Desktop-${VERSION_NAME}-${VERSION_CODE}.msi"
+execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" ":white_check_mark: Windows build for \`$BRANCH_NAME\`" "upload" "$MSI_FILE_PATH"
 
 delete_message "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$first_ts"
