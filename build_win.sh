@@ -69,9 +69,13 @@ mv "$MSI_FILE" "$NEW_MSI_PATH"
 EXTRACT_DIR="$ADVANCED_INSTALLER_SETUP_FILES/Neuro_Desktop-${VERSION_NAME}-${VERSION_CODE}"
 mkdir -p "$EXTRACT_DIR"
 
-LESSMSI_PATH=$(cygpath -w "$NEW_MSI_PATH")
-LESSMSI_DIR=$(cygpath -w "$EXTRACT_DIR")
-lessmsi x "$LESSMSI_PATH" "$LESSMSI_DIR"
+LESSMSI_PATH_WIN=$(cygpath -w "$NEW_MSI_PATH")
+EXTRACT_DIR_WIN=$(cygpath -w "$EXTRACT_DIR")
+
+echo "Extracting MSI from: $LESSMSI_PATH_WIN"
+echo "To directory: $EXTRACT_DIR_WIN"
+
+powershell -Command "lessmsi x '$LESSMSI_PATH_WIN' '$EXTRACT_DIR_WIN'"
 
 EXTRACTED_APP_PATH="${EXTRACT_DIR}/SourceDir/ProgramFilesFolder/Source Audio/Neuro Desktop 3"
 rm -rf "${ADVANCED_INSTALLER_SETUP_FILES}/app" "${ADVANCED_INSTALLER_SETUP_FILES}/realtime"
