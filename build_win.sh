@@ -89,18 +89,27 @@ rm -rf "$ADVANCED_INSTALLER_SETUP_FILES/app"
 rm -rf "$ADVANCED_INSTALLER_SETUP_FILES/realtime"
 
 echo "Copying app and realtime from extracted MSI to setup files"
-cp -r "$EXTRACTED_APP_PATH/app" "$ADVANCED_INSTALLER_SETUP_FILES/"
-cp -r "$EXTRACTED_APP_PATH/realtime" "$ADVANCED_INSTALLER_SETUP_FILES/"
+cp -r "$EXTRACTED_APP_PATH/app" "$ADVANCED_INSTALLER_SETUP_FILES/" || {
+  echo "Error: Failed to copy 'app' directory"
+  post_error_message "$BRANCH_NAME"
+  exit 1
+}
 
-OLD_VERSION=$(grep -oP 'Property Id="ProductVersion" Value="\K[^"]+' "$ADVANCED_INSTALLER_CONFIG")
+if [ -d "$EXTRACTED_APP_PATH/realtime" ]; then
+  cp -r "$EXTRACTED_APP_PATH/realtime" "$ADVANCED_INSTALLER_SETUP_FILES/"
+else
+  echo "Warning: 'realtime' folder not found, skipping"
+fi
+
+OLD_VERSION=$(sed -n 's/.*Property Id="ProductVersion" Value="\([^"]*\)".*/\1/p' "$ADVANCED_INSTALLER_CONFIG")
 sed -i "s/Property Id=\"ProductVersion\" Value=\"$OLD_VERSION\"/Property Id=\"ProductVersion\" Value=\"$VERSION_NAME\"/" "$ADVANCED_INSTALLER_CONFIG"
 
-GENERATE_CODE=$(grep -oP 'Property Id="GenerateCode" Value="\K[^"]+' "$ADVANCED_INSTALLER_CONFIG")
+GENERATE_CODE=$(sed -n 's/.*Property Id="GenerateCode" Value="\([^"]*\)".*/\1/p' "$ADVANCED_INSTALLER_CONFIG")
 NEXT_GENERATE_CODE=$((GENERATE_CODE + 1))
 sed -i "s/Property Id=\"GenerateCode\" Value=\"$GENERATE_CODE\"/Property Id=\"GenerateCode\" Value=\"$NEXT_GENERATE_CODE\"/" "$ADVANCED_INSTALLER_CONFIG"
 
 echo "Building installer from $ADVANCED_INSTALLER_CONFIG"
-/c/Program\ Files\ \(x86\)/Caphyon/Advanced\ Installer\ 20.6/bin/x86/AdvancedInstaller.com /build "$ADVANCED_INSTALLER_CONFIG"
+cmd.exe /c "\"C:\\Program Files (x86)\\Caphyon\\Advanced Installer 20.6\\bin\\x86\\AdvancedInstaller.com\" /build \"$ADVANCED_INSTALLER_CONFIG\""
 
 SIGNED_MSI_PATH="$ADVANCED_INSTALLER_MSI_FILES/Neuro_Desktop-${VERSION_NAME}-${VERSION_CODE}.msi"
 # signtool sign /fd sha256 /tr http://ts.ssl.com /td sha256 /sha1 20fbd34014857033bcc6dabfae390411b22b0b1e "$SIGNED_MSI_PATH"
