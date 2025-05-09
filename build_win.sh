@@ -68,8 +68,7 @@ NEW_MSI_PATH="$DESKTOP_BUILD_PATH/Neuro_Desktop-${VERSION_NAME}-${VERSION_CODE}.
 mv "$MSI_FILE" "$NEW_MSI_PATH"
 echo "Moving MSI: $MSI_FILE -> $NEW_MSI_PATH"
 
-LESSMSI_EXE="/c/ProgramData/chocolatey/bin/lessmsi.exe"
-"$LESSMSI_EXE" x "$NEW_MSI_PATH" > /tmp/lessmsi_extract.log 2>&1
+cmd.exe /c "\"C:\\ProgramData\\chocolatey\\bin\\lessmsi.exe\" x \"${NEW_MSI_PATH//\//\\}\""
 
 if ! grep -q "Extracting" /tmp/lessmsi_extract.log; then
   printf "Error: lessmsi failed to extract MSI\n" >&2
