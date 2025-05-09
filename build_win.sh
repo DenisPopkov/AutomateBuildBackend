@@ -28,33 +28,33 @@ post_error_message() {
 }
 
 cd "$PROJECT_DIR" || exit 1
-git stash push -m "Pre-build stash"
-git fetch --all
-git checkout "$BRANCH_NAME"
-git pull origin "$BRANCH_NAME" --no-rebase
+#git stash push -m "Pre-build stash"
+#git fetch --all
+#git checkout "$BRANCH_NAME"
+#git pull origin "$BRANCH_NAME" --no-rebase
 
 VERSION_CODE=$(grep '^desktop\.build\.number\s*=' gradle.properties | sed 's/.*=\s*\([0-9]*\)/\1/' | xargs)
 VERSION_NAME=$(grep '^desktop\.version\s*=' gradle.properties | sed 's/.*=\s*\([0-9]*\.[0-9]*\.[0-9]*\)/\1/' | xargs)
-VERSION_CODE=$((VERSION_CODE + 1))
-
-sed -i "s/^desktop\.build\.number\s*=\s*[0-9]*$/desktop.build.number=$VERSION_CODE/" gradle.properties
-git add gradle.properties
-git commit -m "Windows version bump to $VERSION_CODE"
-git push origin "$BRANCH_NAME"
+#VERSION_CODE=$((VERSION_CODE + 1))
+#
+#sed -i "s/^desktop\.build\.number\s*=\s*[0-9]*$/desktop.build.number=$VERSION_CODE/" gradle.properties
+#git add gradle.properties
+#git commit -m "Windows version bump to $VERSION_CODE"
+#git push origin "$BRANCH_NAME"
 
 analyticsMessage="prod"
 [ "$isUseDevAnalytics" == "true" ] && analyticsMessage="dev"
 
-end_time=$(date -d "+15 minutes" +"%H:%M")
-message=":hammer_and_wrench: Windows build started on \`$BRANCH_NAME\` with $analyticsMessage analytics. It will be ready approximately at $end_time"
-first_ts=$(post_message "$SLACK_BOT_TOKEN" "$SLACK_CHANNEL" "$message")
-
-if [ "$isUseDevAnalytics" == "false" ]; then
-  enable_prod_keys
-  sleep 5
-  powershell -command "Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.SendKeys]::SendWait('^(+o)')"
-  sleep 50
-fi
+#end_time=$(date -d "+15 minutes" +"%H:%M")
+#message=":hammer_and_wrench: Windows build started on \`$BRANCH_NAME\` with $analyticsMessage analytics. It will be ready approximately at $end_time"
+#first_ts=$(post_message "$SLACK_BOT_TOKEN" "$SLACK_CHANNEL" "$message")
+#
+#if [ "$isUseDevAnalytics" == "false" ]; then
+#  enable_prod_keys
+#  sleep 5
+#  powershell -command "Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.SendKeys]::SendWait('^(+o)')"
+#  sleep 50
+#fi
 
 ./gradlew packageReleaseMsi || { post_error_message "$BRANCH_NAME"; exit 1; }
 
@@ -67,17 +67,17 @@ NEW_MSI_PATH="$DESKTOP_BUILD_PATH/Neuro_Desktop-${VERSION_NAME}-${VERSION_CODE}.
 mv "$MSI_FILE" "$NEW_MSI_PATH"
 
 EXTRACT_DIR="$ADVANCED_INSTALLER_SETUP_FILES/Neuro_Desktop-${VERSION_NAME}-${VERSION_CODE}"
-lessmsi x "$NEW_MSI_PATH" "$EXTRACT_DIR"
+powershell -Command "lessmsi x \"${NEW_MSI_PATH//\//\\}\" \"${EXTRACT_DIR//\//\\}\""
 
-EXTRACTED_APP_PATH="$EXTRACT_DIR/SourceDir/ProgramFilesFolder/Source Audio/Neuro Desktop 3"
-rm -rf "$ADVANCED_INSTALLER_SETUP_FILES/app" "$ADVANCED_INSTALLER_SETUP_FILES/realtime"
-cp -r "$EXTRACTED_APP_PATH/app" "$ADVANCED_INSTALLER_SETUP_FILES/"
-cp -r "$EXTRACTED_APP_PATH/realtime" "$ADVANCED_INSTALLER_SETUP_FILES/"
+EXTRACTED_APP_PATH="${EXTRACT_DIR}/SourceDir/ProgramFilesFolder/Source Audio/Neuro Desktop 3"
+rm -rf "${ADVANCED_INSTALLER_SETUP_FILES}/app" "${ADVANCED_INSTALLER_SETUP_FILES}/realtime"
+cp -r "${EXTRACTED_APP_PATH}/app" "${ADVANCED_INSTALLER_SETUP_FILES}/"
+cp -r "${EXTRACTED_APP_PATH}/realtime" "${ADVANCED_INSTALLER_SETUP_FILES}/"
 
-OLD_VERSION=$(grep 'Property Id="ProductVersion"' "$ADVANCED_INSTALLER_CONFIG" | grep -oP 'Value="\K[^"]+')
+OLD_VERSION=$(grep 'Property Id="ProductVersion"' "$ADVANCED_INSTALLER_CONFIG" | sed -n 's/.*Value="\([^"]*\)".*/\1/p')
 sed -i "s/Property Id=\"ProductVersion\" Value=\"$OLD_VERSION\"/Property Id=\"ProductVersion\" Value=\"$VERSION_NAME\"/" "$ADVANCED_INSTALLER_CONFIG"
 
-OLD_GENERATE_CODE=$(grep 'Property Id="GenerateCode"' "$ADVANCED_INSTALLER_CONFIG" | grep -oP 'Value="\K[^"]+')
+OLD_GENERATE_CODE=$(grep 'Property Id="GenerateCode"' "$ADVANCED_INSTALLER_CONFIG" | sed -n 's/.*Value="\([^"]*\)".*/\1/p')
 NEW_GENERATE_CODE=$((OLD_GENERATE_CODE + 1))
 sed -i "s/Property Id=\"GenerateCode\" Value=\"$OLD_GENERATE_CODE\"/Property Id=\"GenerateCode\" Value=\"$NEW_GENERATE_CODE\"/" "$ADVANCED_INSTALLER_CONFIG"
 
