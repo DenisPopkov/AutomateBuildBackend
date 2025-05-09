@@ -64,32 +64,43 @@ MSI_FILE=$(find "$DESKTOP_BUILD_PATH" -name "Neuro*.msi" | head -n 1)
 [ -z "$MSI_FILE" ] && { post_error_message "$BRANCH_NAME"; exit 1; }
 
 NEW_MSI_PATH="$DESKTOP_BUILD_PATH/Neuro_Desktop-${VERSION_NAME}-${VERSION_CODE}.msi"
+echo "Moving MSI: $MSI_FILE -> $NEW_MSI_PATH"
 [ -f "$NEW_MSI_PATH" ] && rm -f "$NEW_MSI_PATH"
 mv "$MSI_FILE" "$NEW_MSI_PATH"
 
-/c/ProgramData/chocolatey/bin/lessmsi.exe x "$NEW_MSI_PATH"
+echo "Extracting MSI with lessmsi: $NEW_MSI_PATH"
+MSI_EXTRACT_DIR="${ADVANCED_INSTALLER_MSI_FILES}/Neuro_Desktop-${VERSION_NAME}-${VERSION_CODE}"
+/c/ProgramData/chocolatey/bin/lessmsi.exe x "$NEW_MSI_PATH" "$MSI_EXTRACT_DIR"
 
 sleep 30
 
-EXTRACTED_APP_PATH="/c/Users/BlackBricks/Neuro_Desktop-${VERSION_NAME}-${VERSION_CODE}/SourceDir/Neuro Desktop"
+EXTRACTED_APP_PATH="$MSI_EXTRACT_DIR/SourceDir/Neuro Desktop"
+echo "Extracted app path: $EXTRACTED_APP_PATH"
 [ ! -d "$EXTRACTED_APP_PATH" ] && { post_error_message "$BRANCH_NAME"; exit 1; }
 
+echo "Removing old app and realtime directories"
 rm -rf "$ADVANCED_INSTALLER_SETUP_FILES/app"
 rm -rf "$ADVANCED_INSTALLER_SETUP_FILES/realtime"
+
+echo "Copying new app and realtime from $EXTRACTED_APP_PATH to $ADVANCED_INSTALLER_SETUP_FILES"
 cp -r "$EXTRACTED_APP_PATH/app" "$ADVANCED_INSTALLER_SETUP_FILES/"
 cp -r "$EXTRACTED_APP_PATH/realtime" "$ADVANCED_INSTALLER_SETUP_FILES/"
 
 OLD_VERSION=$(grep -oP 'Property Id="ProductVersion" Value="\K[^"]+' "$ADVANCED_INSTALLER_CONFIG")
+echo "Updating ProductVersion from $OLD_VERSION to $VERSION_NAME"
 sed -i "s/Property Id=\"ProductVersion\" Value=\"$OLD_VERSION\"/Property Id=\"ProductVersion\" Value=\"$VERSION_NAME\"/" "$ADVANCED_INSTALLER_CONFIG"
 
 GENERATE_CODE=$(grep -oP 'Property Id="GenerateCode" Value="\K[^"]+' "$ADVANCED_INSTALLER_CONFIG")
 NEXT_GENERATE_CODE=$((GENERATE_CODE + 1))
+echo "Incrementing GenerateCode: $GENERATE_CODE -> $NEXT_GENERATE_CODE"
 sed -i "s/Property Id=\"GenerateCode\" Value=\"$GENERATE_CODE\"/Property Id=\"GenerateCode\" Value=\"$NEXT_GENERATE_CODE\"/" "$ADVANCED_INSTALLER_CONFIG"
 
-powershell -Command "Start-Process -Wait -NoNewWindow 'C:/Program Files (x86)/Caphyon/Advanced Installer 20.6/bin/x86/AdvancedInstaller.exe' -ArgumentList '/build', '$ADVANCED_INSTALLER_CONFIG'"
+echo "Building MSI with Advanced Installer: $ADVANCED_INSTALLER_CONFIG"
+AdvancedInstaller.com /build "$ADVANCED_INSTALLER_CONFIG"
 
 SIGNED_MSI_PATH="$ADVANCED_INSTALLER_MSI_FILES/Neuro_Desktop-${VERSION_NAME}-${VERSION_CODE}.msi"
 # signtool sign /fd sha256 /tr http://ts.ssl.com /td sha256 /sha1 20fbd34014857033bcc6dabfae390411b22b0b1e "$SIGNED_MSI_PATH"
 
+echo "Uploading signed MSI to Slack: $SIGNED_MSI_PATH"
 execute_file_upload "$SLACK_BOT_TOKEN" "$SLACK_CHANNEL" ":white_check_mark: Windows build for \`$BRANCH_NAME\`" "upload" "$SIGNED_MSI_PATH"
 delete_message "$SLACK_BOT_TOKEN" "$SLACK_CHANNEL" "$first_ts"
