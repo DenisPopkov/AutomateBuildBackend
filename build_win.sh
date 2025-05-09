@@ -81,16 +81,28 @@ cp -r "$TEMP_EXTRACT_DIR/runtime" "$ADVANCED_INSTALLER_SETUP_FILES/"
 
 sleep 100
 
-OLD_VERSION=$(sed -n 's/.*Property Id="ProductVersion" Value="\([^"]*\)".*/\1/p' "$ADVANCED_INSTALLER_CONFIG")
-sed -i "s/Property Id=\"ProductVersion\" Value=\"$OLD_VERSION\"/Property Id=\"ProductVersion\" Value=\"$VERSION_NAME\"/" "$ADVANCED_INSTALLER_CONFIG"
+sed -i "s/Property=\"ProductVersion\" Value=\"[^\"]*\"/Property=\"ProductVersion\" Value=\"$VERSION_NAME\"/" "$ADVANCED_INSTALLER_CONFIG"
 
+# Обновляем PackageFileName
+sed -i "s/PackageFileName=\"Neuro_Desktop-[^\"]*\"/PackageFileName=\"Neuro_Desktop-${VERSION_NAME}-${VERSION_CODE}\"/" "$ADVANCED_INSTALLER_CONFIG"
+
+# Обновляем GenerateCode
 GENERATE_CODE=$(sed -n 's/.*Property Id="GenerateCode" Value="\([^"]*\)".*/\1/p' "$ADVANCED_INSTALLER_CONFIG")
 NEXT_GENERATE_CODE=$((GENERATE_CODE + 1))
 sed -i "s/Property Id=\"GenerateCode\" Value=\"$GENERATE_CODE\"/Property Id=\"GenerateCode\" Value=\"$NEXT_GENERATE_CODE\"/" "$ADVANCED_INSTALLER_CONFIG"
 
-echo "Building installer from $ADVANCED_INSTALLER_CONFIG"
-ADVANCED_INSTALLER="/c/Program Files (x86)/Caphyon/Advanced Installer 22.6/bin/x86/AdvancedInstaller.com"
-"$ADVANCED_INSTALLER" /build "$ADVANCED_INSTALLER_CONFIG"
+# === Запускаем GUI + имитируем F7 ===
+AIP_PROJECT_WIN_PATH="C:\\Users\\BlackBricks\\Applications\\Neuro installer\\installer_win\\Neuro Desktop 2.aip"
+ADVANCED_INSTALLER_GUI="C:\\Program Files (x86)\\Caphyon\\Advanced Installer 22.6\\bin\\advinst.exe"
+
+# Запускаем GUI редактор в фоне
+powershell.exe Start-Process "'$ADVANCED_INSTALLER_GUI'" "'$AIP_PROJECT_WIN_PATH'"
+
+# Ждём загрузки GUI (временная задержка)
+sleep 10
+
+# Имитация F7
+powershell.exe -Command "Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.SendKeys]::SendWait('{F7}')"
 
 #SIGNED_MSI_PATH="$ADVANCED_INSTALLER_MSI_FILES/Neuro_Desktop-${VERSION_NAME}-${VERSION_CODE}.msi"
 # signtool sign /fd sha256 /tr http://ts.ssl.com /td sha256 /sha1 20fbd34014857033bcc6dabfae390411b22b0b1e "$SIGNED_MSI_PATH"
