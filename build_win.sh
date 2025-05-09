@@ -117,26 +117,26 @@ cmd.exe /C "\"$ADV_INST_COM\" /edit \"$ADV_INST_CONFIG\" /DelFolder -path APPDIR
 
 clean_app_runtime_from_aip() {
   local aip_file="$1"
+  local backup_file="${aip_file}.bak"
+
+  echo "[INFO] Backing up .aip to $backup_file..."
+  cp "$aip_file" "$backup_file" || { echo "[ERROR] Backup failed"; exit 1; }
 
   echo "[INFO] Cleaning all app/runtime references from $aip_file..."
 
-  # Remove rows by matching Directory="app_Dir" or runtime_Dir
   sed -i '/Directory="app_Dir"/d' "$aip_file"
   sed -i '/Directory="runtime_Dir"/d' "$aip_file"
 
-  # Remove component entries that use app/runtime directories
   sed -i '/Directory_="app_Dir"/d' "$aip_file"
   sed -i '/Directory_="runtime_Dir"/d' "$aip_file"
   sed -i '/Directory_=".*app.*_Dir"/d' "$aip_file"
   sed -i '/Directory_=".*runtime.*_Dir"/d' "$aip_file"
 
-  # Remove file entries with paths pointing to app or runtime folders
-  sed -i '/SourcePath="..\\app\\/.*"/d' "$aip_file"
-  sed -i '/SourcePath="..\\runtime\\/.*"/d' "$aip_file"
-  sed -i '/SourcePath=".*app\\/.*"/d' "$aip_file"
-  sed -i '/SourcePath=".*runtime\\/.*"/d' "$aip_file"
+  sed -i '/SourcePath="..\\app\\//d' "$aip_file"
+  sed -i '/SourcePath="..\\runtime\\//d' "$aip_file"
+  sed -i '/SourcePath=".*app\\//d' "$aip_file"
+  sed -i '/SourcePath=".*runtime\\//d' "$aip_file"
 
-  # Remove Component_ entries in files section related to app/runtime
   sed -i '/Component_=".*app.*"/d' "$aip_file"
   sed -i '/Component_=".*runtime.*"/d' "$aip_file"
 
