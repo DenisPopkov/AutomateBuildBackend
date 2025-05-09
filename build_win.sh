@@ -66,12 +66,11 @@ NEW_MSI_PATH="$DESKTOP_BUILD_PATH/Neuro_Desktop-${VERSION_NAME}-${VERSION_CODE}.
 [ -f "$NEW_MSI_PATH" ] && rm -f "$NEW_MSI_PATH"
 mv "$MSI_FILE" "$NEW_MSI_PATH"
 
-EXTRACT_DIR="$PROJECT_DIR/Neuro_Desktop-${VERSION_NAME}-${VERSION_CODE}"
-/c/ProgramData/chocolatey/bin/lessmsi.exe x "$NEW_MSI_PATH" "$EXTRACT_DIR"
+/c/ProgramData/chocolatey/bin/lessmsi.exe x "$NEW_MSI_PATH" "/c/Users/BlackBricks/Neuro_Desktop-${VERSION_NAME}-${VERSION_CODE}"
 
 sleep 30
 
-EXTRACTED_APP_PATH="$EXTRACT_DIR/SourceDir/Neuro Desktop"
+EXTRACTED_APP_PATH="/c/Users/BlackBricks/Neuro_Desktop-${VERSION_NAME}-${VERSION_CODE}/SourceDir/Neuro Desktop"
 [ ! -d "$EXTRACTED_APP_PATH" ] && { post_error_message "$BRANCH_NAME"; exit 1; }
 
 rm -rf "$ADVANCED_INSTALLER_SETUP_FILES/app" "$ADVANCED_INSTALLER_SETUP_FILES/realtime"
