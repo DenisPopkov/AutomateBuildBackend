@@ -71,38 +71,50 @@ mv "$MSI_FILE" "$NEW_MSI_PATH"
 
 sleep 30
 
-TEMP_EXTRACT_DIR="/c/Users/BlackBricks/StudioProjects/SA_Neuro_Multiplatform/Neuro_Desktop-${VERSION_NAME}-${VERSION_CODE}/SourceDir/Neuro Desktop"
+EXTRACT_DIR="/c/Users/BlackBricks/StudioProjects/SA_Neuro_Multiplatform/Neuro_Desktop-${VERSION_NAME}-${VERSION_CODE}/SourceDir/Neuro Desktop"
 
 rm -rf "$ADVANCED_INSTALLER_SETUP_FILES/app"
 rm -rf "$ADVANCED_INSTALLER_SETUP_FILES/runtime"
 
-rm -rf "$ADVANCED_INSTALLER_SETUP_FILES/app"
-rm -rf "$ADVANCED_INSTALLER_SETUP_FILES/runtime"
+rm -rf "${ADVANCED_INSTALLER_SETUP_FILES}/app"
+rm -rf "${ADVANCED_INSTALLER_SETUP_FILES}/runtime"
 
-cp -r "$EXTRACT_DIR/app" "$ADVANCED_INSTALLER_SETUP_FILES/"
-cp -r "$EXTRACT_DIR/runtime" "$ADVANCED_INSTALLER_SETUP_FILES/"
+cp -r "${EXTRACT_DIR}/app" "${ADVANCED_INSTALLER_SETUP_FILES}/"
+cp -r "${EXTRACT_DIR}/runtime" "${ADVANCED_INSTALLER_SETUP_FILES}/"
 
-# 3. Обновляем ProductVersion
-sed -i "s/\(Property=\"ProductVersion\" Value=\"\)[^\"]*\(\".*\)/\1$VERSION_NAME\2/" "$ADVANCED_INSTALLER_CONFIG"
+# === Шаг 3: Очистка устаревших записей в .aip ===
+echo "🧹 Чистим .aip от старых app/runtime ссылок..."
+sed -i '/SourcePath=".*app\//d' "$ADVANCED_INSTALLER_CONFIG"
+sed -i '/SourcePath=".*runtime\//d' "$ADVANCED_INSTALLER_CONFIG"
+sed -i '/DefaultDir="app"/d' "$ADVANCED_INSTALLER_CONFIG"
+sed -i '/DefaultDir="runtime"/d' "$ADVANCED_INSTALLER_CONFIG"
 
-# 4. Обновляем PackageFileName
+# === Шаг 4: Обновление ProductVersion ===
+echo "📝 Обновляем ProductVersion..."
+sed -i "s/\(Property=\"ProductVersion\" Value=\"\)[^\"]*\(\".*\)/\1${VERSION_NAME}\2/" "$ADVANCED_INSTALLER_CONFIG"
+
+# === Шаг 5: Обновление ProductCode ===
+echo "🧬 Генерация нового ProductCode..."
+NEW_GUID=$(powershell.exe "[guid]::NewGuid().ToString()" | tr -d '\r')
+sed -i "s/\(Property=\"ProductCode\" Value=\"\)[^\"]*\(\".*\)/\1${NEW_GUID}\2/" "$ADVANCED_INSTALLER_CONFIG"
+
+# === Шаг 6: Обновление MSI имени ===
+echo "💼 Обновляем PackageFileName..."
 sed -i "s/\(PackageFileName=\"Neuro_Desktop-\)[^\"]*\(\".*\)/\1${VERSION_NAME}-${VERSION_CODE}\2/" "$ADVANCED_INSTALLER_CONFIG"
 
-# 5. Обновляем GenerateCode
-GENERATE_CODE=$(sed -n 's/.*Property Id="GenerateCode" Value="\([^"]*\)".*/\1/p' "$ADVANCED_INSTALLER_CONFIG")
-NEXT_GENERATE_CODE=$((GENERATE_CODE + 1))
-sed -i "s/Property Id=\"GenerateCode\" Value=\"$GENERATE_CODE\"/Property Id=\"GenerateCode\" Value=\"$NEXT_GENERATE_CODE\"/" "$ADVANCED_INSTALLER_CONFIG"
-
-# 6. Подготовка команд для удаления и добавления файлов
+# === Шаг 7: Подготовка команд импорта ===
+echo "📁 Готовим команды CLI для импорта..."
 echo "/DelFolder -path \"APPDIR\\app\"" > aip_commands.txt
 echo "/DelFolder -path \"APPDIR\\runtime\"" >> aip_commands.txt
-echo "/AddFolder -path \"APPDIR\" -source \"$ADVANCED_INSTALLER_SETUP_FILES/app\"" >> aip_commands.txt
-echo "/AddFolder -path \"APPDIR\" -source \"$ADVANCED_INSTALLER_SETUP_FILES/runtime\"" >> aip_commands.txt
+echo "/AddFolder -path \"APPDIR\" -source \"${ADVANCED_INSTALLER_SETUP_FILES}/app\"" >> aip_commands.txt
+echo "/AddFolder -path \"APPDIR\" -source \"${ADVANCED_INSTALLER_SETUP_FILES}/runtime\"" >> aip_commands.txt
 
-# 7. Выполнение изменений через AdvancedInstaller CLI
-"$ADVANCED_INSTALLER" /execute "$ADVANCED_INSTALLER_CONFIG" "aip_commands.txt"
+# === Шаг 8: Импорт в AIP через CLI ===
+echo "🔧 Обновляем проект .aip через /execute..."
+"$ADVANCED_INSTALLER" /execute "$ADVANCED_INSTALLER_CONFIG" aip_commands.txt
 
-# 8. Сборка .msi
+# === Шаг 9: Сборка установщика ===
+echo "🚀 Сборка установщика..."
 "$ADVANCED_INSTALLER" /build "$ADVANCED_INSTALLER_CONFIG"
 
 #SIGNED_MSI_PATH="$ADVANCED_INSTALLER_MSI_FILES/Neuro_Desktop-${VERSION_NAME}-${VERSION_CODE}.msi"
