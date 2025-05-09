@@ -81,10 +81,11 @@ cp -r "$TEMP_EXTRACT_DIR/runtime" "$ADVANCED_INSTALLER_SETUP_FILES/"
 
 sleep 100
 
-sed -i "s/Property=\"ProductVersion\" Value=\"[^\"]*\"/Property=\"ProductVersion\" Value=\"$VERSION_NAME\"/" "$ADVANCED_INSTALLER_CONFIG"
+# Обновляем ProductVersion
+sed -i "s/\(Property=\"ProductVersion\" Value=\"\)[^\"]*\(\".*\)/\1$VERSION_NAME\2/" "$ADVANCED_INSTALLER_CONFIG"
 
-# Обновляем PackageFileName
-sed -i "s/PackageFileName=\"Neuro_Desktop-[^\"]*\"/PackageFileName=\"Neuro_Desktop-${VERSION_NAME}-${VERSION_CODE}\"/" "$ADVANCED_INSTALLER_CONFIG"
+# Обновляем PackageFileName (внутри тега BuildComponent)
+sed -i "s/\(PackageFileName=\"Neuro_Desktop-\)[^\"]*\(\".*\)/\1${VERSION_NAME}-${VERSION_CODE}\2/" "$ADVANCED_INSTALLER_CONFIG"
 
 # Обновляем GenerateCode
 GENERATE_CODE=$(sed -n 's/.*Property Id="GenerateCode" Value="\([^"]*\)".*/\1/p' "$ADVANCED_INSTALLER_CONFIG")
@@ -96,9 +97,9 @@ AIP_PROJECT_WIN_PATH="C:\\Users\\BlackBricks\\Applications\\Neuro installer\\ins
 ADVANCED_INSTALLER_GUI="C:\\Program Files (x86)\\Caphyon\\Advanced Installer 22.6\\bin\\advinst.exe"
 
 # Запускаем GUI редактор в фоне
-powershell.exe Start-Process "'$ADVANCED_INSTALLER_GUI'" "'$AIP_PROJECT_WIN_PATH'"
+powershell.exe Start-Process -FilePath "'$ADVANCED_INSTALLER_GUI'" -ArgumentList "'$AIP_PROJECT_WIN_PATH'"
 
-# Ждём загрузки GUI (временная задержка)
+# Ждём загрузки GUI
 sleep 10
 
 # Имитация F7
