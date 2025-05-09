@@ -64,17 +64,30 @@ MSI_FILE=$(find "$DESKTOP_BUILD_PATH" -name "Neuro*.msi" | head -n 1)
 [ -z "$MSI_FILE" ] && { post_error_message "$BRANCH_NAME"; exit 1; }
 
 NEW_MSI_PATH="$DESKTOP_BUILD_PATH/Neuro_Desktop-${VERSION_NAME}-${VERSION_CODE}.msi"
-echo "Moving MSI: $MSI_FILE -> $NEW_MSI_PATH"
 [ -f "$NEW_MSI_PATH" ] && rm -f "$NEW_MSI_PATH"
 mv "$MSI_FILE" "$NEW_MSI_PATH"
 echo "Moving MSI: $MSI_FILE -> $NEW_MSI_PATH"
 
-echo "Extracting MSI with lessmsi: $NEW_MSI_PATH"
-/c/ProgramData/chocolatey/bin/lessmsi.exe x "$NEW_MSI_PATH"
+LESSMSI_EXE="/c/ProgramData/chocolatey/bin/lessmsi.exe"
+"$LESSMSI_EXE" x "$NEW_MSI_PATH" > /tmp/lessmsi_extract.log 2>&1
+
+if ! grep -q "Extracting" /tmp/lessmsi_extract.log; then
+  printf "Error: lessmsi failed to extract MSI\n" >&2
+  post_error_message "$BRANCH_NAME"
+  exit 1
+fi
+
+export LESSMSI_EXTRACT_DIR_WIN="C:\\Users\\BlackBricks\\Neuro_Desktop-${VERSION_NAME}-${VERSION_CODE}"
 
 TEMP_EXTRACTED_NAME="Neuro_Desktop-${VERSION_NAME}-${VERSION_CODE}"
 USER_HOME_MSI_EXTRACT_PATH="/c/Users/BlackBricks/$TEMP_EXTRACTED_NAME"
 MSI_EXTRACT_DIR="$ADVANCED_INSTALLER_MSI_FILES/$TEMP_EXTRACTED_NAME"
+
+[ ! -d "$USER_HOME_MSI_EXTRACT_PATH" ] && {
+  printf "Error: MSI extracted directory not found at %s\n" "$USER_HOME_MSI_EXTRACT_PATH" >&2
+  post_error_message "$BRANCH_NAME"
+  exit 1
+}
 
 echo "Moving extracted MSI folder: $USER_HOME_MSI_EXTRACT_PATH -> $MSI_EXTRACT_DIR"
 rm -rf "$MSI_EXTRACT_DIR"
@@ -90,7 +103,7 @@ rm -rf "$ADVANCED_INSTALLER_SETUP_FILES/realtime"
 
 echo "Copying app and realtime from extracted MSI to setup files"
 cp -r "$EXTRACTED_APP_PATH/app" "$ADVANCED_INSTALLER_SETUP_FILES/" || {
-  echo "Error: Failed to copy 'app' directory"
+  printf "Error: Failed to copy 'app' directory\n" >&2
   post_error_message "$BRANCH_NAME"
   exit 1
 }
@@ -98,7 +111,7 @@ cp -r "$EXTRACTED_APP_PATH/app" "$ADVANCED_INSTALLER_SETUP_FILES/" || {
 if [ -d "$EXTRACTED_APP_PATH/realtime" ]; then
   cp -r "$EXTRACTED_APP_PATH/realtime" "$ADVANCED_INSTALLER_SETUP_FILES/"
 else
-  echo "Warning: 'realtime' folder not found, skipping"
+  printf "Warning: 'realtime' folder not found, skipping\n" >&2
 fi
 
 OLD_VERSION=$(sed -n 's/.*Property Id="ProductVersion" Value="\([^"]*\)".*/\1/p' "$ADVANCED_INSTALLER_CONFIG")
