@@ -76,34 +76,34 @@ TEMP_EXTRACT_DIR="/c/Users/BlackBricks/StudioProjects/SA_Neuro_Multiplatform/Neu
 rm -rf "$ADVANCED_INSTALLER_SETUP_FILES/app"
 rm -rf "$ADVANCED_INSTALLER_SETUP_FILES/runtime"
 
-cp -r "$TEMP_EXTRACT_DIR/app" "$ADVANCED_INSTALLER_SETUP_FILES/"
-cp -r "$TEMP_EXTRACT_DIR/runtime" "$ADVANCED_INSTALLER_SETUP_FILES/"
+rm -rf "$ADVANCED_INSTALLER_SETUP_FILES/app"
+rm -rf "$ADVANCED_INSTALLER_SETUP_FILES/runtime"
 
-sleep 100
+cp -r "$EXTRACT_DIR/app" "$ADVANCED_INSTALLER_SETUP_FILES/"
+cp -r "$EXTRACT_DIR/runtime" "$ADVANCED_INSTALLER_SETUP_FILES/"
 
-# Обновляем ProductVersion
+# 3. Обновляем ProductVersion
 sed -i "s/\(Property=\"ProductVersion\" Value=\"\)[^\"]*\(\".*\)/\1$VERSION_NAME\2/" "$ADVANCED_INSTALLER_CONFIG"
 
-# Обновляем PackageFileName (внутри тега BuildComponent)
+# 4. Обновляем PackageFileName
 sed -i "s/\(PackageFileName=\"Neuro_Desktop-\)[^\"]*\(\".*\)/\1${VERSION_NAME}-${VERSION_CODE}\2/" "$ADVANCED_INSTALLER_CONFIG"
 
-# Обновляем GenerateCode
+# 5. Обновляем GenerateCode
 GENERATE_CODE=$(sed -n 's/.*Property Id="GenerateCode" Value="\([^"]*\)".*/\1/p' "$ADVANCED_INSTALLER_CONFIG")
 NEXT_GENERATE_CODE=$((GENERATE_CODE + 1))
 sed -i "s/Property Id=\"GenerateCode\" Value=\"$GENERATE_CODE\"/Property Id=\"GenerateCode\" Value=\"$NEXT_GENERATE_CODE\"/" "$ADVANCED_INSTALLER_CONFIG"
 
-# === Запускаем GUI + имитируем F7 ===
-AIP_PROJECT_WIN_PATH="C:\\Users\\BlackBricks\\Applications\\Neuro installer\\installer_win\\Neuro Desktop 2.aip"
-ADVANCED_INSTALLER_GUI="C:\\Program Files (x86)\\Caphyon\\Advanced Installer 22.6\\bin\\advinst.exe"
+# 6. Подготовка команд для удаления и добавления файлов
+echo "/DelFolder -path \"APPDIR\\app\"" > aip_commands.txt
+echo "/DelFolder -path \"APPDIR\\runtime\"" >> aip_commands.txt
+echo "/AddFolder -path \"APPDIR\" -source \"$ADVANCED_INSTALLER_SETUP_FILES/app\"" >> aip_commands.txt
+echo "/AddFolder -path \"APPDIR\" -source \"$ADVANCED_INSTALLER_SETUP_FILES/runtime\"" >> aip_commands.txt
 
-# Запускаем GUI редактор в фоне
-powershell.exe Start-Process -FilePath "'$ADVANCED_INSTALLER_GUI'" -ArgumentList "'$AIP_PROJECT_WIN_PATH'"
+# 7. Выполнение изменений через AdvancedInstaller CLI
+"$ADVANCED_INSTALLER" /execute "$ADVANCED_INSTALLER_CONFIG" "aip_commands.txt"
 
-# Ждём загрузки GUI
-sleep 10
-
-# Имитация F7
-powershell.exe -Command "Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.SendKeys]::SendWait('{F7}')"
+# 8. Сборка .msi
+"$ADVANCED_INSTALLER" /build "$ADVANCED_INSTALLER_CONFIG"
 
 #SIGNED_MSI_PATH="$ADVANCED_INSTALLER_MSI_FILES/Neuro_Desktop-${VERSION_NAME}-${VERSION_CODE}.msi"
 # signtool sign /fd sha256 /tr http://ts.ssl.com /td sha256 /sha1 20fbd34014857033bcc6dabfae390411b22b0b1e "$SIGNED_MSI_PATH"
