@@ -120,23 +120,23 @@ clean_app_runtime_from_aip() {
 
   echo "[INFO] Cleaning all app/runtime references from $aip_file..."
 
-  # Remove all <ROW ...> entries where Directory="app_Dir" or "runtime_Dir"
-  sed -i '/<ROW Directory="app_Dir"/d' "$aip_file"
-  sed -i '/<ROW Directory="runtime_Dir"/d' "$aip_file"
+  # Remove rows by matching Directory="app_Dir" or runtime_Dir
+  sed -i '/Directory="app_Dir"/d' "$aip_file"
+  sed -i '/Directory="runtime_Dir"/d' "$aip_file"
 
-  # Remove all <ROW ...> entries where Directory_="app_Dir" or "runtime_Dir"
+  # Remove component entries that use app/runtime directories
   sed -i '/Directory_="app_Dir"/d' "$aip_file"
   sed -i '/Directory_="runtime_Dir"/d' "$aip_file"
+  sed -i '/Directory_=".*app.*_Dir"/d' "$aip_file"
+  sed -i '/Directory_=".*runtime.*_Dir"/d' "$aip_file"
 
-  # Remove SourcePath entries that reference files from ..\app\ or ..\runtime\
+  # Remove file entries with paths pointing to app or runtime folders
   sed -i '/SourcePath="..\\app\\/.*"/d' "$aip_file"
   sed -i '/SourcePath="..\\runtime\\/.*"/d' "$aip_file"
+  sed -i '/SourcePath=".*app\\/.*"/d' "$aip_file"
+  sed -i '/SourcePath=".*runtime\\/.*"/d' "$aip_file"
 
-  # Remove Component entries that point to app_Dir or runtime_Dir or any of their subdirs
-  sed -i '/<ROW Component=".*" ComponentId=".*" Directory_=".*app.*_Dir"/d' "$aip_file"
-  sed -i '/<ROW Component=".*" ComponentId=".*" Directory_=".*runtime.*_Dir"/d' "$aip_file"
-
-  # Remove File entries referencing Component_="..." components linked to app/runtime
+  # Remove Component_ entries in files section related to app/runtime
   sed -i '/Component_=".*app.*"/d' "$aip_file"
   sed -i '/Component_=".*runtime.*"/d' "$aip_file"
 
