@@ -15,7 +15,6 @@ ADVANCED_INSTALLER_SETUP_FILES="/c/Users/BlackBricks/Applications/Neuro installe
 while IFS='=' read -r key value; do
   key=$(echo "$key" | xargs)
   value=$(echo "$value" | xargs)
-
   case "$key" in
     "SLACK_BOT_TOKEN") SLACK_BOT_TOKEN="$value" ;;
     "SLACK_CHANNEL") SLACK_CHANNEL="$value" ;;
@@ -67,7 +66,7 @@ NEW_MSI_PATH="$DESKTOP_BUILD_PATH/Neuro_Desktop-${VERSION_NAME}-${VERSION_CODE}.
 [ -f "$NEW_MSI_PATH" ] && rm -f "$NEW_MSI_PATH"
 mv "$MSI_FILE" "$NEW_MSI_PATH"
 
-EXTRACT_DIR="/c/Users/BlackBricks/Neuro_Desktop-${VERSION_NAME}-${VERSION_CODE}"
+EXTRACT_DIR="$PROJECT_DIR/Neuro_Desktop-${VERSION_NAME}-${VERSION_CODE}"
 /c/ProgramData/chocolatey/bin/lessmsi.exe x "$NEW_MSI_PATH" "$EXTRACT_DIR"
 
 EXTRACTED_APP_PATH="$EXTRACT_DIR/SourceDir/ProgramFilesFolder/Source Audio/Neuro Desktop 3"
