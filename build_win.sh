@@ -14,6 +14,16 @@ ADV_INST_SETUP_FILES="/c/Users/BlackBricks/Applications/Neuro installer"
 ADV_INST_COM="/c/Program Files (x86)/Caphyon/Advanced Installer 22.6/bin/x86/AdvancedInstaller.com"
 ADVANCED_INSTALLER_MSI_FILES="/c/Users/BlackBricks/Applications/Neuro installer/installer_win/Neuro Desktop-SetupFiles"
 
+# Функция для преобразования пути из /c/ в C:\
+convert_path() {
+    local path="$1"
+    if command -v cygpath >/dev/null; then
+        cygpath -w "$path"
+    else
+        echo "$path" | sed 's|^/c/|C:\\|; s|/|\\|g'
+    fi
+}
+
 #
 #while IFS='=' read -r key value; do
 #  key=$(echo "$key" | xargs)
@@ -123,7 +133,7 @@ echo "[DEBUG] Removing app and runtime components..." >> cleanup.log
 # Удаление файлов, связанных с app и runtime
 echo "[DEBUG] Removing app and runtime files..." >> cleanup.log
 "$XMLSTARLET_PATH" ed -d '//ROW[contains(@File, "app")]' "$ADV_INST_CONFIG" > "${ADV_INST_CONFIG}.tmp" && mv "${ADV_INST_CONFIG}.tmp" "$ADV_INST_CONFIG" || { echo "[ERROR] Failed to remove app files"; exit 1; }
-"$XMLSTARLET_PATH" ed -d '//ROW[contains(@File, "runtime")]' "$ADV_INST_CONFIG" > "${ADV_INST_CONFIG}.tmp" && mv "${ADV_INST_CONFIG}.tmp" "$ADV_INST_CONFIG" || { echo "[ERROR] Failed to remove runtime files"; exit 1; }
+"$XMLSTARLET_PATH" ed -d '//ROW[contains(@File, "runtime")]' "$ADV_INST_CONFIG" > "${ADV_INST_CONFIG}.tmp" && mv "${ADV_INST_CONFIG}.tmp" "$ADV_INST_CONFIG" || { echo "[ERROR] Failed to remove app files"; exit 1; }
 "$XMLSTARLET_PATH" ed -d '//ROW[contains(@SourcePath, "app")]' "$ADV_INST_CONFIG" > "${ADV_INST_CONFIG}.tmp" && mv "${ADV_INST_CONFIG}.tmp" "$ADV_INST_CONFIG" || { echo "[ERROR] Failed to remove app SourcePath"; exit 1; }
 "$XMLSTARLET_PATH" ed -d '//ROW[contains(@SourcePath, "runtime")]' "$ADV_INST_CONFIG" > "${ADV_INST_CONFIG}.tmp" && mv "${ADV_INST_CONFIG}.tmp" "$ADV_INST_CONFIG" || { echo "[ERROR] Failed to remove runtime SourcePath"; exit 1; }
 
@@ -133,26 +143,54 @@ grep -q 'runtime.*_Dir' "$ADV_INST_CONFIG" && { echo "[ERROR] Residual runtime_D
 grep -q 'SourcePath=".*app' "$ADV_INST_CONFIG" && { echo "[ERROR] Residual app SourcePath found"; exit 1; }
 grep -q 'SourcePath=".*runtime' "$ADV_INST_CONFIG" && { echo "[ERROR] Residual runtime SourcePath found"; exit 1; }
 
-echo "[INFO] Attempting to remove old folders via AdvancedInstaller CLI..."
-cmd.exe /C "\"$ADV_INST_COM\" /edit \"$ADV_INST_CONFIG\" /DelFolder -path APPDIR\\app" || echo "[WARN] Could not delete APPDIR\\app"
-cmd.exe /C "\"$ADV_INST_COM\" /edit \"$ADV_INST_CONFIG\" /DelFolder -path APPDIR\\runtime" || echo "[WARN] Could not delete APPDIR\\runtime"
-
-echo "[INFO] Adding new app and runtime folders to .aip..."
+echo "[INFO] Checking paths for Advanced Installer CLI..."
+echo "[DEBUG] ADV_INST_COM: $ADV_INST_COM" >> cleanup.log
+if [ ! -f "$ADV_INST_COM" ]; then
+    echo "[ERROR] Advanced Installer executable not found at $ADV_INST_COM"
+    exit 1
+fi
+echo "[DEBUG] ADV_INST_CONFIG: $ADV_INST_CONFIG" >> cleanup.log
+if [ ! -f "$ADV_INST_CONFIG" ]; then
+    echo "[ERROR] .aip file not found at $ADV_INST_CONFIG"
+    exit 1
+fi
+echo "[DEBUG] ADV_INST_SETUP_FILES/app: ${ADV_INST_SETUP_FILES}/app" >> cleanup.log
 if [ ! -d "${ADV_INST_SETUP_FILES}/app" ]; then
     echo "[ERROR] Folder ${ADV_INST_SETUP_FILES}/app does not exist"
     exit 1
 fi
+echo "[DEBUG] ADV_INST_SETUP_FILES/runtime: ${ADV_INST_SETUP_FILES}/runtime" >> cleanup.log
 if [ ! -d "${ADV_INST_SETUP_FILES}/runtime" ]; then
     echo "[ERROR] Folder ${ADV_INST_SETUP_FILES}/runtime does not exist"
     exit 1
 fi
-echo "[DEBUG] Adding app folder: ${ADV_INST_SETUP_FILES}/app" >> cleanup.log
-cmd.exe /C "\"$ADV_INST_COM\" /edit \"$ADV_INST_CONFIG\" /AddFolder -path APPDIR\\app -source \"$ADV_INST_SETUP_FILES\\app\"" || { echo "[ERROR] Failed to add app folder"; exit 1; }
-echo "[DEBUG] Adding runtime folder: ${ADV_INST_SETUP_FILES}/runtime" >> cleanup.log
-cmd.exe /C "\"$ADV_INST_COM\" /edit \"$ADV_INST_CONFIG\" /AddFolder -path APPDIR\\runtime -source \"$ADV_INST_SETUP_FILES\\runtime\"" || { echo "[ERROR] Failed to add runtime folder"; exit 1; }
+
+# Преобразование путей в формат Windows
+ADV_INST_COM_WIN=$(convert_path "$ADV_INST_COM")
+ADV_INST_CONFIG_WIN=$(convert_path "$ADV_INST_CONFIG")
+ADV_INST_SETUP_FILES_WIN=$(convert_path "$ADV_INST_SETUP_FILES")
+echo "[DEBUG] Windows paths: ADV_INST_COM_WIN=$ADV_INST_COM_WIN, ADV_INST_CONFIG_WIN=$ADV_INST_CONFIG_WIN, ADV_INST_SETUP_FILES_WIN=$ADV_INST_SETUP_FILES_WIN" >> cleanup.log
+
+echo "[INFO] Attempting to remove old folders via AdvancedInstaller CLI..."
+CLI_CMD="\"$ADV_INST_COM_WIN\" /edit \"$ADV_INST_CONFIG_WIN\" /DelFolder -path APPDIR\\app"
+echo "[DEBUG] Executing: $CLI_CMD" >> cleanup.log
+cmd.exe /C "$CLI_CMD" || echo "[WARN] Could not delete APPDIR\\app"
+CLI_CMD="\"$ADV_INST_COM_WIN\" /edit \"$ADV_INST_CONFIG_WIN\" /DelFolder -path APPDIR\\runtime"
+echo "[DEBUG] Executing: $CLI_CMD" >> cleanup.log
+cmd.exe /C "$CLI_CMD" || echo "[WARN] Could not delete APPDIR\\runtime"
+
+echo "[INFO] Adding new app and runtime folders to .aip..."
+CLI_CMD="\"$ADV_INST_COM_WIN\" /edit \"$ADV_INST_CONFIG_WIN\" /AddFolder -path APPDIR\\app -source \"$ADV_INST_SETUP_FILES_WIN\\app\""
+echo "[DEBUG] Executing: $CLI_CMD" >> cleanup.log
+cmd.exe /C "$CLI_CMD" || { echo "[ERROR] Failed to add app folder"; exit 1; }
+CLI_CMD="\"$ADV_INST_COM_WIN\" /edit \"$ADV_INST_CONFIG_WIN\" /AddFolder -path APPDIR\\runtime -source \"$ADV_INST_SETUP_FILES_WIN\\runtime\""
+echo "[DEBUG] Executing: $CLI_CMD" >> cleanup.log
+cmd.exe /C "$CLI_CMD" || { echo "[ERROR] Failed to add runtime folder"; exit 1; }
 
 echo "[INFO] Building installer..."
-cmd.exe /C "\"$ADV_INST_COM\" /build \"$ADV_INST_CONFIG\"" || { echo "[ERROR] Build failed"; exit 1; }
+CLI_CMD="\"$ADV_INST_COM_WIN\" /build \"$ADV_INST_CONFIG_WIN\""
+echo "[DEBUG] Executing: $CLI_CMD" >> cleanup.log
+cmd.exe /C "$CLI_CMD" || { echo "[ERROR] Build failed"; exit 1; }
 
 #SIGNED_MSI_PATH="$ADVANCED_INSTALLER_MSI_FILES/Neuro_Desktop-${VERSION_NAME}-${VERSION_CODE}.msi"
 # signtool sign /fd sha256 /tr http://ts.ssl.com /td sha256 /sha1 20fbd34014857033bcc6dabfae390411b22b0b1e "$SIGNED_MSI_PATH"
