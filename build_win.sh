@@ -46,9 +46,9 @@ VERSION_NAME=$(grep '^desktop\.version\s*=' gradle.properties | sed 's/.*=\s*\([
 analyticsMessage="prod"
 [ "$isUseDevAnalytics" == "true" ] && analyticsMessage="dev"
 
-end_time=$(date -d "+15 minutes" +"%H:%M")
-message=":hammer_and_wrench: Windows build started on \`$BRANCH_NAME\` with $analyticsMessage analytics. It will be ready approximately at $end_time"
-first_ts=$(post_message "$SLACK_BOT_TOKEN" "$SLACK_CHANNEL" "$message")
+#end_time=$(date -d "+15 minutes" +"%H:%M")
+#message=":hammer_and_wrench: Windows build started on \`$BRANCH_NAME\` with $analyticsMessage analytics. It will be ready approximately at $end_time"
+#first_ts=$(post_message "$SLACK_BOT_TOKEN" "$SLACK_CHANNEL" "$message")
 
 if [ "$isUseDevAnalytics" == "false" ]; then
   enable_prod_keys
@@ -67,36 +67,40 @@ NEW_MSI_PATH="$DESKTOP_BUILD_PATH/Neuro_Desktop-${VERSION_NAME}-${VERSION_CODE}.
 echo "Moving MSI: $MSI_FILE -> $NEW_MSI_PATH"
 [ -f "$NEW_MSI_PATH" ] && rm -f "$NEW_MSI_PATH"
 mv "$MSI_FILE" "$NEW_MSI_PATH"
+echo "Moving MSI: $MSI_FILE -> $NEW_MSI_PATH"
 
 echo "Extracting MSI with lessmsi: $NEW_MSI_PATH"
-MSI_EXTRACT_DIR="${ADVANCED_INSTALLER_MSI_FILES}/Neuro_Desktop-${VERSION_NAME}-${VERSION_CODE}"
-/c/ProgramData/chocolatey/bin/lessmsi.exe x "$NEW_MSI_PATH" "$MSI_EXTRACT_DIR"
+/c/ProgramData/chocolatey/bin/lessmsi.exe x "$NEW_MSI_PATH"
 
-sleep 30
+TEMP_EXTRACTED_NAME="Neuro_Desktop-${VERSION_NAME}-${VERSION_CODE}"
+USER_HOME_MSI_EXTRACT_PATH="/c/Users/BlackBricks/$TEMP_EXTRACTED_NAME"
+MSI_EXTRACT_DIR="$ADVANCED_INSTALLER_MSI_FILES/$TEMP_EXTRACTED_NAME"
+
+echo "Moving extracted MSI folder: $USER_HOME_MSI_EXTRACT_PATH -> $MSI_EXTRACT_DIR"
+rm -rf "$MSI_EXTRACT_DIR"
+mv "$USER_HOME_MSI_EXTRACT_PATH" "$MSI_EXTRACT_DIR"
 
 EXTRACTED_APP_PATH="$MSI_EXTRACT_DIR/SourceDir/Neuro Desktop"
 echo "Extracted app path: $EXTRACTED_APP_PATH"
 [ ! -d "$EXTRACTED_APP_PATH" ] && { post_error_message "$BRANCH_NAME"; exit 1; }
 
-echo "Removing old app and realtime directories"
+echo "Cleaning old app and realtime folders"
 rm -rf "$ADVANCED_INSTALLER_SETUP_FILES/app"
 rm -rf "$ADVANCED_INSTALLER_SETUP_FILES/realtime"
 
-echo "Copying new app and realtime from $EXTRACTED_APP_PATH to $ADVANCED_INSTALLER_SETUP_FILES"
+echo "Copying app and realtime from extracted MSI to setup files"
 cp -r "$EXTRACTED_APP_PATH/app" "$ADVANCED_INSTALLER_SETUP_FILES/"
 cp -r "$EXTRACTED_APP_PATH/realtime" "$ADVANCED_INSTALLER_SETUP_FILES/"
 
 OLD_VERSION=$(grep -oP 'Property Id="ProductVersion" Value="\K[^"]+' "$ADVANCED_INSTALLER_CONFIG")
-echo "Updating ProductVersion from $OLD_VERSION to $VERSION_NAME"
 sed -i "s/Property Id=\"ProductVersion\" Value=\"$OLD_VERSION\"/Property Id=\"ProductVersion\" Value=\"$VERSION_NAME\"/" "$ADVANCED_INSTALLER_CONFIG"
 
 GENERATE_CODE=$(grep -oP 'Property Id="GenerateCode" Value="\K[^"]+' "$ADVANCED_INSTALLER_CONFIG")
 NEXT_GENERATE_CODE=$((GENERATE_CODE + 1))
-echo "Incrementing GenerateCode: $GENERATE_CODE -> $NEXT_GENERATE_CODE"
 sed -i "s/Property Id=\"GenerateCode\" Value=\"$GENERATE_CODE\"/Property Id=\"GenerateCode\" Value=\"$NEXT_GENERATE_CODE\"/" "$ADVANCED_INSTALLER_CONFIG"
 
-echo "Building MSI with Advanced Installer: $ADVANCED_INSTALLER_CONFIG"
-AdvancedInstaller.com /build "$ADVANCED_INSTALLER_CONFIG"
+echo "Building installer from $ADVANCED_INSTALLER_CONFIG"
+/c/Program\ Files\ \(x86\)/Caphyon/Advanced\ Installer\ 20.6/bin/x86/AdvancedInstaller.com /build "$ADVANCED_INSTALLER_CONFIG"
 
 SIGNED_MSI_PATH="$ADVANCED_INSTALLER_MSI_FILES/Neuro_Desktop-${VERSION_NAME}-${VERSION_CODE}.msi"
 # signtool sign /fd sha256 /tr http://ts.ssl.com /td sha256 /sha1 20fbd34014857033bcc6dabfae390411b22b0b1e "$SIGNED_MSI_PATH"
