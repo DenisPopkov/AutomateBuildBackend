@@ -77,103 +77,74 @@ EXTRACT_DIR="/c/Users/BlackBricks/StudioProjects/SA_Neuro_Multiplatform/Neuro_De
 rm -rf "${ADV_INST_SETUP_FILES}/app"
 rm -rf "${ADV_INST_SETUP_FILES}/runtime"
 
-# === Copy new folders ===
 cp -r "${EXTRACT_DIR}/app" "${ADV_INST_SETUP_FILES}/" || { echo "[ERROR] Failed to copy 'app' folder"; exit 1; }
 cp -r "${EXTRACT_DIR}/runtime" "${ADV_INST_SETUP_FILES}/" || { echo "[ERROR] Failed to copy 'runtime' folder"; exit 1; }
 
-# === Clean old app/runtime references in .aip ===
 echo "[INFO] Cleaning old references to app/runtime in .aip..."
-sed -i '/SourcePath=".*app\//d' "$ADV_INST_CONFIG"
-sed -i '/SourcePath=".*runtime\//d' "$ADV_INST_CONFIG"
-sed -i '/DefaultDir="app"/d' "$ADV_INST_CONFIG"
-sed -i '/DefaultDir="runtime"/d' "$ADV_INST_CONFIG"
+sed -i '\|SourcePath=".*app/|d' "$ADV_INST_CONFIG"
+sed -i '\|SourcePath=".*runtime/|d' "$ADV_INST_CONFIG"
+sed -i '\|SourcePath="..\\\\app\\\\|d' "$ADV_INST_CONFIG"
+sed -i '\|SourcePath="..\\\\runtime\\\\|d' "$ADV_INST_CONFIG"
+sed -i '\|DefaultDir="app"|d' "$ADV_INST_CONFIG"
+sed -i '\|DefaultDir="runtime"|d' "$ADV_INST_CONFIG"
 
-# === Update product version ===
 echo "[INFO] Updating ProductVersion to $VERSION_NAME..."
 sed -i "s/\(Property=\"ProductVersion\" Value=\"\)[^\"]*\(\".*\)/\1${VERSION_NAME}\2/" "$ADV_INST_CONFIG"
 
-# === Generate new ProductCode ===
 echo "[INFO] Generating new ProductCode..."
 NEW_GUID=$(powershell.exe "[guid]::NewGuid().ToString()" | tr -d '\r')
 [ -z "$NEW_GUID" ] && { echo "[ERROR] Failed to generate ProductCode"; exit 1; }
 sed -i "s/\(Property=\"ProductCode\" Value=\"\)[^\"]*\(\".*\)/\1${NEW_GUID}\2/" "$ADV_INST_CONFIG"
 
-# === Update output MSI file name ===
 echo "[INFO] Updating PackageFileName..."
 sed -i "s/\(PackageFileName=\"Neuro_Desktop-\)[^\"]*\(\".*\)/\1${VERSION_NAME}-${VERSION_CODE}\2/" "$ADV_INST_CONFIG"
 
-# === Prepare Windows paths ===
 WIN_APP_PATH=$(cygpath -w "${ADV_INST_SETUP_FILES}/app" | sed 's/\\$//')
 WIN_RUNTIME_PATH=$(cygpath -w "${ADV_INST_SETUP_FILES}/runtime" | sed 's/\\$//')
 
-# === Remove old folders from project ===
 echo "[INFO] Removing old app/runtime folders from project..."
-cmd.exe /C "\"$ADV_INST_COM\" /edit \"$ADV_INST_CONFIG\" /DelFolder -path APPDIR\\app" || {
-  echo "[WARN] Failed to delete APPDIR\\app — it may not exist."
-}
-cmd.exe /C "\"$ADV_INST_COM\" /edit \"$ADV_INST_CONFIG\" /DelFolder -path APPDIR\\runtime" || {
-  echo "[WARN] Failed to delete APPDIR\\runtime — it may not exist."
-}
+cmd.exe /C "\"$ADV_INST_COM\" /edit \"$ADV_INST_CONFIG\" /DelFolder -path APPDIR\\app" || echo "[WARN] Could not delete APPDIR\\app"
+cmd.exe /C "\"$ADV_INST_COM\" /edit \"$ADV_INST_CONFIG\" /DelFolder -path APPDIR\\runtime" || echo "[WARN] Could not delete APPDIR\\runtime"
 
-clean_app_runtime_from_aip() {
-  local aip_file="$1"
-  local backup_file="${aip_file}.bak"
+echo "[INFO] Backing up .aip to ${ADV_INST_CONFIG}.bak..."
+cp "$ADV_INST_CONFIG" "${ADV_INST_CONFIG}.bak" || { echo "[ERROR] Backup failed"; exit 1; }
 
-  echo "[INFO] Backing up .aip to $backup_file..."
-  cp "$aip_file" "$backup_file" || { echo "[ERROR] Backup failed"; exit 1; }
+echo "[INFO] Fully cleaning app/runtime references from .aip..."
 
-  echo "[INFO] Cleaning all app/runtime references from $aip_file..."
+for pattern in \
+  'Directory=".*app.*_Dir"' \
+  'Directory=".*runtime.*_Dir"' \
+  'Directory_Parent="app_Dir"' \
+  'Directory_Parent="runtime_Dir"' \
+  'Directory_=".*app.*_Dir"' \
+  'Directory_=".*runtime.*_Dir"' \
+  'Directory_=".*resources_Dir"' \
+  'Directory_=".*bin_Dir"' \
+  'Directory_=".*conf_Dir"' \
+  'Directory_=".*lib_Dir"' \
+  'Directory_=".*legal_Dir"' \
+  'Directory_=".*server_Dir"' \
+  'Directory_=".*security_Dir"' \
+  'SourcePath="..\\\\app\\\\' \
+  'SourcePath="..\\\\runtime\\\\' \
+  'SourcePath=".*app/' \
+  'SourcePath=".*runtime/' \
+  'Component_=".*app.*"' \
+  'Component_=".*runtime.*"' \
+  'Component=".*app.*"' \
+  'Component=".*runtime.*"' \
+  'File=".*app.*"' \
+  'File=".*runtime.*"'
+do
+  sed -i "\|$pattern|d" "$ADV_INST_CONFIG"
+done
 
-  # Remove app and runtime folders and subfolders
-  sed -i '/Directory=".*app.*_Dir"/d' "$aip_file"
-  sed -i '/Directory=".*runtime.*_Dir"/d' "$aip_file"
-  sed -i '/Directory_Parent="app_Dir"/d' "$aip_file"
-  sed -i '/Directory_Parent="runtime_Dir"/d' "$aip_file"
+echo "[INFO] Verifying cleanup..."
+grep -q 'app_Dir' "$ADV_INST_CONFIG" && { echo "[ERROR] Residual app_Dir found"; exit 1; }
+grep -q 'runtime_Dir' "$ADV_INST_CONFIG" && { echo "[ERROR] Residual runtime_Dir found"; exit 1; }
 
-  # Remove component rows related to app/runtime subdirs
-  sed -i '/Directory_=".*app.*_Dir"/d' "$aip_file"
-  sed -i '/Directory_=".*runtime.*_Dir"/d' "$aip_file"
-  sed -i '/Directory_=".*resources_Dir"/d' "$aip_file"
-  sed -i '/Directory_=".*bin_Dir"/d' "$aip_file"
-  sed -i '/Directory_=".*conf_Dir"/d' "$aip_file"
-  sed -i '/Directory_=".*lib_Dir"/d' "$aip_file"
-  sed -i '/Directory_=".*legal_Dir"/d' "$aip_file"
-  sed -i '/Directory_=".*server_Dir"/d' "$aip_file"
-  sed -i '/Directory_=".*security_Dir"/d' "$aip_file"
+echo "[INFO] All app/runtime references successfully removed."
 
-  # Remove files and references from .app and .runtime
-  sed -i '/SourcePath="..\\\\app\\\\/d' "$aip_file"
-  sed -i '/SourcePath="..\\\\runtime\\\\/d' "$aip_file"
-  sed -i '/SourcePath=".*app\\//d' "$aip_file"
-  sed -i '/SourcePath=".*runtime\\//d' "$aip_file"
-
-  sed -i '/Component_=".*app.*"/d' "$aip_file"
-  sed -i '/Component_=".*runtime.*"/d' "$aip_file"
-
-  echo "[INFO] Clean-up complete."
-
-  echo "[INFO] Verifying that all references are removed..."
-  local found=0
-
-  grep -q '\\\\app\\\\' "$aip_file" && { echo "[WARN] Still contains \\app\\"; found=1; }
-  grep -q '\\\\runtime\\\\' "$aip_file" && { echo "[WARN] Still contains \\runtime\\"; found=1; }
-  grep -q 'Directory_=".*app.*_Dir"' "$aip_file" && { echo "[WARN] Still contains Directory_='...app...'"; found=1; }
-  grep -q 'Directory_=".*runtime.*_Dir"' "$aip_file" && { echo "[WARN] Still contains Directory_='...runtime...'"; found=1; }
-
-  if [ "$found" -eq 0 ]; then
-    echo "[INFO] All app/runtime references successfully removed."
-  else
-    echo "[ERROR] Some app/runtime references still remain in the .aip file."
-    return 1
-  fi
-}
-
-clean_app_runtime_from_aip "$ADV_INST_CONFIG" || {
-  echo "[FATAL] Residual entries found — fix manually or check your sed filters"
-  exit 1
-}
-
-# === Build installer ===
 echo "[INFO] Building installer..."
 cmd.exe /C "\"$ADV_INST_COM\" /build \"$ADV_INST_CONFIG\"" || {
   echo "[ERROR] Build failed"
