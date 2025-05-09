@@ -69,7 +69,9 @@ mv "$MSI_FILE" "$NEW_MSI_PATH"
 EXTRACT_DIR="/c/Users/BlackBricks/Neuro_Desktop-${VERSION_NAME}-${VERSION_CODE}"
 /c/ProgramData/chocolatey/bin/lessmsi.exe x "$NEW_MSI_PATH" "$EXTRACT_DIR"
 
-EXTRACTED_APP_PATH="$EXTRACT_DIR/SourceDir/ProgramFilesFolder/Source Audio/Neuro Desktop 3"
+sleep 30
+
+EXTRACTED_APP_PATH="$EXTRACT_DIR/SourceDir/Neuro Desktop"
 [ ! -d "$EXTRACTED_APP_PATH" ] && { post_error_message "$BRANCH_NAME"; exit 1; }
 
 rm -rf "$ADVANCED_INSTALLER_SETUP_FILES/app" "$ADVANCED_INSTALLER_SETUP_FILES/realtime"
