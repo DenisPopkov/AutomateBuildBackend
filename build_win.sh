@@ -89,7 +89,8 @@ NEXT_GENERATE_CODE=$((GENERATE_CODE + 1))
 sed -i "s/Property Id=\"GenerateCode\" Value=\"$GENERATE_CODE\"/Property Id=\"GenerateCode\" Value=\"$NEXT_GENERATE_CODE\"/" "$ADVANCED_INSTALLER_CONFIG"
 
 echo "Building installer from $ADVANCED_INSTALLER_CONFIG"
-cmd.exe /c "\"C:\Program Files (x86)\Caphyon\Advanced Installer 22.6\bin\x86\AdvancedInstaller.com\" /build \"$ADVANCED_INSTALLER_CONFIG\""
+ADVANCED_INSTALLER="/c/Program Files (x86)/Caphyon/Advanced Installer 22.6/bin/x86/AdvancedInstaller.com"
+"$ADVANCED_INSTALLER" /build "$ADVANCED_INSTALLER_CONFIG"
 
 #SIGNED_MSI_PATH="$ADVANCED_INSTALLER_MSI_FILES/Neuro_Desktop-${VERSION_NAME}-${VERSION_CODE}.msi"
 # signtool sign /fd sha256 /tr http://ts.ssl.com /td sha256 /sha1 20fbd34014857033bcc6dabfae390411b22b0b1e "$SIGNED_MSI_PATH"
