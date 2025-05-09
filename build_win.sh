@@ -66,7 +66,7 @@ NEW_MSI_PATH="$DESKTOP_BUILD_PATH/Neuro_Desktop-${VERSION_NAME}-${VERSION_CODE}.
 [ -f "$NEW_MSI_PATH" ] && rm -f "$NEW_MSI_PATH"
 mv "$MSI_FILE" "$NEW_MSI_PATH"
 
-EXTRACT_DIR="/c/Users/BlackBricks/Neuro_Desktop-${VERSION_NAME}-${VERSION_CODE}"
+EXTRACT_DIR="$PROJECT_DIR/Neuro_Desktop-${VERSION_NAME}-${VERSION_CODE}"
 /c/ProgramData/chocolatey/bin/lessmsi.exe x "$NEW_MSI_PATH" "$EXTRACT_DIR"
 
 sleep 30
