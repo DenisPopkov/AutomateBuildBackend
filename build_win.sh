@@ -59,63 +59,63 @@ VERSION_NAME=$(grep '^desktop\.version\s*=' gradle.properties | sed 's/.*=\s*\([
 #
 #./gradlew packageReleaseMsi || { post_error_message "$BRANCH_NAME"; exit 1; }
 
+ADVANCED_INSTALLER="/c/Program Files (x86)/Caphyon/Advanced Installer 22.6/bin/x86/AdvancedInstaller.com"
+
 DESKTOP_BUILD_PATH="$PROJECT_DIR/desktopApp/build/compose/binaries/main-release/msi"
 MSI_FILE=$(find "$DESKTOP_BUILD_PATH" -name "Neuro*.msi" | head -n 1)
-[ -z "$MSI_FILE" ] && { post_error_message "$BRANCH_NAME"; exit 1; }
+[ -z "$MSI_FILE" ] && { echo "[ERROR] MSI file not found"; post_error_message "$BRANCH_NAME"; exit 1; }
 
 NEW_MSI_PATH="$DESKTOP_BUILD_PATH/Neuro_Desktop-${VERSION_NAME}-${VERSION_CODE}.msi"
 [ -f "$NEW_MSI_PATH" ] && rm -f "$NEW_MSI_PATH"
-mv "$MSI_FILE" "$NEW_MSI_PATH"
+mv "$MSI_FILE" "$NEW_MSI_PATH" || { echo "[ERROR] Failed to rename MSI"; exit 1; }
 
-/c/ProgramData/chocolatey/bin/lessmsi.exe x "C:\\Users\\BlackBricks\\StudioProjects\\SA_Neuro_Multiplatform\\desktopApp\\build\\compose\\binaries\\main-release\\msi\\Neuro_Desktop-${VERSION_NAME}-${VERSION_CODE}.msi"
+/c/ProgramData/chocolatey/bin/lessmsi.exe x "$NEW_MSI_PATH" || { echo "[ERROR] Failed to extract MSI"; exit 1; }
 
-sleep 30
+sleep 10
 
 EXTRACT_DIR="/c/Users/BlackBricks/StudioProjects/SA_Neuro_Multiplatform/Neuro_Desktop-${VERSION_NAME}-${VERSION_CODE}/SourceDir/Neuro Desktop"
-
-rm -rf "$ADVANCED_INSTALLER_SETUP_FILES/app"
-rm -rf "$ADVANCED_INSTALLER_SETUP_FILES/runtime"
 
 rm -rf "${ADVANCED_INSTALLER_SETUP_FILES}/app"
 rm -rf "${ADVANCED_INSTALLER_SETUP_FILES}/runtime"
 
-cp -r "${EXTRACT_DIR}/app" "${ADVANCED_INSTALLER_SETUP_FILES}/"
-cp -r "${EXTRACT_DIR}/runtime" "${ADVANCED_INSTALLER_SETUP_FILES}/"
+cp -r "${EXTRACT_DIR}/app" "${ADVANCED_INSTALLER_SETUP_FILES}/" || { echo "[ERROR] Failed to copy app"; exit 1; }
+cp -r "${EXTRACT_DIR}/runtime" "${ADVANCED_INSTALLER_SETUP_FILES}/" || { echo "[ERROR] Failed to copy runtime"; exit 1; }
 
-# === Шаг 3: Очистка устаревших записей в .aip ===
-echo "🧹 Чистим .aip от старых app/runtime ссылок..."
+# === Step 3: Clean old entries ===
+echo "[INFO] Cleaning .aip from old app/runtime references..."
 sed -i '/SourcePath=".*app\//d' "$ADVANCED_INSTALLER_CONFIG"
 sed -i '/SourcePath=".*runtime\//d' "$ADVANCED_INSTALLER_CONFIG"
 sed -i '/DefaultDir="app"/d' "$ADVANCED_INSTALLER_CONFIG"
 sed -i '/DefaultDir="runtime"/d' "$ADVANCED_INSTALLER_CONFIG"
 
-# === Шаг 4: Обновление ProductVersion ===
-echo "📝 Обновляем ProductVersion..."
+# === Step 4: Update ProductVersion ===
+echo "[INFO] Updating ProductVersion to $VERSION_NAME..."
 sed -i "s/\(Property=\"ProductVersion\" Value=\"\)[^\"]*\(\".*\)/\1${VERSION_NAME}\2/" "$ADVANCED_INSTALLER_CONFIG"
 
-# === Шаг 5: Обновление ProductCode ===
-echo "🧬 Генерация нового ProductCode..."
+# === Step 5: Update ProductCode ===
+echo "[INFO] Generating new ProductCode..."
 NEW_GUID=$(powershell.exe "[guid]::NewGuid().ToString()" | tr -d '\r')
+[ -z "$NEW_GUID" ] && { echo "[ERROR] Failed to generate ProductCode"; exit 1; }
 sed -i "s/\(Property=\"ProductCode\" Value=\"\)[^\"]*\(\".*\)/\1${NEW_GUID}\2/" "$ADVANCED_INSTALLER_CONFIG"
 
-# === Шаг 6: Обновление MSI имени ===
-echo "💼 Обновляем PackageFileName..."
+# === Step 6: Update MSI output name ===
+echo "[INFO] Updating PackageFileName..."
 sed -i "s/\(PackageFileName=\"Neuro_Desktop-\)[^\"]*\(\".*\)/\1${VERSION_NAME}-${VERSION_CODE}\2/" "$ADVANCED_INSTALLER_CONFIG"
 
-# === Шаг 7: Подготовка команд импорта ===
-echo "📁 Готовим команды CLI для импорта..."
+# === Step 7: Prepare CLI import ===
+echo "[INFO] Preparing CLI commands for app/runtime import..."
 echo "/DelFolder -path \"APPDIR\\app\"" > aip_commands.txt
 echo "/DelFolder -path \"APPDIR\\runtime\"" >> aip_commands.txt
 echo "/AddFolder -path \"APPDIR\" -source \"${ADVANCED_INSTALLER_SETUP_FILES}/app\"" >> aip_commands.txt
 echo "/AddFolder -path \"APPDIR\" -source \"${ADVANCED_INSTALLER_SETUP_FILES}/runtime\"" >> aip_commands.txt
 
-# === Шаг 8: Импорт в AIP через CLI ===
-echo "🔧 Обновляем проект .aip через /execute..."
-"$ADVANCED_INSTALLER" /execute "$ADVANCED_INSTALLER_CONFIG" aip_commands.txt
+# === Step 8: Import into .aip ===
+echo "[INFO] Executing CLI import into .aip..."
+"$ADVANCED_INSTALLER" /execute "$ADVANCED_INSTALLER_CONFIG" aip_commands.txt || { echo "[ERROR] /execute failed"; exit 1; }
 
-# === Шаг 9: Сборка установщика ===
-echo "🚀 Сборка установщика..."
-"$ADVANCED_INSTALLER" /build "$ADVANCED_INSTALLER_CONFIG"
+# === Step 9: Build installer ===
+echo "[INFO] Building installer..."
+"$ADVANCED_INSTALLER" /build "$ADVANCED_INSTALLER_CONFIG" || { echo "[ERROR] Build failed"; exit 1; }
 
 #SIGNED_MSI_PATH="$ADVANCED_INSTALLER_MSI_FILES/Neuro_Desktop-${VERSION_NAME}-${VERSION_CODE}.msi"
 # signtool sign /fd sha256 /tr http://ts.ssl.com /td sha256 /sha1 20fbd34014857033bcc6dabfae390411b22b0b1e "$SIGNED_MSI_PATH"
