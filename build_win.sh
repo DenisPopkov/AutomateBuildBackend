@@ -102,16 +102,21 @@ sed -i "s/\(Property=\"ProductCode\" Value=\"\)[^\"]*\(\".*\)/\1${NEW_GUID}\2/" 
 echo "[INFO] Updating PackageFileName..."
 sed -i "s/\(PackageFileName=\"Neuro_Desktop-\)[^\"]*\(\".*\)/\1${VERSION_NAME}-${VERSION_CODE}\2/" "$ADVANCED_INSTALLER_CONFIG"
 
-# === Step 7: Prepare CLI import ===
-echo "[INFO] Preparing CLI commands for app/runtime import..."
-echo "/DelFolder -path \"APPDIR\\app\"" > aip_commands.txt
-echo "/DelFolder -path \"APPDIR\\runtime\"" >> aip_commands.txt
-echo "/AddFolder -path \"APPDIR\" -source \"${ADVANCED_INSTALLER_SETUP_FILES}/app\"" >> aip_commands.txt
-echo "/AddFolder -path \"APPDIR\" -source \"${ADVANCED_INSTALLER_SETUP_FILES}/runtime\"" >> aip_commands.txt
+# === Шаг 7: Подготовка CLI-команд ===
+echo "[INFO] Preparing CLI import commands for app/runtime..."
 
-# === Step 8: Import into .aip ===
-echo "[INFO] Executing CLI import into .aip..."
-"$ADVANCED_INSTALLER" /execute "$ADVANCED_INSTALLER_CONFIG" aip_commands.txt || { echo "[ERROR] /execute failed"; exit 1; }
+# Преобразуем путь в Windows-формат (если shell запускается через Git Bash)
+WIN_APP_PATH=$(cygpath -w "${ADVANCED_INSTALLER_SETUP_FILES}/app")
+WIN_RUNTIME_PATH=$(cygpath -w "${ADVANCED_INSTALLER_SETUP_FILES}/runtime")
+
+# === Шаг 8: Выполняем импорт по одной команде через /edit ===
+echo "[INFO] Removing old app/runtime folders..."
+"$ADVANCED_INSTALLER" /edit "$ADVANCED_INSTALLER_CONFIG" "/DelFolder -path APPDIR\\app"
+"$ADVANCED_INSTALLER" /edit "$ADVANCED_INSTALLER_CONFIG" "/DelFolder -path APPDIR\\runtime"
+
+echo "[INFO] Adding updated app/runtime folders..."
+"$ADVANCED_INSTALLER" /edit "$ADVANCED_INSTALLER_CONFIG" "/AddFolder -path APPDIR -source \"$WIN_APP_PATH\""
+"$ADVANCED_INSTALLER" /edit "$ADVANCED_INSTALLER_CONFIG" "/AddFolder -path APPDIR -source \"$WIN_RUNTIME_PATH\""
 
 # === Step 9: Build installer ===
 echo "[INFO] Building installer..."
