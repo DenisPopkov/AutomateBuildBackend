@@ -14,13 +14,13 @@ ADV_INST_SETUP_FILES="/c/Users/BlackBricks/Applications/Neuro installer"
 ADV_INST_COM="/c/Program Files (x86)/Caphyon/Advanced Installer 22.6/bin/x86/AdvancedInstaller.com"
 ADVANCED_INSTALLER_MSI_FILES="/c/Users/BlackBricks/Applications/Neuro installer/installer_win/Neuro Desktop-SetupFiles"
 
-# Функция для преобразования пути из /c/ в C:\
+# Функция для преобразования пути из /c/ в C:\ с экранированием
 convert_path() {
     local path="$1"
     if command -v cygpath >/dev/null; then
-        cygpath -w "$path"
+        cygpath -w "$path" | sed 's|\\|\\\\|g'
     else
-        echo "$path" | sed 's|^/c/|C:\\|; s|/|\\|g'
+        echo "$path" | sed 's|^/c/|C:\\\\|; s|/|\\\\|g'
     fi
 }
 
@@ -133,7 +133,7 @@ echo "[DEBUG] Removing app and runtime components..." >> cleanup.log
 # Удаление файлов, связанных с app и runtime
 echo "[DEBUG] Removing app and runtime files..." >> cleanup.log
 "$XMLSTARLET_PATH" ed -d '//ROW[contains(@File, "app")]' "$ADV_INST_CONFIG" > "${ADV_INST_CONFIG}.tmp" && mv "${ADV_INST_CONFIG}.tmp" "$ADV_INST_CONFIG" || { echo "[ERROR] Failed to remove app files"; exit 1; }
-"$XMLSTARLET_PATH" ed -d '//ROW[contains(@File, "runtime")]' "$ADV_INST_CONFIG" > "${ADV_INST_CONFIG}.tmp" && mv "${ADV_INST_CONFIG}.tmp" "$ADV_INST_CONFIG" || { echo "[ERROR] Failed to remove app files"; exit 1; }
+"$XMLSTARLET_PATH" ed -d '//ROW[contains(@File, "runtime")]' "$ADV_INST_CONFIG" > "${ADV_INST_CONFIG}.tmp" && mv "${ADV_INST_CONFIG}.tmp" "$ADV_INST_CONFIG" || { echo "[ERROR] Failed to remove runtime files"; exit 1; }
 "$XMLSTARLET_PATH" ed -d '//ROW[contains(@SourcePath, "app")]' "$ADV_INST_CONFIG" > "${ADV_INST_CONFIG}.tmp" && mv "${ADV_INST_CONFIG}.tmp" "$ADV_INST_CONFIG" || { echo "[ERROR] Failed to remove app SourcePath"; exit 1; }
 "$XMLSTARLET_PATH" ed -d '//ROW[contains(@SourcePath, "runtime")]' "$ADV_INST_CONFIG" > "${ADV_INST_CONFIG}.tmp" && mv "${ADV_INST_CONFIG}.tmp" "$ADV_INST_CONFIG" || { echo "[ERROR] Failed to remove runtime SourcePath"; exit 1; }
 
@@ -173,23 +173,23 @@ echo "[DEBUG] Windows paths: ADV_INST_COM_WIN=$ADV_INST_COM_WIN, ADV_INST_CONFIG
 
 echo "[INFO] Attempting to remove old folders via AdvancedInstaller CLI..."
 CLI_CMD="\"$ADV_INST_COM_WIN\" /edit \"$ADV_INST_CONFIG_WIN\" /DelFolder -path APPDIR\\app"
-echo "[DEBUG] Executing: $CLI_CMD" >> cleanup.log
+echo "[DEBUG] Executing: cmd.exe /C $CLI_CMD" >> cleanup.log
 cmd.exe /C "$CLI_CMD" || echo "[WARN] Could not delete APPDIR\\app"
 CLI_CMD="\"$ADV_INST_COM_WIN\" /edit \"$ADV_INST_CONFIG_WIN\" /DelFolder -path APPDIR\\runtime"
-echo "[DEBUG] Executing: $CLI_CMD" >> cleanup.log
+echo "[DEBUG] Executing: cmd.exe /C $CLI_CMD" >> cleanup.log
 cmd.exe /C "$CLI_CMD" || echo "[WARN] Could not delete APPDIR\\runtime"
 
 echo "[INFO] Adding new app and runtime folders to .aip..."
 CLI_CMD="\"$ADV_INST_COM_WIN\" /edit \"$ADV_INST_CONFIG_WIN\" /AddFolder -path APPDIR\\app -source \"$ADV_INST_SETUP_FILES_WIN\\app\""
-echo "[DEBUG] Executing: $CLI_CMD" >> cleanup.log
+echo "[DEBUG] Executing: cmd.exe /C $CLI_CMD" >> cleanup.log
 cmd.exe /C "$CLI_CMD" || { echo "[ERROR] Failed to add app folder"; exit 1; }
 CLI_CMD="\"$ADV_INST_COM_WIN\" /edit \"$ADV_INST_CONFIG_WIN\" /AddFolder -path APPDIR\\runtime -source \"$ADV_INST_SETUP_FILES_WIN\\runtime\""
-echo "[DEBUG] Executing: $CLI_CMD" >> cleanup.log
+echo "[DEBUG] Executing: cmd.exe /C $CLI_CMD" >> cleanup.log
 cmd.exe /C "$CLI_CMD" || { echo "[ERROR] Failed to add runtime folder"; exit 1; }
 
 echo "[INFO] Building installer..."
 CLI_CMD="\"$ADV_INST_COM_WIN\" /build \"$ADV_INST_CONFIG_WIN\""
-echo "[DEBUG] Executing: $CLI_CMD" >> cleanup.log
+echo "[DEBUG] Executing: cmd.exe /C $CLI_CMD" >> cleanup.log
 cmd.exe /C "$CLI_CMD" || { echo "[ERROR] Build failed"; exit 1; }
 
 #SIGNED_MSI_PATH="$ADVANCED_INSTALLER_MSI_FILES/Neuro_Desktop-${VERSION_NAME}-${VERSION_CODE}.msi"
