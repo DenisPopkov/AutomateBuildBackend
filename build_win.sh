@@ -60,8 +60,6 @@ VERSION_NAME=$(grep '^desktop\.version\s*=' gradle.properties | sed 's/.*=\s*\([
 #
 #./gradlew packageReleaseMsi || { post_error_message "$BRANCH_NAME"; exit 1; }
 
-ADVANCED_INSTALLER="/c/Program Files (x86)/Caphyon/Advanced Installer 22.6/bin/x86/AdvancedInstaller.com"
-
 DESKTOP_BUILD_PATH="$PROJECT_DIR/desktopApp/build/compose/binaries/main-release/msi"
 MSI_FILE=$(find "$DESKTOP_BUILD_PATH" -name "Neuro*.msi" | head -n 1)
 [ -z "$MSI_FILE" ] && { echo "[ERROR] MSI file not found"; post_error_message "$BRANCH_NAME"; exit 1; }
@@ -79,59 +77,59 @@ EXTRACT_DIR="/c/Users/BlackBricks/StudioProjects/SA_Neuro_Multiplatform/Neuro_De
 rm -rf "${ADV_INST_SETUP_FILES}/app"
 rm -rf "${ADV_INST_SETUP_FILES}/runtime"
 
-# === Копирование новых папок ===
-cp -r "${EXTRACT_DIR}/app" "${ADV_INST_SETUP_FILES}/" || { echo "[ERROR] Не удалось скопировать папку app"; exit 1; }
-cp -r "${EXTRACT_DIR}/runtime" "${ADV_INST_SETUP_FILES}/" || { echo "[ERROR] Не удалось скопировать папку runtime"; exit 1; }
+# === Copy new folders ===
+cp -r "${EXTRACT_DIR}/app" "${ADV_INST_SETUP_FILES}/" || { echo "[ERROR] Failed to copy 'app' folder"; exit 1; }
+cp -r "${EXTRACT_DIR}/runtime" "${ADV_INST_SETUP_FILES}/" || { echo "[ERROR] Failed to copy 'runtime' folder"; exit 1; }
 
-# === Очистка старых ссылок в .aip ===
-echo "[INFO] Очистка старых ссылок на app/runtime в .aip..."
+# === Clean old app/runtime references in .aip ===
+echo "[INFO] Cleaning old references to app/runtime in .aip..."
 sed -i '/SourcePath=".*app\//d' "$ADV_INST_CONFIG"
 sed -i '/SourcePath=".*runtime\//d' "$ADV_INST_CONFIG"
 sed -i '/DefaultDir="app"/d' "$ADV_INST_CONFIG"
 sed -i '/DefaultDir="runtime"/d' "$ADV_INST_CONFIG"
 
-# === Обновление версии продукта ===
-echo "[INFO] Обновление ProductVersion до $VERSION_NAME..."
+# === Update product version ===
+echo "[INFO] Updating ProductVersion to $VERSION_NAME..."
 sed -i "s/\(Property=\"ProductVersion\" Value=\"\)[^\"]*\(\".*\)/\1${VERSION_NAME}\2/" "$ADV_INST_CONFIG"
 
-# === Генерация нового ProductCode ===
-echo "[INFO] Генерация нового ProductCode..."
+# === Generate new ProductCode ===
+echo "[INFO] Generating new ProductCode..."
 NEW_GUID=$(powershell.exe "[guid]::NewGuid().ToString()" | tr -d '\r')
-[ -z "$NEW_GUID" ] && { echo "[ERROR] Не удалось сгенерировать ProductCode"; exit 1; }
+[ -z "$NEW_GUID" ] && { echo "[ERROR] Failed to generate ProductCode"; exit 1; }
 sed -i "s/\(Property=\"ProductCode\" Value=\"\)[^\"]*\(\".*\)/\1${NEW_GUID}\2/" "$ADV_INST_CONFIG"
 
-# === Обновление имени выходного MSI файла ===
-echo "[INFO] Обновление PackageFileName..."
+# === Update output MSI file name ===
+echo "[INFO] Updating PackageFileName..."
 sed -i "s/\(PackageFileName=\"Neuro_Desktop-\)[^\"]*\(\".*\)/\1${VERSION_NAME}-${VERSION_CODE}\2/" "$ADV_INST_CONFIG"
 
-# === Подготовка путей ===
+# === Prepare Windows paths ===
 WIN_APP_PATH=$(cygpath -w "${ADV_INST_SETUP_FILES}/app" | sed 's/\\$//')
 WIN_RUNTIME_PATH=$(cygpath -w "${ADV_INST_SETUP_FILES}/runtime" | sed 's/\\$//')
 
-# === Удаление старых папок в проекте ===
-echo "[INFO] Удаление старых папок app/runtime из проекта..."
+# === Remove old folders from project ===
+echo "[INFO] Removing old app/runtime folders from project..."
 cmd.exe /C "\"$ADV_INST_COM\" /edit \"$ADV_INST_CONFIG\" /DelFolder -path APPDIR\\app" || {
-  echo "[WARN] Не удалось удалить APPDIR\\app — возможно, папка не существует."
+  echo "[WARN] Failed to delete APPDIR\\app — it may not exist."
 }
 cmd.exe /C "\"$ADV_INST_COM\" /edit \"$ADV_INST_CONFIG\" /DelFolder -path APPDIR\\runtime" || {
-  echo "[WARN] Не удалось удалить APPDIR\\runtime — возможно, папка не существует."
+  echo "[WARN] Failed to delete APPDIR\\runtime — it may not exist."
 }
 
-# === Добавление новых папок в проект ===
-echo "[INFO] Добавление новых папок app/runtime в проект..."
+# === Add new folders to project ===
+echo "[INFO] Adding new app/runtime folders to project..."
 cmd.exe /C "\"$ADV_INST_COM\" /edit \"$ADV_INST_CONFIG\" /AddFolder -path APPDIR -source \"$WIN_APP_PATH\"" || {
-  echo "[ERROR] Не удалось добавить папку app в проект"
+  echo "[ERROR] Failed to add 'app' folder to project"
   exit 1
 }
 cmd.exe /C "\"$ADV_INST_COM\" /edit \"$ADV_INST_CONFIG\" /AddFolder -path APPDIR -source \"$WIN_RUNTIME_PATH\"" || {
-  echo "[ERROR] Не удалось добавить папку runtime в проект"
+  echo "[ERROR] Failed to add 'runtime' folder to project"
   exit 1
 }
 
-# === Сборка установщика ===
-echo "[INFO] Сборка установщика..."
+# === Build installer ===
+echo "[INFO] Building installer..."
 cmd.exe /C "\"$ADV_INST_COM\" /build \"$ADV_INST_CONFIG\"" || {
-  echo "[ERROR] Сборка не удалась"
+  echo "[ERROR] Build failed"
   exit 1
 }
 
