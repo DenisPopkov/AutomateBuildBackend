@@ -90,11 +90,44 @@ echo "[INFO] Attempting to remove old folders via AdvancedInstaller CLI..."
 cmd.exe /C "\"$ADV_INST_COM\" /edit \"$ADV_INST_CONFIG\" /DelFolder -path APPDIR\\app" || echo "[WARN] Could not delete APPDIR\\app"
 cmd.exe /C "\"$ADV_INST_COM\" /edit \"$ADV_INST_CONFIG\" /DelFolder -path APPDIR\\runtime" || echo "[WARN] Could not delete APPDIR\\runtime"
 
-echo "[INFO] Cleaning .aip from app/runtime using Python..."
-python3 "$ADV_INST_SETUP_FILES/clean_aip_app_runtime.py" "$ADV_INST_CONFIG" || {
-  echo "[ERROR] Python cleanup failed"
-  exit 1
-}
+echo "[INFO] Backing up .aip..."
+cp "$ADV_INST_CONFIG" "${ADV_INST_CONFIG}.bak" || { echo "[ERROR] Failed to backup .aip"; exit 1; }
+
+echo "[INFO] Cleaning .aip from all references to app/runtime..."
+
+patterns=(
+    'Directory=".*app.*_Dir"'
+    'Directory=".*runtime.*_Dir"'
+    'Directory_Parent="app_Dir"'
+    'Directory_Parent="runtime_Dir"'
+    'Directory_=".*app.*_Dir"'
+    'Directory_=".*runtime.*_Dir"'
+    'Directory_=".*resources_Dir"'
+    'Directory_=".*bin_Dir"'
+    'Directory_=".*conf_Dir"'
+    'Directory_=".*lib_Dir"'
+    'Directory_=".*legal_Dir"'
+    'Directory_=".*server_Dir"'
+    'Directory_=".*security_Dir"'
+    'SourcePath="..\\\\app\\\\'
+    'SourcePath="..\\\\runtime\\\\'
+    'SourcePath=".*app/'
+    'SourcePath=".*runtime/'
+    'Component_=".*app.*"'
+    'Component_=".*runtime.*"'
+    'Component=".*app.*"'
+    'Component=".*runtime.*"'
+    'File=".*app.*"'
+    'File=".*runtime.*"'
+)
+
+for pattern in "${patterns[@]}"; do
+    sed -i "\|$pattern|d" "$ADV_INST_CONFIG"
+done
+
+echo "[INFO] Verifying cleanup..."
+grep -q 'app_Dir' "$ADV_INST_CONFIG" && { echo "[ERROR] Residual app_Dir found"; exit 1; }
+grep -q 'runtime_Dir' "$ADV_INST_CONFIG" && { echo "[ERROR] Residual runtime_Dir found"; exit 1; }
 
 echo "[INFO] Building installer..."
 cmd.exe /C "\"$ADV_INST_COM\" /build \"$ADV_INST_CONFIG\"" || {
