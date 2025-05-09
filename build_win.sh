@@ -11,7 +11,6 @@ PROJECT_DIR="/c/Users/BlackBricks/StudioProjects/SA_Neuro_Multiplatform"
 ERROR_LOG_FILE="${ERROR_LOG_FILE:-/tmp/build_error_log.txt}"
 ADVANCED_INSTALLER_CONFIG="/c/Users/BlackBricks/Applications/Neuro installer/installer_win/Neuro Desktop 2.aip"
 ADVANCED_INSTALLER_SETUP_FILES="/c/Users/BlackBricks/Applications/Neuro installer/installer_win/Neuro Desktop-SetupFiles"
-ADVANCED_INSTALLER_CLI="/c/Program Files (x86)/Caphyon/Advanced Installer 20.6/bin/x86/AdvancedInstaller.com"
 
 while IFS='=' read -r key value; do
   key=$(echo "$key" | xargs)
@@ -68,10 +67,12 @@ NEW_MSI_PATH="$DESKTOP_BUILD_PATH/Neuro_Desktop-${VERSION_NAME}-${VERSION_CODE}.
 [ -f "$NEW_MSI_PATH" ] && rm -f "$NEW_MSI_PATH"
 mv "$MSI_FILE" "$NEW_MSI_PATH"
 
-EXTRACT_DIR="$ADVANCED_INSTALLER_SETUP_FILES/Neuro_Desktop-${VERSION_NAME}-${VERSION_CODE}"
-C:/ProgramData/chocolatey/bin/lessmsi.exe x "$NEW_MSI_PATH" "$EXTRACT_DIR"
+EXTRACT_DIR="/c/Users/BlackBricks/Neuro_Desktop-${VERSION_NAME}-${VERSION_CODE}"
+/c/ProgramData/chocolatey/bin/lessmsi.exe x "$NEW_MSI_PATH" "$EXTRACT_DIR"
 
 EXTRACTED_APP_PATH="$EXTRACT_DIR/SourceDir/ProgramFilesFolder/Source Audio/Neuro Desktop 3"
+[ ! -d "$EXTRACTED_APP_PATH" ] && { post_error_message "$BRANCH_NAME"; exit 1; }
+
 rm -rf "$ADVANCED_INSTALLER_SETUP_FILES/app" "$ADVANCED_INSTALLER_SETUP_FILES/realtime"
 cp -r "$EXTRACTED_APP_PATH/app" "$ADVANCED_INSTALLER_SETUP_FILES/"
 cp -r "$EXTRACTED_APP_PATH/realtime" "$ADVANCED_INSTALLER_SETUP_FILES/"
@@ -83,7 +84,6 @@ GENERATE_CODE=$(grep -oP 'Property Id="GenerateCode" Value="\K[^"]+' "$ADVANCED_
 NEXT_GENERATE_CODE=$((GENERATE_CODE + 1))
 sed -i "s/Property Id=\"GenerateCode\" Value=\"$GENERATE_CODE\"/Property Id=\"GenerateCode\" Value=\"$NEXT_GENERATE_CODE\"/" "$ADVANCED_INSTALLER_CONFIG"
 
-# Запуск AdvancedInstaller, используя конфигурацию проекта
 powershell -Command "Start-Process -Wait -NoNewWindow 'C:/Program Files (x86)/Caphyon/Advanced Installer 20.6/bin/x86/AdvancedInstaller.exe' -ArgumentList '/build', '$ADVANCED_INSTALLER_CONFIG'"
 
 SIGNED_MSI_PATH="$ADVANCED_INSTALLER_SETUP_FILES/Neuro_Desktop-${VERSION_NAME}-${VERSION_CODE}.msi"
