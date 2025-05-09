@@ -124,44 +124,41 @@ clean_app_runtime_from_aip() {
 
   echo "[INFO] Cleaning all app/runtime references from $aip_file..."
 
-  # Remove directory entries
-  sed -i '/Directory="app_Dir"/d' "$aip_file"
-  sed -i '/Directory="runtime_Dir"/d' "$aip_file"
-  sed -i '/Directory_="app_Dir"/d' "$aip_file"
-  sed -i '/Directory_="runtime_Dir"/d' "$aip_file"
+  # Remove app and runtime folders and subfolders
+  sed -i '/Directory=".*app.*_Dir"/d' "$aip_file"
+  sed -i '/Directory=".*runtime.*_Dir"/d' "$aip_file"
+  sed -i '/Directory_Parent="app_Dir"/d' "$aip_file"
+  sed -i '/Directory_Parent="runtime_Dir"/d' "$aip_file"
+
+  # Remove component rows related to app/runtime subdirs
   sed -i '/Directory_=".*app.*_Dir"/d' "$aip_file"
   sed -i '/Directory_=".*runtime.*_Dir"/d' "$aip_file"
+  sed -i '/Directory_=".*resources_Dir"/d' "$aip_file"
+  sed -i '/Directory_=".*bin_Dir"/d' "$aip_file"
+  sed -i '/Directory_=".*conf_Dir"/d' "$aip_file"
+  sed -i '/Directory_=".*lib_Dir"/d' "$aip_file"
+  sed -i '/Directory_=".*legal_Dir"/d' "$aip_file"
+  sed -i '/Directory_=".*server_Dir"/d' "$aip_file"
+  sed -i '/Directory_=".*security_Dir"/d' "$aip_file"
 
-  # Remove file path references
-  sed -i '/SourcePath=".*\\\\app\\\\/.*"/d' "$aip_file"
-  sed -i '/SourcePath=".*\\\\runtime\\\\/.*"/d' "$aip_file"
+  # Remove files and references from .app and .runtime
+  sed -i '/SourcePath="..\\\\app\\\\/d' "$aip_file"
+  sed -i '/SourcePath="..\\\\runtime\\\\/d' "$aip_file"
+  sed -i '/SourcePath=".*app\\//d' "$aip_file"
+  sed -i '/SourcePath=".*runtime\\//d' "$aip_file"
 
-  # Remove components
   sed -i '/Component_=".*app.*"/d' "$aip_file"
   sed -i '/Component_=".*runtime.*"/d' "$aip_file"
 
   echo "[INFO] Clean-up complete."
 
-  # === Final verification ===
   echo "[INFO] Verifying that all references are removed..."
   local found=0
 
-  if grep -q '\\\\app\\\\' "$aip_file"; then
-    echo "[WARN] Still contains paths with '\\app\\'"
-    found=1
-  fi
-  if grep -q '\\\\runtime\\\\' "$aip_file"; then
-    echo "[WARN] Still contains paths with '\\runtime\\'"
-    found=1
-  fi
-  if grep -q 'Directory_=".*app.*_Dir"' "$aip_file"; then
-    echo "[WARN] Still contains Directory_='...app...'"
-    found=1
-  fi
-  if grep -q 'Directory_=".*runtime.*_Dir"' "$aip_file"; then
-    echo "[WARN] Still contains Directory_='...runtime...'"
-    found=1
-  fi
+  grep -q '\\\\app\\\\' "$aip_file" && { echo "[WARN] Still contains \\app\\"; found=1; }
+  grep -q '\\\\runtime\\\\' "$aip_file" && { echo "[WARN] Still contains \\runtime\\"; found=1; }
+  grep -q 'Directory_=".*app.*_Dir"' "$aip_file" && { echo "[WARN] Still contains Directory_='...app...'"; found=1; }
+  grep -q 'Directory_=".*runtime.*_Dir"' "$aip_file" && { echo "[WARN] Still contains Directory_='...runtime...'"; found=1; }
 
   if [ "$found" -eq 0 ]; then
     echo "[INFO] All app/runtime references successfully removed."
