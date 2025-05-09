@@ -1,10 +1,5 @@
 #!/bin/bash
 
-# Пути к файлам (хардкод)
-MSI_FILE="C:/Users/BlackBricks/Applications/Neuro installer/installer_win/Neuro Desktop-SetupFiles/Neuro_Desktop-3.0.30-431.msi"
-EXTRACT_DIR="C:/Users/BlackBricks/Applications/Neuro installer/installer_win/Neuro Desktop-SetupFiles/Neuro_Desktop-3.0.30-431"
+MSI_FILE="C:\\Users\\BlackBricks\\StudioProjects\\SA_Neuro_Multiplatform\\desktopApp\\build\\compose\\binaries\\main-release\\msi\\Neuro_Desktop-3.0.27-435.msi"
 
-mkdir -p "$EXTRACT_DIR"
-lessmsi x "$MSI_FILE" "$EXTRACT_DIR"
-
-echo "Extraction completed to: $EXTRACT_DIR"
+/c/ProgramData/chocolatey/bin/lessmsi.exe x "$MSI_FILE"
