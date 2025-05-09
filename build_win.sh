@@ -115,16 +115,35 @@ cmd.exe /C "\"$ADV_INST_COM\" /edit \"$ADV_INST_CONFIG\" /DelFolder -path APPDIR
   echo "[WARN] Failed to delete APPDIR\\runtime — it may not exist."
 }
 
-# === Add new folders to project ===
-echo "[INFO] Adding new app/runtime folders to project..."
-cmd.exe /C "\"$ADV_INST_COM\" /edit \"$ADV_INST_CONFIG\" /AddFolder -path APPDIR -source \"$WIN_APP_PATH\"" || {
-  echo "[ERROR] Failed to add 'app' folder to project"
-  exit 1
+clean_app_runtime_from_aip() {
+  local aip_file="$1"
+
+  echo "[INFO] Cleaning all app/runtime references from $aip_file..."
+
+  # Remove all <ROW ...> entries where Directory="app_Dir" or "runtime_Dir"
+  sed -i '/<ROW Directory="app_Dir"/d' "$aip_file"
+  sed -i '/<ROW Directory="runtime_Dir"/d' "$aip_file"
+
+  # Remove all <ROW ...> entries where Directory_="app_Dir" or "runtime_Dir"
+  sed -i '/Directory_="app_Dir"/d' "$aip_file"
+  sed -i '/Directory_="runtime_Dir"/d' "$aip_file"
+
+  # Remove SourcePath entries that reference files from ..\app\ or ..\runtime\
+  sed -i '/SourcePath="..\\app\\/.*"/d' "$aip_file"
+  sed -i '/SourcePath="..\\runtime\\/.*"/d' "$aip_file"
+
+  # Remove Component entries that point to app_Dir or runtime_Dir or any of their subdirs
+  sed -i '/<ROW Component=".*" ComponentId=".*" Directory_=".*app.*_Dir"/d' "$aip_file"
+  sed -i '/<ROW Component=".*" ComponentId=".*" Directory_=".*runtime.*_Dir"/d' "$aip_file"
+
+  # Remove File entries referencing Component_="..." components linked to app/runtime
+  sed -i '/Component_=".*app.*"/d' "$aip_file"
+  sed -i '/Component_=".*runtime.*"/d' "$aip_file"
+
+  echo "[INFO] Clean-up complete."
 }
-cmd.exe /C "\"$ADV_INST_COM\" /edit \"$ADV_INST_CONFIG\" /AddFolder -path APPDIR -source \"$WIN_RUNTIME_PATH\"" || {
-  echo "[ERROR] Failed to add 'runtime' folder to project"
-  exit 1
-}
+
+clean_app_runtime_from_aip "$ADV_INST_CONFIG"
 
 # === Build installer ===
 echo "[INFO] Building installer..."
