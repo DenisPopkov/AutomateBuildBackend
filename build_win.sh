@@ -124,9 +124,9 @@ sed -i "s/Property Id=\"GenerateCode\" Value=\"$GENERATE_CODE\"/Property Id=\"Ge
 echo "Building installer from $ADVANCED_INSTALLER_CONFIG"
 cmd.exe /c "\"C:\\Program Files (x86)\\Caphyon\\Advanced Installer 20.6\\bin\\x86\\AdvancedInstaller.com\" /build \"$ADVANCED_INSTALLER_CONFIG\""
 
-SIGNED_MSI_PATH="$ADVANCED_INSTALLER_MSI_FILES/Neuro_Desktop-${VERSION_NAME}-${VERSION_CODE}.msi"
+#SIGNED_MSI_PATH="$ADVANCED_INSTALLER_MSI_FILES/Neuro_Desktop-${VERSION_NAME}-${VERSION_CODE}.msi"
 # signtool sign /fd sha256 /tr http://ts.ssl.com /td sha256 /sha1 20fbd34014857033bcc6dabfae390411b22b0b1e "$SIGNED_MSI_PATH"
 
-echo "Uploading signed MSI to Slack: $SIGNED_MSI_PATH"
-execute_file_upload "$SLACK_BOT_TOKEN" "$SLACK_CHANNEL" ":white_check_mark: Windows build for \`$BRANCH_NAME\`" "upload" "$SIGNED_MSI_PATH"
-delete_message "$SLACK_BOT_TOKEN" "$SLACK_CHANNEL" "$first_ts"
+#echo "Uploading signed MSI to Slack: $SIGNED_MSI_PATH"
+#execute_file_upload "$SLACK_BOT_TOKEN" "$SLACK_CHANNEL" ":white_check_mark: Windows build for \`$BRANCH_NAME\`" "upload" "$SIGNED_MSI_PATH"
+#delete_message "$SLACK_BOT_TOKEN" "$SLACK_CHANNEL" "$first_ts"
