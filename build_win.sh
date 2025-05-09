@@ -124,26 +124,57 @@ clean_app_runtime_from_aip() {
 
   echo "[INFO] Cleaning all app/runtime references from $aip_file..."
 
+  # Remove directory entries
   sed -i '/Directory="app_Dir"/d' "$aip_file"
   sed -i '/Directory="runtime_Dir"/d' "$aip_file"
-
   sed -i '/Directory_="app_Dir"/d' "$aip_file"
   sed -i '/Directory_="runtime_Dir"/d' "$aip_file"
   sed -i '/Directory_=".*app.*_Dir"/d' "$aip_file"
   sed -i '/Directory_=".*runtime.*_Dir"/d' "$aip_file"
 
-  sed -i '/SourcePath="..\\app\\//d' "$aip_file"
-  sed -i '/SourcePath="..\\runtime\\//d' "$aip_file"
-  sed -i '/SourcePath=".*app\\//d' "$aip_file"
-  sed -i '/SourcePath=".*runtime\\//d' "$aip_file"
+  # Remove file path references
+  sed -i '/SourcePath=".*\\\\app\\\\/.*"/d' "$aip_file"
+  sed -i '/SourcePath=".*\\\\runtime\\\\/.*"/d' "$aip_file"
 
+  # Remove components
   sed -i '/Component_=".*app.*"/d' "$aip_file"
   sed -i '/Component_=".*runtime.*"/d' "$aip_file"
 
   echo "[INFO] Clean-up complete."
+
+  # === Final verification ===
+  echo "[INFO] Verifying that all references are removed..."
+  local found=0
+
+  if grep -q '\\\\app\\\\' "$aip_file"; then
+    echo "[WARN] Still contains paths with '\\app\\'"
+    found=1
+  fi
+  if grep -q '\\\\runtime\\\\' "$aip_file"; then
+    echo "[WARN] Still contains paths with '\\runtime\\'"
+    found=1
+  fi
+  if grep -q 'Directory_=".*app.*_Dir"' "$aip_file"; then
+    echo "[WARN] Still contains Directory_='...app...'"
+    found=1
+  fi
+  if grep -q 'Directory_=".*runtime.*_Dir"' "$aip_file"; then
+    echo "[WARN] Still contains Directory_='...runtime...'"
+    found=1
+  fi
+
+  if [ "$found" -eq 0 ]; then
+    echo "[INFO] All app/runtime references successfully removed."
+  else
+    echo "[ERROR] Some app/runtime references still remain in the .aip file."
+    return 1
+  fi
 }
 
-clean_app_runtime_from_aip "$ADV_INST_CONFIG"
+clean_app_runtime_from_aip "$ADV_INST_CONFIG" || {
+  echo "[FATAL] Residual entries found — fix manually or check your sed filters"
+  exit 1
+}
 
 # === Build installer ===
 echo "[INFO] Building installer..."
