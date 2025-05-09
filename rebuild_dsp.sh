@@ -70,10 +70,10 @@ git stash push -m "Pre-build stash"
 git fetch && git pull origin "master" --no-rebase
 
 # Update DSP lib in Heroku
-rm -rf "$HEROKU_LIBRARY/arm/libdspmac.dylib"
+rm -rf "$HEROKU_LIBRARY/arm64/libdspmac.dylib"
 
 if [ -f "$CACHE_UPDATED_DSP_LIB_PATH" ]; then
-  cp "$CACHE_UPDATED_DSP_LIB_PATH" "$HEROKU_LIBRARY/arm/"
+  cp "$CACHE_UPDATED_DSP_LIB_PATH" "$HEROKU_LIBRARY/arm64/"
 else
   echo "Error: DSP library not found at $CACHE_UPDATED_DSP_LIB_PATH"
   post_error_message "$BRANCH_NAME"
