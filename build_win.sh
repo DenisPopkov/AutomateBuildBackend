@@ -13,6 +13,7 @@ ADV_INST_CONFIG="/c/Users/BlackBricks/Applications/Neuro installer/installer_win
 ADV_INST_SETUP_FILES="/c/Users/BlackBricks/Applications/Neuro installer"
 ADV_INST_COM="/c/Program Files (x86)/Caphyon/Advanced Installer 22.6/bin/x86/AdvancedInstaller.com"
 ADVANCED_INSTALLER_MSI_FILES="/c/Users/BlackBricks/Applications/Neuro installer/installer_win/Neuro Desktop-SetupFiles"
+
 #
 #while IFS='=' read -r key value; do
 #  key=$(echo "$key" | xargs)
@@ -68,14 +69,18 @@ NEW_MSI_PATH="$DESKTOP_BUILD_PATH/Neuro_Desktop-${VERSION_NAME}-${VERSION_CODE}.
 [ -f "$NEW_MSI_PATH" ] && rm -f "$NEW_MSI_PATH"
 mv "$MSI_FILE" "$NEW_MSI_PATH" || { echo "[ERROR] Failed to rename MSI"; exit 1; }
 
+echo "[INFO] Extracting MSI..."
 /c/ProgramData/chocolatey/bin/lessmsi.exe x "$NEW_MSI_PATH" || { echo "[ERROR] Failed to extract MSI"; exit 1; }
 
 sleep 10
 
 EXTRACT_DIR="/c/Users/BlackBricks/StudioProjects/SA_Neuro_Multiplatform/Neuro_Desktop-${VERSION_NAME}-${VERSION_CODE}/SourceDir/Neuro Desktop"
 
+echo "[INFO] Removing old app and runtime folders..."
 rm -rf "${ADV_INST_SETUP_FILES}/app"
 rm -rf "${ADV_INST_SETUP_FILES}/runtime"
+
+echo "[INFO] Copying new app and runtime folders..."
 cp -r "${EXTRACT_DIR}/app" "${ADV_INST_SETUP_FILES}/" || { echo "[ERROR] Failed to copy 'app' folder"; exit 1; }
 cp -r "${EXTRACT_DIR}/runtime" "${ADV_INST_SETUP_FILES}/" || { echo "[ERROR] Failed to copy 'runtime' folder"; exit 1; }
 
@@ -86,54 +91,72 @@ NEW_GUID=$(powershell.exe "[guid]::NewGuid().ToString()" | tr -d '\r')
 sed -i "s/\(Property=\"ProductCode\" Value=\"\)[^\"]*\(\".*\)/\1${NEW_GUID}\2/" "$ADV_INST_CONFIG"
 sed -i "s/\(PackageFileName=\"Neuro_Desktop-\)[^\"]*\(\".*\)/\1${VERSION_NAME}-${VERSION_CODE}\2/" "$ADV_INST_CONFIG"
 
-echo "[INFO] Attempting to remove old folders via AdvancedInstaller CLI..."
-cmd.exe /C "\"$ADV_INST_COM\" /edit \"$ADV_INST_CONFIG\" /DelFolder -path APPDIR\\app" || echo "[WARN] Could not delete APPDIR\\app"
-cmd.exe /C "\"$ADV_INST_COM\" /edit \"$ADV_INST_CONFIG\" /DelFolder -path APPDIR\\runtime" || echo "[WARN] Could not delete APPDIR\\runtime"
-
 echo "[INFO] Backing up .aip..."
 cp "$ADV_INST_CONFIG" "${ADV_INST_CONFIG}.bak" || { echo "[ERROR] Failed to backup .aip"; exit 1; }
 
 echo "[INFO] Cleaning .aip from all references to app/runtime..."
+if command -v xmlstarlet >/dev/null; then
+    # Удаление директорий, связанных с app и runtime
+    xmlstarlet ed -d '//ROW[contains(@Directory, "app")]' "$ADV_INST_CONFIG" > "${ADV_INST_CONFIG}.tmp" && mv "${ADV_INST_CONFIG}.tmp" "$ADV_INST_CONFIG"
+    xmlstarlet ed -d '//ROW[contains(@Directory, "runtime")]' "$ADV_INST_CONFIG" > "${ADV_INST_CONFIG}.tmp" && mv "${ADV_INST_CONFIG}.tmp" "$ADV_INST_CONFIG"
+    xmlstarlet ed -d '//ROW[contains(@Directory_Parent, "app")]' "$ADV_INST_CONFIG" > "${ADV_INST_CONFIG}.tmp" && mv "${ADV_INST_CONFIG}.tmp" "$ADV_INST_CONFIG"
+    xmlstarlet ed -d '//ROW[contains(@Directory_Parent, "runtime")]' "$ADV_INST_CONFIG" > "${ADV_INST_CONFIG}.tmp" && mv "${ADV_INST_CONFIG}.tmp" "$ADV_INST_CONFIG"
+    xmlstarlet ed -d '//ROW[contains(@Directory_, "app")]' "$ADV_INST_CONFIG" > "${ADV_INST_CONFIG}.tmp" && mv "${ADV_INST_CONFIG}.tmp" "$ADV_INST_CONFIG"
+    xmlstarlet ed -d '//ROW[contains(@Directory_, "runtime")]' "$ADV_INST_CONFIG" > "${ADV_INST_CONFIG}.tmp" && mv "${ADV_INST_CONFIG}.tmp" "$ADV_INST_CONFIG"
 
-patterns=(
-    'Directory=".*app.*_Dir"'
-    'Directory=".*runtime.*_Dir"'
-    'Directory_Parent="app_Dir"'
-    'Directory_Parent="runtime_Dir"'
-    'Directory_=".*app.*_Dir"'
-    'Directory_=".*runtime.*_Dir"'
-    'Directory_=".*resources_Dir"'
-    'Directory_=".*bin_Dir"'
-    'Directory_=".*conf_Dir"'
-    'Directory_=".*lib_Dir"'
-    'Directory_=".*legal_Dir"'
-    'Directory_=".*server_Dir"'
-    'Directory_=".*security_Dir"'
-    'SourcePath="..\\\\app\\\\'
-    'SourcePath="..\\\\runtime\\\\'
-    'SourcePath=".*app/'
-    'SourcePath=".*runtime/'
-    'Component_=".*app.*"'
-    'Component_=".*runtime.*"'
-    'Component=".*app.*"'
-    'Component=".*runtime.*"'
-    'File=".*app.*"'
-    'File=".*runtime.*"'
-)
+    # Удаление компонентов, связанных с app и runtime
+    xmlstarlet ed -d '//ROW[contains(@Component, "app")]' "$ADV_INST_CONFIG" > "${ADV_INST_CONFIG}.tmp" && mv "${ADV_INST_CONFIG}.tmp" "$ADV_INST_CONFIG"
+    xmlstarlet ed -d '//ROW[contains(@Component, "runtime")]' "$ADV_INST_CONFIG" > "${ADV_INST_CONFIG}.tmp" && mv "${ADV_INST_CONFIG}.tmp" "$ADV_INST_CONFIG"
+    xmlstarlet ed -d '//ROW[contains(@Component_, "app")]' "$ADV_INST_CONFIG" > "${ADV_INST_CONFIG}.tmp" && mv "${ADV_INST_CONFIG}.tmp" "$ADV_INST_CONFIG"
+    xmlstarlet ed -d '//ROW[contains(@Component_, "runtime")]' "$ADV_INST_CONFIG" > "${ADV_INST_CONFIG}.tmp" && mv "${ADV_INST_CONFIG}.tmp" "$ADV_INST_CONFIG"
 
-for pattern in "${patterns[@]}"; do
-    sed -i "\|$pattern|d" "$ADV_INST_CONFIG"
-done
+    # Удаление файлов, связанных с app и runtime
+    xmlstarlet ed -d '//ROW[contains(@File, "app")]' "$ADV_INST_CONFIG" > "${ADV_INST_CONFIG}.tmp" && mv "${ADV_INST_CONFIG}.tmp" "$ADV_INST_CONFIG"
+    xmlstarlet ed -d '//ROW[contains(@File, "runtime")]' "$ADV_INST_CONFIG" > "${ADV_INST_CONFIG}.tmp" && mv "${ADV_INST_CONFIG}.tmp" "$ADV_INST_CONFIG"
+    xmlstarlet ed -d '//ROW[contains(@SourcePath, "app")]' "$ADV_INST_CONFIG" > "${ADV_INST_CONFIG}.tmp" && mv "${ADV_INST_CONFIG}.tmp" "$ADV_INST_CONFIG"
+    xmlstarlet ed -d '//ROW[contains(@SourcePath, "runtime")]' "$ADV_INST_CONFIG" > "${ADV_INST_CONFIG}.tmp" && mv "${ADV_INST_CONFIG}.tmp" "$ADV_INST_CONFIG"
+else
+    # Альтернатива с sed, если xmlstarlet недоступен
+    patterns=(
+        'Directory=".*app.*_Dir"'
+        'Directory=".*runtime.*_Dir"'
+        'Directory_Parent="app.*_Dir"'
+        'Directory_Parent="runtime.*_Dir"'
+        'Directory_=".*app.*_Dir"'
+        'Directory_=".*runtime.*_Dir"'
+        'SourcePath=".*app/.*"'
+        'SourcePath=".*runtime/.*"'
+        'Component=".*app.*"'
+        'Component=".*runtime.*"'
+        'Component_=".*app.*"'
+        'Component_=".*runtime.*"'
+        'File=".*app.*"'
+        'File=".*runtime.*"'
+    )
+    for pattern in "${patterns[@]}"; do
+        sed -i "/$pattern/d" "$ADV_INST_CONFIG" | tee -a cleanup.log
+    done
+fi
 
 echo "[INFO] Verifying cleanup..."
-grep -q 'app_Dir' "$ADV_INST_CONFIG" && { echo "[ERROR] Residual app_Dir found"; exit 1; }
-grep -q 'runtime_Dir' "$ADV_INST_CONFIG" && { echo "[ERROR] Residual runtime_Dir found"; exit 1; }
+grep -q 'app.*_Dir' "$ADV_INST_CONFIG" && { echo "[ERROR] Residual app_Dir found"; exit 1; }
+grep -q 'runtime.*_Dir' "$ADV_INST_CONFIG" && { echo "[ERROR] Residual runtime_Dir found"; exit 1; }
+grep -q 'SourcePath=".*app' "$ADV_INST_CONFIG" && { echo "[ERROR] Residual app SourcePath found"; exit 1; }
+grep -q 'SourcePath=".*runtime' "$ADV_INST_CONFIG" && { echo "[ERROR] Residual runtime SourcePath found"; exit 1; }
+
+echo "[INFO] Validating XML structure..."
+xmllint --noout "$ADV_INST_CONFIG" || { echo "[ERROR] Invalid XML in .aip"; exit 1; }
+
+echo "[INFO] Attempting to remove old folders via AdvancedInstaller CLI..."
+cmd.exe /C "\"$ADV_INST_COM\" /edit \"$ADV_INST_CONFIG\" /DelFolder -path APPDIR\\app" || echo "[WARN] Could not delete APPDIR\\app"
+cmd.exe /C "\"$ADV_INST_COM\" /edit \"$ADV_INST_CONFIG\" /DelFolder -path APPDIR\\runtime" || echo "[WARN] Could not delete APPDIR\\runtime"
+
+echo "[INFO] Adding new app and runtime folders to .aip..."
+cmd.exe /C "\"$ADV_INST_COM\" /edit \"$ADV_INST_CONFIG\" /AddFolder -path APPDIR\\app -source \"${ADV_INST_SETUP_FILES}\\app\"" || { echo "[ERROR] Failed to add app folder"; exit 1; }
+cmd.exe /C "\"$ADV_INST_COM\" /edit \"$ADV_INST_CONFIG\" /AddFolder -path APPDIR\\runtime -source \"${ADV_INST_SETUP_FILES}\\runtime\"" || { echo "[ERROR] Failed to add runtime folder"; exit 1; }
 
 echo "[INFO] Building installer..."
-cmd.exe /C "\"$ADV_INST_COM\" /build \"$ADV_INST_CONFIG\"" || {
-  echo "[ERROR] Build failed"
-  exit 1
-}
+cmd.exe /C "\"$ADV_INST_COM\" /build \"$ADV_INST_CONFIG\"" || { echo "[ERROR] Build failed"; exit 1; }
 
 #SIGNED_MSI_PATH="$ADVANCED_INSTALLER_MSI_FILES/Neuro_Desktop-${VERSION_NAME}-${VERSION_CODE}.msi"
 # signtool sign /fd sha256 /tr http://ts.ssl.com /td sha256 /sha1 20fbd34014857033bcc6dabfae390411b22b0b1e "$SIGNED_MSI_PATH"
