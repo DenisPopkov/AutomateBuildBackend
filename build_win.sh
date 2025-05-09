@@ -67,7 +67,11 @@ NEW_MSI_PATH="$DESKTOP_BUILD_PATH/Neuro_Desktop-${VERSION_NAME}-${VERSION_CODE}.
 mv "$MSI_FILE" "$NEW_MSI_PATH"
 
 EXTRACT_DIR="$ADVANCED_INSTALLER_SETUP_FILES/Neuro_Desktop-${VERSION_NAME}-${VERSION_CODE}"
-powershell -Command "lessmsi x \"${NEW_MSI_PATH//\//\\}\" \"${EXTRACT_DIR//\//\\}\""
+mkdir -p "$EXTRACT_DIR"
+
+LESSMSI_PATH=$(cygpath -w "$NEW_MSI_PATH")
+LESSMSI_DIR=$(cygpath -w "$EXTRACT_DIR")
+lessmsi x "$LESSMSI_PATH" "$LESSMSI_DIR"
 
 EXTRACTED_APP_PATH="${EXTRACT_DIR}/SourceDir/ProgramFilesFolder/Source Audio/Neuro Desktop 3"
 rm -rf "${ADVANCED_INSTALLER_SETUP_FILES}/app" "${ADVANCED_INSTALLER_SETUP_FILES}/realtime"
@@ -83,7 +87,7 @@ sed -i "s/Property Id=\"GenerateCode\" Value=\"$OLD_GENERATE_CODE\"/Property Id=
 
 SIGNED_MSI_PATH="$ADVANCED_INSTALLER_SETUP_FILES/Neuro_Desktop-${VERSION_NAME}-${VERSION_CODE}.msi"
 
-#signtool sign /fd sha256 /tr http://ts.ssl.com /td sha256 /sha1 20fbd34014857033bcc6dabfae390411b22b0b1e "$SIGNED_MSI_PATH"
+#/c/Program\ Files\ \(x86\)/Windows\ Kits/10/bin/10.0.20348.0/x86/signtool.exe sign /fd sha256 /tr http://ts.ssl.com /td sha256 /sha1 20fbd34014857033bcc6dabfae390411b22b0b1e "$SIGNED_MSI_PATH"
 
 execute_file_upload "$SLACK_BOT_TOKEN" "$SLACK_CHANNEL" ":white_check_mark: Windows build for \`$BRANCH_NAME\`" "upload" "$SIGNED_MSI_PATH"
 delete_message "$SLACK_BOT_TOKEN" "$SLACK_CHANNEL" "$first_ts"
