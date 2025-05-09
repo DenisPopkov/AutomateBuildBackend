@@ -102,25 +102,38 @@ sed -i "s/\(Property=\"ProductCode\" Value=\"\)[^\"]*\(\".*\)/\1${NEW_GUID}\2/" 
 echo "[INFO] Updating PackageFileName..."
 sed -i "s/\(PackageFileName=\"Neuro_Desktop-\)[^\"]*\(\".*\)/\1${VERSION_NAME}-${VERSION_CODE}\2/" "$ADVANCED_INSTALLER_CONFIG"
 
-# === Шаг 7: Подготовка CLI-команд ===
+# === Шаг 7: Подготовка CLI import команд ===
 echo "[INFO] Preparing CLI import commands for app/runtime..."
 
-# Преобразуем путь в Windows-формат (если shell запускается через Git Bash)
 WIN_APP_PATH=$(cygpath -w "${ADVANCED_INSTALLER_SETUP_FILES}/app")
 WIN_RUNTIME_PATH=$(cygpath -w "${ADVANCED_INSTALLER_SETUP_FILES}/runtime")
 
-# === Шаг 8: Выполняем импорт по одной команде через /edit ===
+# === Шаг 8: Удаление старых app/runtime ===
 echo "[INFO] Removing old app/runtime folders..."
-"$ADVANCED_INSTALLER" /edit "$ADVANCED_INSTALLER_CONFIG" "/DelFolder -path APPDIR\\app"
-"$ADVANCED_INSTALLER" /edit "$ADVANCED_INSTALLER_CONFIG" "/DelFolder -path APPDIR\\runtime"
+cmd.exe /C "\"$ADVANCED_INSTALLER\" /edit \"$ADVANCED_INSTALLER_CONFIG\" /DelFolder -path APPDIR\\app" || {
+  echo "[WARN] Could not delete APPDIR\\app — it may not exist yet."
+}
+cmd.exe /C "\"$ADVANCED_INSTALLER\" /edit \"$ADVANCED_INSTALLER_CONFIG\" /DelFolder -path APPDIR\\runtime" || {
+  echo "[WARN] Could not delete APPDIR\\runtime — it may not exist yet."
+}
 
+# === Шаг 9: Импорт новых папок ===
 echo "[INFO] Adding updated app/runtime folders..."
-"$ADVANCED_INSTALLER" /edit "$ADVANCED_INSTALLER_CONFIG" "/AddFolder -path APPDIR -source \"$WIN_APP_PATH\""
-"$ADVANCED_INSTALLER" /edit "$ADVANCED_INSTALLER_CONFIG" "/AddFolder -path APPDIR -source \"$WIN_RUNTIME_PATH\""
+cmd.exe /C "\"$ADVANCED_INSTALLER\" /edit \"$ADVANCED_INSTALLER_CONFIG\" /AddFolder -path APPDIR -source \"$WIN_APP_PATH\"" || {
+  echo "[ERROR] Failed to add app folder to AIP"
+  exit 1
+}
+cmd.exe /C "\"$ADVANCED_INSTALLER\" /edit \"$ADVANCED_INSTALLER_CONFIG\" /AddFolder -path APPDIR -source \"$WIN_RUNTIME_PATH\"" || {
+  echo "[ERROR] Failed to add runtime folder to AIP"
+  exit 1
+}
 
-# === Step 9: Build installer ===
+# === Шаг 10: Сборка ===
 echo "[INFO] Building installer..."
-"$ADVANCED_INSTALLER" /build "$ADVANCED_INSTALLER_CONFIG" || { echo "[ERROR] Build failed"; exit 1; }
+cmd.exe /C "\"$ADVANCED_INSTALLER\" /build \"$ADVANCED_INSTALLER_CONFIG\"" || {
+  echo "[ERROR] Build failed"
+  exit 1
+}
 
 #SIGNED_MSI_PATH="$ADVANCED_INSTALLER_MSI_FILES/Neuro_Desktop-${VERSION_NAME}-${VERSION_CODE}.msi"
 # signtool sign /fd sha256 /tr http://ts.ssl.com /td sha256 /sha1 20fbd34014857033bcc6dabfae390411b22b0b1e "$SIGNED_MSI_PATH"
