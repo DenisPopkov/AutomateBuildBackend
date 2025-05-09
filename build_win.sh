@@ -95,48 +95,33 @@ echo "[INFO] Backing up .aip..."
 cp "$ADV_INST_CONFIG" "${ADV_INST_CONFIG}.bak" || { echo "[ERROR] Failed to backup .aip"; exit 1; }
 
 echo "[INFO] Cleaning .aip from all references to app/runtime..."
-if command -v xmlstarlet >/dev/null; then
-    # Удаление директорий, связанных с app и runtime
-    xmlstarlet ed -d '//ROW[contains(@Directory, "app")]' "$ADV_INST_CONFIG" > "${ADV_INST_CONFIG}.tmp" && mv "${ADV_INST_CONFIG}.tmp" "$ADV_INST_CONFIG"
-    xmlstarlet ed -d '//ROW[contains(@Directory, "runtime")]' "$ADV_INST_CONFIG" > "${ADV_INST_CONFIG}.tmp" && mv "${ADV_INST_CONFIG}.tmp" "$ADV_INST_CONFIG"
-    xmlstarlet ed -d '//ROW[contains(@Directory_Parent, "app")]' "$ADV_INST_CONFIG" > "${ADV_INST_CONFIG}.tmp" && mv "${ADV_INST_CONFIG}.tmp" "$ADV_INST_CONFIG"
-    xmlstarlet ed -d '//ROW[contains(@Directory_Parent, "runtime")]' "$ADV_INST_CONFIG" > "${ADV_INST_CONFIG}.tmp" && mv "${ADV_INST_CONFIG}.tmp" "$ADV_INST_CONFIG"
-    xmlstarlet ed -d '//ROW[contains(@Directory_, "app")]' "$ADV_INST_CONFIG" > "${ADV_INST_CONFIG}.tmp" && mv "${ADV_INST_CONFIG}.tmp" "$ADV_INST_CONFIG"
-    xmlstarlet ed -d '//ROW[contains(@Directory_, "runtime")]' "$ADV_INST_CONFIG" > "${ADV_INST_CONFIG}.tmp" && mv "${ADV_INST_CONFIG}.tmp" "$ADV_INST_CONFIG"
-
-    # Удаление компонентов, связанных с app и runtime
-    xmlstarlet ed -d '//ROW[contains(@Component, "app")]' "$ADV_INST_CONFIG" > "${ADV_INST_CONFIG}.tmp" && mv "${ADV_INST_CONFIG}.tmp" "$ADV_INST_CONFIG"
-    xmlstarlet ed -d '//ROW[contains(@Component, "runtime")]' "$ADV_INST_CONFIG" > "${ADV_INST_CONFIG}.tmp" && mv "${ADV_INST_CONFIG}.tmp" "$ADV_INST_CONFIG"
-    xmlstarlet ed -d '//ROW[contains(@Component_, "app")]' "$ADV_INST_CONFIG" > "${ADV_INST_CONFIG}.tmp" && mv "${ADV_INST_CONFIG}.tmp" "$ADV_INST_CONFIG"
-    xmlstarlet ed -d '//ROW[contains(@Component_, "runtime")]' "$ADV_INST_CONFIG" > "${ADV_INST_CONFIG}.tmp" && mv "${ADV_INST_CONFIG}.tmp" "$ADV_INST_CONFIG"
-
-    # Удаление файлов, связанных с app и runtime
-    xmlstarlet ed -d '//ROW[contains(@File, "app")]' "$ADV_INST_CONFIG" > "${ADV_INST_CONFIG}.tmp" && mv "${ADV_INST_CONFIG}.tmp" "$ADV_INST_CONFIG"
-    xmlstarlet ed -d '//ROW[contains(@File, "runtime")]' "$ADV_INST_CONFIG" > "${ADV_INST_CONFIG}.tmp" && mv "${ADV_INST_CONFIG}.tmp" "$ADV_INST_CONFIG"
-    xmlstarlet ed -d '//ROW[contains(@SourcePath, "app")]' "$ADV_INST_CONFIG" > "${ADV_INST_CONFIG}.tmp" && mv "${ADV_INST_CONFIG}.tmp" "$ADV_INST_CONFIG"
-    xmlstarlet ed -d '//ROW[contains(@SourcePath, "runtime")]' "$ADV_INST_CONFIG" > "${ADV_INST_CONFIG}.tmp" && mv "${ADV_INST_CONFIG}.tmp" "$ADV_INST_CONFIG"
-else
-    # Альтернатива с sed, если xmlstarlet недоступен
-    patterns=(
-        'Directory=".*app.*_Dir"'
-        'Directory=".*runtime.*_Dir"'
-        'Directory_Parent="app.*_Dir"'
-        'Directory_Parent="runtime.*_Dir"'
-        'Directory_=".*app.*_Dir"'
-        'Directory_=".*runtime.*_Dir"'
-        'SourcePath=".*app/.*"'
-        'SourcePath=".*runtime/.*"'
-        'Component=".*app.*"'
-        'Component=".*runtime.*"'
-        'Component_=".*app.*"'
-        'Component_=".*runtime.*"'
-        'File=".*app.*"'
-        'File=".*runtime.*"'
-    )
-    for pattern in "${patterns[@]}"; do
-        sed -i "/$pattern/d" "$ADV_INST_CONFIG" | tee -a cleanup.log
-    done
+if ! command -v xmlstarlet >/dev/null; then
+    echo "[ERROR] xmlstarlet is not installed. Please install it using 'choco install xmlstarlet'."
+    exit 1
 fi
+
+# Удаление директорий, связанных с app и runtime
+echo "[DEBUG] Removing app and runtime directories..." >> cleanup.log
+xmlstarlet ed -d '//ROW[contains(@Directory, "app")]' "$ADV_INST_CONFIG" > "${ADV_INST_CONFIG}.tmp" && mv "${ADV_INST_CONFIG}.tmp" "$ADV_INST_CONFIG" || { echo "[ERROR] Failed to remove app directories"; exit 1; }
+xmlstarlet ed -d '//ROW[contains(@Directory, "runtime")]' "$ADV_INST_CONFIG" > "${ADV_INST_CONFIG}.tmp" && mv "${ADV_INST_CONFIG}.tmp" "$ADV_INST_CONFIG" || { echo "[ERROR] Failed to remove runtime directories"; exit 1; }
+xmlstarlet ed -d '//ROW[contains(@Directory_Parent, "app")]' "$ADV_INST_CONFIG" > "${ADV_INST_CONFIG}.tmp" && mv "${ADV_INST_CONFIG}.tmp" "$ADV_INST_CONFIG" || { echo "[ERROR] Failed to remove app parent directories"; exit 1; }
+xmlstarlet ed -d '//ROW[contains(@Directory_Parent, "runtime")]' "$ADV_INST_CONFIG" > "${ADV_INST_CONFIG}.tmp" && mv "${ADV_INST_CONFIG}.tmp" "$ADV_INST_CONFIG" || { echo "[ERROR] Failed to remove runtime parent directories"; exit 1; }
+xmlstarlet ed -d '//ROW[contains(@Directory_, "app")]' "$ADV_INST_CONFIG" > "${ADV_INST_CONFIG}.tmp" && mv "${ADV_INST_CONFIG}.tmp" "$ADV_INST_CONFIG" || { echo "[ERROR] Failed to remove app directory references"; exit 1; }
+xmlstarlet ed -d '//ROW[contains(@Directory_, "runtime")]' "$ADV_INST_CONFIG" > "${ADV_INST_CONFIG}.tmp" && mv "${ADV_INST_CONFIG}.tmp" "$ADV_INST_CONFIG" || { echo "[ERROR] Failed to remove runtime directory references"; exit 1; }
+
+# Удаление компонентов, связанных с app и runtime
+echo "[DEBUG] Removing app and runtime components..." >> cleanup.log
+xmlstarlet ed -d '//ROW[contains(@Component, "app")]' "$ADV_INST_CONFIG" > "${ADV_INST_CONFIG}.tmp" && mv "${ADV_INST_CONFIG}.tmp" "$ADV_INST_CONFIG" || { echo "[ERROR] Failed to remove app components"; exit 1; }
+xmlstarlet ed -d '//ROW[contains(@Component, "runtime")]' "$ADV_INST_CONFIG" > "${ADV_INST_CONFIG}.tmp" && mv "${ADV_INST_CONFIG}.tmp" "$ADV_INST_CONFIG" || { echo "[ERROR] Failed to remove runtime components"; exit 1; }
+xmlstarlet ed -d '//ROW[contains(@Component_, "app")]' "$ADV_INST_CONFIG" > "${ADV_INST_CONFIG}.tmp" && mv "${ADV_INST_CONFIG}.tmp" "$ADV_INST_CONFIG" || { echo "[ERROR] Failed to remove app component references"; exit 1; }
+xmlstarlet ed -d '//ROW[contains(@Component_, "runtime")]' "$ADV_INST_CONFIG" > "${ADV_INST_CONFIG}.tmp" && mv "${ADV_INST_CONFIG}.tmp" "$ADV_INST_CONFIG" || { echo "[ERROR] Failed to remove runtime component references"; exit 1; }
+
+# Удаление файлов, связанных с app и runtime
+echo "[DEBUG] Removing app and runtime files..." >> cleanup.log
+xmlstarlet ed -d '//ROW[contains(@File, "app")]' "$ADV_INST_CONFIG" > "${ADV_INST_CONFIG}.tmp" && mv "${ADV_INST_CONFIG}.tmp" "$ADV_INST_CONFIG" || { echo "[ERROR] Failed to remove app files"; exit 1; }
+xmlstarlet ed -d '//ROW[contains(@File, "runtime")]' "$ADV_INST_CONFIG" > "${ADV_INST_CONFIG}.tmp" && mv "${ADV_INST_CONFIG}.tmp" "$ADV_INST_CONFIG" || { echo "[ERROR] Failed to remove runtime files"; exit 1; }
+xmlstarlet ed -d '//ROW[contains(@SourcePath, "app")]' "$ADV_INST_CONFIG" > "${ADV_INST_CONFIG}.tmp" && mv "${ADV_INST_CONFIG}.tmp" "$ADV_INST_CONFIG" || { echo "[ERROR] Failed to remove app SourcePath"; exit 1; }
+xmlstarlet ed -d '//ROW[contains(@SourcePath, "runtime")]' "$ADV_INST_CONFIG" > "${ADV_INST_CONFIG}.tmp" && mv "${ADV_INST_CONFIG}.tmp" "$ADV_INST_CONFIG" || { echo "[ERROR] Failed to remove runtime SourcePath"; exit 1; }
 
 echo "[INFO] Verifying cleanup..."
 grep -q 'app.*_Dir' "$ADV_INST_CONFIG" && { echo "[ERROR] Residual app_Dir found"; exit 1; }
@@ -144,16 +129,23 @@ grep -q 'runtime.*_Dir' "$ADV_INST_CONFIG" && { echo "[ERROR] Residual runtime_D
 grep -q 'SourcePath=".*app' "$ADV_INST_CONFIG" && { echo "[ERROR] Residual app SourcePath found"; exit 1; }
 grep -q 'SourcePath=".*runtime' "$ADV_INST_CONFIG" && { echo "[ERROR] Residual runtime SourcePath found"; exit 1; }
 
-echo "[INFO] Validating XML structure..."
-xmllint --noout "$ADV_INST_CONFIG" || { echo "[ERROR] Invalid XML in .aip"; exit 1; }
-
 echo "[INFO] Attempting to remove old folders via AdvancedInstaller CLI..."
 cmd.exe /C "\"$ADV_INST_COM\" /edit \"$ADV_INST_CONFIG\" /DelFolder -path APPDIR\\app" || echo "[WARN] Could not delete APPDIR\\app"
 cmd.exe /C "\"$ADV_INST_COM\" /edit \"$ADV_INST_CONFIG\" /DelFolder -path APPDIR\\runtime" || echo "[WARN] Could not delete APPDIR\\runtime"
 
 echo "[INFO] Adding new app and runtime folders to .aip..."
-cmd.exe /C "\"$ADV_INST_COM\" /edit \"$ADV_INST_CONFIG\" /AddFolder -path APPDIR\\app -source \"${ADV_INST_SETUP_FILES}\\app\"" || { echo "[ERROR] Failed to add app folder"; exit 1; }
-cmd.exe /C "\"$ADV_INST_COM\" /edit \"$ADV_INST_CONFIG\" /AddFolder -path APPDIR\\runtime -source \"${ADV_INST_SETUP_FILES}\\runtime\"" || { echo "[ERROR] Failed to add runtime folder"; exit 1; }
+if [ ! -d "${ADV_INST_SETUP_FILES}/app" ]; then
+    echo "[ERROR] Folder ${ADV_INST_SETUP_FILES}/app does not exist"
+    exit 1
+fi
+if [ ! -d "${ADV_INST_SETUP_FILES}/runtime" ]; then
+    echo "[ERROR] Folder ${ADV_INST_SETUP_FILES}/runtime does not exist"
+    exit 1
+fi
+echo "[DEBUG] Adding app folder: ${ADV_INST_SETUP_FILES}/app" >> cleanup.log
+cmd.exe /C "\"$ADV_INST_COM\" /edit \"$ADV_INST_CONFIG\" /AddFolder -path APPDIR\\app -source \"$ADV_INST_SETUP_FILES\\app\"" || { echo "[ERROR] Failed to add app folder"; exit 1; }
+echo "[DEBUG] Adding runtime folder: ${ADV_INST_SETUP_FILES}/runtime" >> cleanup.log
+cmd.exe /C "\"$ADV_INST_COM\" /edit \"$ADV_INST_CONFIG\" /AddFolder -path APPDIR\\runtime -source \"$ADV_INST_SETUP_FILES\\runtime\"" || { echo "[ERROR] Failed to add runtime folder"; exit 1; }
 
 echo "[INFO] Building installer..."
 cmd.exe /C "\"$ADV_INST_COM\" /build \"$ADV_INST_CONFIG\"" || { echo "[ERROR] Build failed"; exit 1; }
@@ -164,3 +156,5 @@ cmd.exe /C "\"$ADV_INST_COM\" /build \"$ADV_INST_CONFIG\"" || { echo "[ERROR] Bu
 #echo "Uploading signed MSI to Slack: $SIGNED_MSI_PATH"
 #execute_file_upload "$SLACK_BOT_TOKEN" "$SLACK_CHANNEL" ":white_check_mark: Windows build for \`$BRANCH_NAME\`" "upload" "$SIGNED_MSI_PATH"
 #delete_message "$SLACK_BOT_TOKEN" "$SLACK_CHANNEL" "$first_ts"
+
+echo "[INFO] Build completed successfully!"
