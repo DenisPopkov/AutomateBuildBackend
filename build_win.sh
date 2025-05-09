@@ -18,9 +18,9 @@ ADVANCED_INSTALLER_MSI_FILES="/c/Users/BlackBricks/Applications/Neuro installer/
 convert_path() {
     local path="$1"
     if command -v cygpath >/dev/null; then
-        cygpath -w "$path"
+        cygpath -w "$path" | sed 's|\\|\\\\|g'
     else
-        echo "$path" | sed 's|^/c/|C:\\|; s|/|\\|g'
+        echo "$path" | sed 's|^/c/|C:\\\\|; s|/|\\\\|g'
     fi
 }
 
@@ -114,6 +114,10 @@ if [ ! -x "$XMLSTARLET_PATH" ]; then
 fi
 echo "[DEBUG] xmlstarlet found at: $XMLSTARLET_PATH" >> cleanup.log
 
+# Сохраняем копию .aip перед очисткой
+echo "[DEBUG] Saving pre-cleanup .aip copy..." >> cleanup.log
+cp "$ADV_INST_CONFIG" "${ADV_INST_CONFIG}.preclean" || { echo "[ERROR] Failed to save pre-cleanup .aip copy"; exit 1; }
+
 # Удаление директорий, связанных с app и runtime
 echo "[DEBUG] Removing app and runtime directories..." >> cleanup.log
 "$XMLSTARLET_PATH" ed -d '//ROW[contains(@Directory, "app")]' "$ADV_INST_CONFIG" > "${ADV_INST_CONFIG}.tmp" && mv "${ADV_INST_CONFIG}.tmp" "$ADV_INST_CONFIG" || { echo "[ERROR] Failed to remove app directories"; exit 1; }
@@ -136,6 +140,10 @@ echo "[DEBUG] Removing app and runtime files..." >> cleanup.log
 "$XMLSTARLET_PATH" ed -d '//ROW[contains(@File, "runtime")]' "$ADV_INST_CONFIG" > "${ADV_INST_CONFIG}.tmp" && mv "${ADV_INST_CONFIG}.tmp" "$ADV_INST_CONFIG" || { echo "[ERROR] Failed to remove runtime files"; exit 1; }
 "$XMLSTARLET_PATH" ed -d '//ROW[contains(@SourcePath, "app")]' "$ADV_INST_CONFIG" > "${ADV_INST_CONFIG}.tmp" && mv "${ADV_INST_CONFIG}.tmp" "$ADV_INST_CONFIG" || { echo "[ERROR] Failed to remove app SourcePath"; exit 1; }
 "$XMLSTARLET_PATH" ed -d '//ROW[contains(@SourcePath, "runtime")]' "$ADV_INST_CONFIG" > "${ADV_INST_CONFIG}.tmp" && mv "${ADV_INST_CONFIG}.tmp" "$ADV_INST_CONFIG" || { echo "[ERROR] Failed to remove runtime SourcePath"; exit 1; }
+
+# Сохраняем копию .aip после очистки
+echo "[DEBUG] Saving post-cleanup .aip copy..." >> cleanup.log
+cp "$ADV_INST_CONFIG" "${ADV_INST_CONFIG}.postclean" || { echo "[ERROR] Failed to save post-cleanup .aip copy"; exit 1; }
 
 echo "[INFO] Verifying cleanup..."
 grep -q 'app.*_Dir' "$ADV_INST_CONFIG" && { echo "[ERROR] Residual app_Dir found"; exit 1; }
@@ -165,37 +173,47 @@ if [ ! -d "${ADV_INST_SETUP_FILES}/runtime" ]; then
     exit 1
 fi
 
+# Проверка валидности .aip файла
+echo "[DEBUG] Checking .aip validity..." >> cleanup.log
+if command -v xmllint >/dev/null; then
+    xmllint --noout "$ADV_INST_CONFIG" 2>> cleanup.log || { echo "[ERROR] .aip file is not valid XML"; exit 1; }
+else
+    echo "[DEBUG] xmllint not found, skipping XML validation" >> cleanup.log
+fi
+
+# Копирование AdvancedInstaller.com в путь без пробелов
+echo "[INFO] Copying AdvancedInstaller.com to C:\Temp to avoid spaces..."
+mkdir -p "/c/Temp" || { echo "[ERROR] Failed to create C:\Temp"; exit 1; }
+cp "$ADV_INST_COM" "/c/Temp/AdvancedInstaller.com" || { echo "[ERROR] Failed to copy AdvancedInstaller.com to C:\Temp"; exit 1; }
+ADV_INST_COM="/c/Temp/AdvancedInstaller.com"
+echo "[DEBUG] Updated ADV_INST_COM: $ADV_INST_COM" >> cleanup.log
+
 # Преобразование путей в формат Windows
 ADV_INST_COM_WIN=$(convert_path "$ADV_INST_COM")
 ADV_INST_CONFIG_WIN=$(convert_path "$ADV_INST_CONFIG")
 ADV_INST_SETUP_FILES_WIN=$(convert_path "$ADV_INST_SETUP_FILES")
 echo "[DEBUG] Windows paths: ADV_INST_COM_WIN=\"$ADV_INST_COM_WIN\", ADV_INST_CONFIG_WIN=\"$ADV_INST_CONFIG_WIN\", ADV_INST_SETUP_FILES_WIN=\"$ADV_INST_SETUP_FILES_WIN\"" >> cleanup.log
 
-# Альтернативный путь без пробелов (раскомментировать, если ошибка сохраняется)
-# cp "$ADV_INST_COM" "/c/Temp/AdvancedInstaller.com"
-# ADV_INST_COM="/c/Temp/AdvancedInstaller.com"
-# ADV_INST_COM_WIN=$(convert_path "$ADV_INST_COM")
-
 echo "[INFO] Attempting to remove old folders via AdvancedInstaller CLI..."
 CLI_CMD="\"$ADV_INST_COM_WIN\" /edit \"$ADV_INST_CONFIG_WIN\" /DelFolder -path APPDIR\\app"
 echo "[DEBUG] Executing: cmd.exe /C \"$CLI_CMD\"" >> cleanup.log
-cmd.exe /C "\"$CLI_CMD\"" || echo "[WARN] Could not delete APPDIR\\app"
+cmd.exe /C "$CLI_CMD" || echo "[WARN] Could not delete APPDIR\\app"
 CLI_CMD="\"$ADV_INST_COM_WIN\" /edit \"$ADV_INST_CONFIG_WIN\" /DelFolder -path APPDIR\\runtime"
 echo "[DEBUG] Executing: cmd.exe /C \"$CLI_CMD\"" >> cleanup.log
-cmd.exe /C "\"$CLI_CMD\"" || echo "[WARN] Could not delete APPDIR\\runtime"
+cmd.exe /C "$CLI_CMD" || echo "[WARN] Could not delete APPDIR\\runtime"
 
 echo "[INFO] Adding new app and runtime folders to .aip..."
 CLI_CMD="\"$ADV_INST_COM_WIN\" /edit \"$ADV_INST_CONFIG_WIN\" /AddFolder -path APPDIR\\app -source \"$ADV_INST_SETUP_FILES_WIN\\app\""
 echo "[DEBUG] Executing: cmd.exe /C \"$CLI_CMD\"" >> cleanup.log
-cmd.exe /C "\"$CLI_CMD\"" || { echo "[ERROR] Failed to add app folder"; exit 1; }
+cmd.exe /C "$CLI_CMD" || { echo "[ERROR] Failed to add app folder"; exit 1; }
 CLI_CMD="\"$ADV_INST_COM_WIN\" /edit \"$ADV_INST_CONFIG_WIN\" /AddFolder -path APPDIR\\runtime -source \"$ADV_INST_SETUP_FILES_WIN\\runtime\""
 echo "[DEBUG] Executing: cmd.exe /C \"$CLI_CMD\"" >> cleanup.log
-cmd.exe /C "\"$CLI_CMD\"" || { echo "[ERROR] Failed to add runtime folder"; exit 1; }
+cmd.exe /C "$CLI_CMD" || { echo "[ERROR] Failed to add runtime folder"; exit 1; }
 
 echo "[INFO] Building installer..."
 CLI_CMD="\"$ADV_INST_COM_WIN\" /build \"$ADV_INST_CONFIG_WIN\""
 echo "[DEBUG] Executing: cmd.exe /C \"$CLI_CMD\"" >> cleanup.log
-cmd.exe /C "\"$CLI_CMD\"" || { echo "[ERROR] Build failed"; exit 1; }
+cmd.exe /C "$CLI_CMD" || { echo "[ERROR] Build failed"; exit 1; }
 
 #SIGNED_MSI_PATH="$ADVANCED_INSTALLER_MSI_FILES/Neuro_Desktop-${VERSION_NAME}-${VERSION_CODE}.msi"
 # signtool sign /fd sha256 /tr http://ts.ssl.com /td sha256 /sha1 20fbd34014857033bcc6dabfae390411b22b0b1e "$SIGNED_MSI_PATH"
