@@ -48,6 +48,10 @@ remove_directory() {
         -d "//TABLE[@Name='FeatureComponents']/ROW[@Component_='$dir_id']" \
         "$ADV_INST_CONFIG" 2>> "$ERROR_LOG_FILE"
     check_error_log
+    "$XMLSTARLET_PATH" ed --inplace \
+        -d "//TABLE[@Name='File']/ROW[Component_/ancestor::TABLE[@Name='Component']/ROW[@Directory_='$dir_id']]" \
+        "$ADV_INST_CONFIG" 2>> "$ERROR_LOG_FILE"
+    check_error_log
 }
 
 add_subdirectories() {
@@ -118,7 +122,7 @@ add_files() {
     echo "[INFO] Adding files from $dir..."
     if [ -d "$dir" ]; then
         add_subdirectories "$dir" "$component_dir"
-        find "$dir" -type f -print0 | xargs -0 -I {} bash -c 'add_file "{}" "'"$component_dir"'" "'"$component_dir"'"'
+        find "$dir" -type f -print0 | xargs -0 -n 10 bash -c 'for file; do add_file "$file" "'"$component_dir"'" "'"$component_dir"'"; done' --
     else
         echo "[ERROR] Папка $dir не найдена, прерываем выполнение"
         exit 1
@@ -210,6 +214,11 @@ if [ ! -x "$XMLSTARLET_PATH" ]; then
     exit 1
 fi
 echo "[DEBUG] xmlstarlet found at: $XMLSTARLET_PATH" >> cleanup.log
+
+# Исправляем кодировку .aip файла
+echo '<?xml version="1.0" encoding="UTF-8"?>' > "$ADV_INST_CONFIG.tmp"
+tail -n +2 "$ADV_INST_CONFIG" >> "$ADV_INST_CONFIG.tmp"
+mv "$ADV_INST_CONFIG.tmp" "$ADV_INST_CONFIG"
 
 sleep 10
 
