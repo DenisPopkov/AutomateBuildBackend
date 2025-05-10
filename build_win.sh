@@ -12,7 +12,7 @@ isUseDevAnalytics=$2
 SECRET_FILE="/c/Users/BlackBricks/Desktop/secret.txt"
 ERROR_LOG_FILE="${ERROR_LOG_FILE:-/tmp/build_error_log.txt}"
 PROJECT_DIR="/c/Users/BlackBricks/StudioProjects/SA_Neuro_Multiplatform"
-ADV_INST_CONFIG="/c/Users/BlackBricks/Applications/Neuro installer/installer_win/Neuro Desktop 3.aip"
+ADV_INST_CONFIG="/c/Users/BlackBricks/Applications/Neuro installer/installer_win/Neuro Desktop 2.aip"
 ADV_INST_SETUP_FILES="/c/Users/BlackBricks/Applications/Neuro installer"
 ADVANCED_INSTALLER_MSI_FILES="/c/Users/BlackBricks/Applications/Neuro installer/installer_win/Neuro Desktop-SetupFiles"
 
@@ -52,26 +52,6 @@ remove_directory() {
         -d "//TABLE[@Name='File']/ROW[Component_/ancestor::TABLE[@Name='Component']/ROW[@Directory_='$dir_id']]" \
         "$ADV_INST_CONFIG" 2>> "$ERROR_LOG_FILE"
     check_error_log
-}
-
-add_subdirectories() {
-    local parent_dir="$1"
-    local parent_dir_id="$2"
-    find "$parent_dir" -type d | while read -r dir; do
-        dir_name=$(basename "$dir")
-        dir_id=$(echo "$dir_name" | tr -d '.-' | tr '[:upper:]' '[:lower:]')_Dir
-        shortname=$(echo "$dir_name" | cut -c1-8 | tr '[:lower:]' '[:upper:]' | sed 's/[^A-Z0-9]//g')
-        shortname="${shortname}|${dir_name}"
-        if ! "$XMLSTARLET_PATH" sel -t -v "//TABLE[@Name='Directory']/ROW[@Directory='$dir_id']" "$ADV_INST_CONFIG" | grep -q .; then
-            "$XMLSTARLET_PATH" ed --inplace \
-                -s "//TABLE[@Name='Directory']" -t elem -n ROW \
-                -a "//TABLE[@Name='Directory']/ROW[last()]" -t attr -n Directory -v "$dir_id" \
-                -a "//TABLE[@Name='Directory']/ROW[last()]" -t attr -n Directory_Parent -v "$parent_dir_id" \
-                -a "//TABLE[@Name='Directory']/ROW[last()]" -t attr -n DefaultDir -v "$shortname" \
-                "$ADV_INST_CONFIG" 2>> "$ERROR_LOG_FILE"
-            check_error_log
-        fi
-    done
 }
 
 add_file() {
@@ -118,10 +98,9 @@ add_file() {
 
 add_files() {
     local dir="$1"
-    local component_dir="$2"
-    echo "[INFO] Adding files from $dir..."
+    local component_dir="NewFolder_Dir"  # Добавляем файлы непосредственно в NewFolder_Dir
+    echo "[INFO] Adding files from $dir to $component_dir..."
     if [ -d "$dir" ]; then
-        add_subdirectories "$dir" "$component_dir"
         find "$dir" -type f -print0 | xargs -0 -n 10 bash -c 'for file; do add_file "$file" "'"$component_dir"'" "'"$component_dir"'"; done' --
     else
         echo "[ERROR] Папка $dir не найдена, прерываем выполнение"
@@ -222,63 +201,15 @@ mv "$ADV_INST_CONFIG.tmp" "$ADV_INST_CONFIG"
 
 sleep 10
 
-echo "[INFO] Adding app and runtime directories to .aip..."
+echo "[INFO] Cleaning up existing app_Dir and runtime_Dir..."
 remove_directory "app_Dir"
 remove_directory "runtime_Dir"
 
-"$XMLSTARLET_PATH" ed --inplace \
-    -s "//TABLE[@Name='Directory']" -t elem -n ROW \
-    -a "//TABLE[@Name='Directory']/ROW[last()]" -t attr -n Directory -v "app_Dir" \
-    -a "//TABLE[@Name='Directory']/ROW[last()]" -t attr -n Directory_Parent -v "NewFolder_Dir" \
-    -a "//TABLE[@Name='Directory']/ROW[last()]" -t attr -n DefaultDir -v "app" \
-    "$ADV_INST_CONFIG" 2>> "$ERROR_LOG_FILE"
-check_error_log
-
-"$XMLSTARLET_PATH" ed --inplace \
-    -s "//TABLE[@Name='Directory']" -t elem -n ROW \
-    -a "//TABLE[@Name='Directory']/ROW[last()]" -t attr -n Directory -v "runtime_Dir" \
-    -a "//TABLE[@Name='Directory']/ROW[last()]" -t attr -n Directory_Parent -v "NewFolder_Dir" \
-    -a "//TABLE[@Name='Directory']/ROW[last()]" -t attr -n DefaultDir -v "runtime" \
-    "$ADV_INST_CONFIG" 2>> "$ERROR_LOG_FILE"
-check_error_log
-
-"$XMLSTARLET_PATH" ed --inplace \
-    -s "//TABLE[@Name='Component']" -t elem -n ROW \
-    -a "//TABLE[@Name='Component']/ROW[last()]" -t attr -n Component -v "app_Dir" \
-    -a "//TABLE[@Name='Component']/ROW[last()]" -t attr -n ComponentId -v "{$(powershell.exe "[guid]::NewGuid().ToString()" | tr -d '\r')}" \
-    -a "//TABLE[@Name='Component']/ROW[last()]" -t attr -n Directory_ -v "app_Dir" \
-    -a "//TABLE[@Name='Component']/ROW[last()]" -t attr -n Attributes -v "0" \
-    "$ADV_INST_CONFIG" 2>> "$ERROR_LOG_FILE"
-check_error_log
-
-"$XMLSTARLET_PATH" ed --inplace \
-    -s "//TABLE[@Name='Component']" -t elem -n ROW \
-    -a "//TABLE[@Name='Component']/ROW[last()]" -t attr -n Component -v "runtime_Dir" \
-    -a "//TABLE[@Name='Component']/ROW[last()]" -t attr -n ComponentId -v "{$(powershell.exe "[guid]::NewGuid().ToString()" | tr -d '\r')}" \
-    -a "//TABLE[@Name='Component']/ROW[last()]" -t attr -n Directory_ -v "runtime_Dir" \
-    -a "//TABLE[@Name='Component']/ROW[last()]" -t attr -n Attributes -v "0" \
-    "$ADV_INST_CONFIG" 2>> "$ERROR_LOG_FILE"
-check_error_log
-
-"$XMLSTARLET_PATH" ed --inplace \
-    -s "//TABLE[@Name='FeatureComponents']" -t elem -n ROW \
-    -a "//TABLE[@Name='FeatureComponents']/ROW[last()]" -t attr -n Feature_ -v "MainFeature" \
-    -a "//TABLE[@Name='FeatureComponents']/ROW[last()]" -t attr -n Component_ -v "app_Dir" \
-    "$ADV_INST_CONFIG" 2>> "$ERROR_LOG_FILE"
-check_error_log
-
-"$XMLSTARLET_PATH" ed --inplace \
-    -s "//TABLE[@Name='FeatureComponents']" -t elem -n ROW \
-    -a "//TABLE[@Name='FeatureComponents']/ROW[last()]" -t attr -n Feature_ -v "MainFeature" \
-    -a "//TABLE[@Name='FeatureComponents']/ROW[last()]" -t attr -n Component_ -v "runtime_Dir" \
-    "$ADV_INST_CONFIG" 2>> "$ERROR_LOG_FILE"
-check_error_log
-
 echo "[INFO] Adding files from app directory..."
-add_files "$(convert_path "${ADV_INST_SETUP_FILES}/app")" "app_Dir"
+add_files "$(convert_path "${ADV_INST_SETUP_FILES}/app")"
 
 echo "[INFO] Adding files from runtime directory..."
-add_files "$(convert_path "${ADV_INST_SETUP_FILES}/runtime")" "runtime_Dir"
+add_files "$(convert_path "${ADV_INST_SETUP_FILES}/runtime")"
 
 echo "[INFO] Checking modified .aip file..."
 if ! "$XMLSTARLET_PATH" val "$ADV_INST_CONFIG" 2>> "$ERROR_LOG_FILE"; then
