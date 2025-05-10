@@ -88,7 +88,16 @@ NEW_MSI_PATH="$DESKTOP_BUILD_PATH/Neuro_Desktop-${VERSION_NAME}-${VERSION_CODE}.
 mv "$MSI_FILE" "$NEW_MSI_PATH" || { echo "[ERROR] Failed to rename MSI"; exit 1; }
 
 echo "[INFO] Extracting MSI..."
-/c/ProgramData/chocolatey/bin/lessmsi.exe x "$NEW_MSI_PATH" || { echo "[ERROR] Failed to extract MSI"; exit 1; }
+
+LESSMSI="/c/ProgramData/chocolatey/bin/lessmsi.exe"
+MSI_WIN_PATH=$(convert_path "$NEW_MSI_PATH")
+
+if [ ! -f "$LESSMSI" ]; then
+    echo "[ERROR] lessmsi.exe not found at $LESSMSI"
+    exit 1
+fi
+
+"$LESSMSI" x "$MSI_WIN_PATH" || { echo "[ERROR] Failed to extract MSI"; exit 1; }
 
 EXTRACT_DIR="/c/Users/BlackBricks/StudioProjects/SA_Neuro_Multiplatform/Neuro_Desktop-${VERSION_NAME}-${VERSION_CODE}/SourceDir/Neuro Desktop"
 
