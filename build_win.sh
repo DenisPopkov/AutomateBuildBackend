@@ -101,22 +101,6 @@ fi
 echo "[INFO] Extracting MSI..."
 /c/ProgramData/chocolatey/bin/lessmsi.exe x "$NEW_MSI_PATH" || { echo "[ERROR] Failed to extract MSI"; exit 1; }
 
-echo "[INFO] Checking source app folder for duplicates..."
-if ls "${EXTRACT_DIR}/app" | grep -q "\.duplicate[0-9]*$"; then
-    echo "[WARNING] Duplicate files found in source app folder:"
-    ls "${EXTRACT_DIR}/app" | grep "\.duplicate[0-9]*$"
-    echo "[INFO] Removing duplicate files from source app folder..."
-    find "${EXTRACT_DIR}/app" -type f -name "*.duplicate[0-9]*" -exec rm -v {} \;
-    if ls "${EXTRACT_DIR}/app" | grep -q "\.duplicate[0-9]*$"; then
-        echo "[ERROR] Failed to remove duplicate files from source app folder"
-        exit 1
-    else
-        echo "[INFO] All duplicate files removed from source app folder"
-    fi
-else
-    echo "[INFO] No duplicate files found in source app folder"
-fi
-
 echo "[INFO] Removing old app and runtime folders..."
 if [ -d "${ADV_INST_SETUP_FILES}/app" ]; then
     rm -rf "${ADV_INST_SETUP_FILES}/app" || { echo "[ERROR] Failed to remove app folder"; exit 1; }
