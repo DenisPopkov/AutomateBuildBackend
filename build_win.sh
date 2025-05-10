@@ -1,5 +1,8 @@
 #!/bin/bash
 
+export LC_ALL=C.UTF-8
+export LANG=C.UTF-8
+
 source "./slack_upload.sh"
 source "./utils.sh"
 
@@ -166,16 +169,13 @@ fi
 
 # Динамическое добавление файлов из папки app
 echo "[INFO] Adding files from app directory..."
-APP_DIR="../app"
+APP_DIR="${ADV_INST_SETUP_FILES}/app"
 if [ -d "$APP_DIR" ]; then
     find "$APP_DIR" -type f | while read -r file; do
         filename=$(basename "$file")
-        # Формируем короткое имя (8.3 формат) для MSI
         shortname=$(echo "$filename" | cut -c1-8 | tr '[:lower:]' '[:upper:]' | sed 's/[^A-Z0-9]//g')
         shortname="${shortname}~1.${filename##*.}"
-        # Уникальный идентификатор файла
         file_id=$(echo "$filename" | tr -d '.-' | tr '[:upper:]' '[:lower:]')
-        # Добавляем файл в компонент app_Dir
         "$XMLSTARLET_PATH" ed --inplace \
             -s "//TABLE[@Name='File']" -t elem -n ROW \
             -a "//TABLE[@Name='File']/ROW[last()]" -t attr -n File -v "$file_id" \
@@ -187,27 +187,24 @@ if [ -d "$APP_DIR" ]; then
             "$ADV_INST_CONFIG" 2>> "$ERROR_LOG_FILE" || { echo "[ERROR] Не удалось добавить файл $filename"; cat "$ERROR_LOG_FILE"; exit 1; }
     done
 else
-    echo "[WARNING] Папка $APP_DIR не найдена, пропускаем добавление файлов app"
+    echo "[ERROR] Папка $APP_DIR не найдена, прерываем выполнение"
+    exit 1
 fi
 
 # Динамическое добавление файлов из папки runtime
 echo "[INFO] Adding files from runtime directory..."
-RUNTIME_DIR="../runtime"
+RUNTIME_DIR="${ADV_INST_SETUP_FILES}/runtime"
 if [ -d "$RUNTIME_DIR" ]; then
     find "$RUNTIME_DIR" -type f | while read -r file; do
         filename=$(basename "$file")
-        # Формируем короткое имя (8.3 формат) для MSI
         shortname=$(echo "$filename" | cut -c1-8 | tr '[:lower:]' '[:upper:]' | sed 's/[^A-Z0-9]//g')
         shortname="${shortname}~1.${filename##*.}"
-        # Уникальный идентификатор файла
         file_id=$(echo "$filename" | tr -d '.-' | tr '[:upper:]' '[:lower:]')
-        # Определяем атрибуты: 256 для DLL, 0 для остальных
         if [[ "$filename" == *.dll ]]; then
             attributes="256"
         else
             attributes="0"
         fi
-        # Добавляем файл в компонент runtime_Dir
         "$XMLSTARLET_PATH" ed --inplace \
             -s "//TABLE[@Name='File']" -t elem -n ROW \
             -a "//TABLE[@Name='File']/ROW[last()]" -t attr -n File -v "$file_id" \
@@ -219,7 +216,8 @@ if [ -d "$RUNTIME_DIR" ]; then
             "$ADV_INST_CONFIG" 2>> "$ERROR_LOG_FILE" || { echo "[ERROR] Не удалось добавить файл $filename"; cat "$ERROR_LOG_FILE"; exit 1; }
     done
 else
-    echo "[WARNING] Папка $RUNTIME_DIR не найдена, пропускаем добавление файлов runtime"
+    echo "[ERROR] Папка $RUNTIME_DIR не найдена, прерываем выполнение"
+    exit 1
 fi
 
 # Проверяем модифицированный .aip
