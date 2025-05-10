@@ -34,121 +34,6 @@ check_error_log() {
     fi
 }
 
-# Проверка валидности .aip файла
-validate_aip() {
-    local aip_file="$1"
-    echo "[INFO] Проверяем валидность $aip_file..."
-    if ! "$XMLSTARLET_PATH" val "$aip_file" 2>> "$ERROR_LOG_FILE"; then
-        echo "[ERROR] Файл $aip_file невалиден"
-        cat "$ERROR_LOG_FILE"
-        exit 1
-    fi
-}
-
-# Удаление директории и связанных компонентов
-remove_directory() {
-    local dir_id="$1"
-    echo "[INFO] Удаляем $dir_id из .aip..."
-
-    # Удаляем из таблицы Directory
-    "$XMLSTARLET_PATH" ed --inplace \
-        -d "//TABLE[@Name='Directory']/ROW[@Directory='$dir_id']" \
-        "$ADV_INST_CONFIG" 2>> "$ERROR_LOG_FILE"
-    check_error_log
-
-    # Удаляем компоненты, связанные с директорией
-    "$XMLSTARLET_PATH" ed --inplace \
-        -d "//TABLE[@Name='Component']/ROW[@Directory_='$dir_id']" \
-        "$ADV_INST_CONFIG" 2>> "$ERROR_LOG_FILE"
-    check_error_log
-
-    # Удаляем связи в FeatureComponents
-    "$XMLSTARLET_PATH" ed --inplace \
-        -d "//TABLE[@Name='FeatureComponents']/ROW[@Component_='$dir_id']" \
-        "$ADV_INST_CONFIG" 2>> "$ERROR_LOG_FILE"
-    check_error_log
-
-    # Удаляем файлы, связанные с компонентами в этой директории
-    "$XMLSTARLET_PATH" ed --inplace \
-        -d "//TABLE[@Name='File']/ROW[Component_/ancestor::TABLE[@Name='Component']/ROW[@Directory_='$dir_id']]" \
-        "$ADV_INST_CONFIG" 2>> "$ERROR_LOG_FILE"
-    check_error_log
-}
-
-# Добавление директории в таблицу Directory
-add_directory() {
-    local dir_id="$1"
-    local parent_dir="$2"
-    local default_dir="$3"
-    echo "[INFO] Добавляем директорию $dir_id в $parent_dir..."
-
-    "$XMLSTARLET_PATH" ed --inplace \
-        -s "//TABLE[@Name='Directory']" -t elem -n ROW \
-        -i "//TABLE[@Name='Directory']/ROW[last()]" -t attr -n Directory -v "$dir_id" \
-        -i "//TABLE[@Name='Directory']/ROW[last()]" -t attr -n Directory_Parent -v "$parent_dir" \
-        -i "//TABLE[@Name='Directory']/ROW[last()]" -t attr -n DefaultDir -v "$default_dir" \
-        "$ADV_INST_CONFIG" 2>> "$ERROR_LOG_FILE"
-    check_error_log
-}
-
-# Добавление файлов в указанную директорию
-add_files_to_dir() {
-    local source_dir="$1"
-    local dir_id="$2"
-    local component_name="${dir_id}_component"
-    echo "[INFO] Добавляем файлы из $source_dir в $dir_id..."
-
-    if [ ! -d "$source_dir" ]; then
-        echo "[ERROR] Папка $source_dir не найдена"
-        exit 1
-    fi
-
-    # Создаем компонент для директории
-    if ! "$XMLSTARLET_PATH" sel -t -v "//TABLE[@Name='Component']/ROW[@Component='$component_name']" "$ADV_INST_CONFIG" | grep -q .; then
-        "$XMLSTARLET_PATH" ed --inplace \
-            -s "//TABLE[@Name='Component']" -t elem -n ROW \
-            -i "//TABLE[@Name='Component']/ROW[last()]" -t attr -n Component -v "$component_name" \
-            -i "//TABLE[@Name='Component']/ROW[last()]" -t attr -n ComponentId -v "{$(powershell.exe "[guid]::NewGuid().ToString()" | tr -d '\r')}" \
-            -i "//TABLE[@Name='Component']/ROW[last()]" -t attr -n Directory_ -v "$dir_id" \
-            -i "//TABLE[@Name='Component']/ROW[last()]" -t attr -n Attributes -v "0" \
-            -i "//TABLE[@Name='Component']/ROW[last()]" -t attr -n KeyPath -v "" \
-            "$ADV_INST_CONFIG" 2>> "$ERROR_LOG_FILE"
-        check_error_log
-
-        # Добавляем компонент в FeatureComponents
-        "$XMLSTARLET_PATH" ed --inplace \
-            -s "//TABLE[@Name='FeatureComponents']" -t elem -n ROW \
-            -i "//TABLE[@Name='FeatureComponents']/ROW[last()]" -t attr -n Feature_ -v "MainFeature" \
-            -i "//TABLE[@Name='FeatureComponents']/ROW[last()]" -t attr -n Component_ -v "$component_name" \
-            "$ADV_INST_CONFIG" 2>> "$ERROR_LOG_FILE"
-        check_error_log
-    fi
-
-    # Добавляем файлы
-    while IFS= read -r -d '' file; do
-        local filename=$(basename "$file")
-        local shortname=$(echo "$filename" | cut -c1-8 | tr '[:lower:]' '[:upper:]' | sed 's/[^A-Z0-9]//g')
-        shortname="${shortname}~1.${filename##*.}"
-        local file_id=$(echo "$filename" | tr -d '.-' | tr '[:upper:]' '[:lower:]')
-        local attributes=$([[ "$filename" == *.dll ]] && echo "256" || echo "0")
-        local file_win_path=$(convert_path "$file")
-
-        echo "[DEBUG] Добавляем файл: $filename"
-
-        # Добавляем файл в таблицу File
-        "$XMLSTARLET_PATH" ed --inplace \
-            -s "//TABLE[@Name='File']" -t elem -n ROW \
-            -i "//TABLE[@Name='File']/ROW[last()]" -t attr -n File -v "$file_id" \
-            -i "//TABLE[@Name='File']/ROW[last()]" -t attr -n Component_ -v "$component_name" \
-            -i "//TABLE[@Name='File']/ROW[last()]" -t attr -n FileName -v "${shortname}|${filename}" \
-            -i "//TABLE[@Name='File']/ROW[last()]" -t attr -n Attributes -v "$attributes" \
-            -i "//TABLE[@Name='File']/ROW[last()]" -t attr -n SourcePath -v "$file_win_path" \
-            -i "//TABLE[@Name='File']/ROW[last()]" -t attr -n SelfReg -v "false" \
-            "$ADV_INST_CONFIG" 2>> "$ERROR_LOG_FILE"
-        check_error_log
-    done < <(find "$source_dir" -type f -print0)
-}
-
 #while IFS='=' read -r key value; do
 #  key=$(echo "$key" | xargs)
 #  value=$(echo "$value" | xargs)
@@ -220,38 +105,12 @@ echo "[INFO] Backing up original .aip..."
 cp "$ADV_INST_CONFIG" "${ADV_INST_CONFIG}.orig" || { echo "[ERROR] Failed to backup original .aip"; exit 1; }
 cp "$ADV_INST_CONFIG" "${ADV_INST_CONFIG}.bak" || { echo "[ERROR] Failed to backup .aip"; exit 1; }
 
-# Проверяем валидность исходного .aip файла
-echo "[INFO] Checking for xmlstarlet..."
-XMLSTARLET_PATH="/c/ProgramData/chocolatey/bin/xmlstarlet.exe"
-if [ ! -x "$XMLSTARLET_PATH" ]; then
-    echo "[ERROR] xmlstarlet is not installed or not executable at $XMLSTARLET_PATH"
-    exit 1
-fi
-validate_aip "$ADV_INST_CONFIG"
-
 echo "[INFO] Updating version and product code..."
 sed -i "s/\(Property=\"ProductVersion\" Value=\"\)[^\"]*\(\".*\)/\1${VERSION_NAME}\2/" "$ADV_INST_CONFIG"
 NEW_GUID=$(powershell.exe "[guid]::NewGuid().ToString()" | tr -d '\r')
 [ -z "$NEW_GUID" ] && { echo "[ERROR] Failed to generate ProductCode"; exit 1; }
 sed -i "s/\(Property=\"ProductCode\" Value=\"\)[^\"]*\(\".*\)/\1${NEW_GUID}\2/" "$ADV_INST_CONFIG"
 sed -i "s/\(PackageFileName=\"Neuro_Desktop-\)[^\"]*\(\".*\)/\1${VERSION_NAME}-${VERSION_CODE}\2/" "$ADV_INST_CONFIG"
-
-echo "[INFO] Cleaning up existing app_Dir and runtime_Dir..."
-remove_directory "app_Dir"
-remove_directory "runtime_Dir"
-
-echo "[INFO] Adding new app_Dir and runtime_Dir..."
-add_directory "app_Dir" "NewFolder_Dir" "app"
-add_directory "runtime_Dir" "NewFolder_Dir" "runtime"
-
-echo "[INFO] Adding files to app_Dir..."
-add_files_to_dir "${ADV_INST_SETUP_FILES}/app" "app_Dir"
-
-echo "[INFO] Adding files to runtime_Dir..."
-add_files_to_dir "${ADV_INST_SETUP_FILES}/runtime" "runtime_Dir"
-
-echo "[INFO] Checking modified .aip file..."
-validate_aip "$ADV_INST_CONFIG"
 
 WIN_AIP_PATH=$(convert_path "$ADV_INST_CONFIG")
 echo "[DEBUG] Используемый путь для Advanced Installer: $WIN_AIP_PATH"
