@@ -154,6 +154,24 @@ else
     exit 1
 fi
 
+log "[INFO] Updating .aip with new .jar files..."
+# Поиск актуальных .jar файлов в EXTRACT_DIR/app
+OUTPUT_JAR=$(ls "$EXTRACT_DIR/app" | grep '^output-.*\.jar$' | head -n 1)
+SHARED_JAR=$(ls "$EXELECT_DIR/app" | grep '^shared-jvm-.*\.jar$' | head -n 1)
+SKIKO_JAR=$(ls "$EXTRACT_DIR/app" | grep '^skiko-awt-runtime-windows-x64-.*\.jar$' | head -n 1)
+
+if [ -z "$OUTPUT_JAR" ] || [ -z "$SHARED_JAR" ] || [ -z "$SKIKO_JAR" ]; then
+    log "[ERROR] Failed to find required .jar files in $EXTRACT_DIR/app"
+    post_error_message "$BRANCH_NAME"
+    exit 1
+fi
+
+# Замена ссылок в .aip
+sed -i "s|app\\output-[^\"]*\.jar|app\\${OUTPUT_JAR}|g" "$ADV_INST_CONFIG" || { log "[ERROR] Failed to update output.jar in .aip"; post_error_message "$BRANCH_NAME"; exit 1; }
+sed -i "s|app\\shared-jvm-[^\"]*\.jar|app\\${SHARED_JAR}|g" "$ADV_INST_CONFIG" || { log "[ERROR] Failed to update shared-jvm.jar in .aip"; post_error_message "$BRANCH_NAME"; exit 1; }
+sed -i "s|app\\skiko-awt-runtime-windows-x64-[^\"]*\.jar|app\\${SKIKO_JAR}|g" "$ADV_INST_CONFIG" || { log "[ERROR] Failed to update skiko.jar in .aip"; post_error_message "$BRANCH_NAME"; exit 1; }
+log "[INFO] .aip updated with new .jar files: $OUTPUT_JAR, $SHARED_JAR, $SKIKO_JAR"
+
 log "[INFO] Removing old app and runtime folders..."
 [ -d "${ADV_INST_SETUP_FILES}/app" ] && rm -rf "${ADV_INST_SETUP_FILES}/app" && log "[INFO] App folder removed" || log "[INFO] App folder does not exist"
 [ -d "${ADV_INST_SETUP_FILES}/runtime" ] && rm -rf "${ADV_INST_SETUP_FILES}/runtime" && log "[INFO] Runtime folder removed" || log "[INFO] Runtime folder does not exist"
