@@ -25,6 +25,79 @@ convert_path() {
     fi
 }
 
+check_error_log() {
+    if [ -s "$ERROR_LOG_FILE" ]; then
+        echo "[ERROR] Ошибка в $ERROR_LOG_FILE:"
+        cat "$ERROR_LOG_FILE"
+        exit 1
+    fi
+}
+
+add_subdirectories() {
+    local parent_dir="$1"
+    local parent_dir_id="$2"
+    find "$parent_dir" -type d | while read -r dir; do
+        dir_name=$(basename "$dir")
+        dir_id=$(echo "$dir_name" | tr -d '.-' | tr '[:upper:]' '[:lower:]')_Dir
+        shortname=$(echo "$dir_name" | cut -c1-8 | tr '[:lower:]' '[:upper:]' | sed 's/[^A-Z0-9]//g')
+        shortname="${shortname}|${dir_name}"
+        if ! "$XMLSTARLET_PATH" sel -t -v "//TABLE[@Name='Directory']/ROW[@Directory='$dir_id']" "$ADV_INST_CONFIG" | grep -q .; then
+            "$XMLSTARLET_PATH" ed --inplace \
+                -s "//TABLE[@Name='Directory']" -t elem -n ROW \
+                -a "//TABLE[@Name='Directory']/ROW[last()]" -t attr -n Directory -v "$dir_id" \
+                -a "//TABLE[@Name='Directory']/ROW[last()]" -t attr -n Directory_Parent -v "$parent_dir_id" \
+                -a "//TABLE[@Name='Directory']/ROW[last()]" -t attr -n DefaultDir -v "$shortname" \
+                "$ADV_INST_CONFIG" 2>> "$ERROR_LOG_FILE"
+            check_error_log
+        fi
+    done
+}
+
+add_file() {
+    local file="$1"
+    local component_dir="$2"
+    local component_id="$3"
+    filename=$(basename "$file")
+    shortname=$(echo "$filename" | cut -c1-8 | tr '[:lower:]' '[:upper:]' | sed 's/[^A-Z0-9]//g')
+    shortname="${shortname}~1.${filename##*.}"
+    file_id=$(echo "$filename" | tr -d '.-' | tr '[:upper:]' '[:lower:]')
+    attributes=$([[ "$filename" == *.dll ]] && echo "256" || echo "0")
+    component_name="${file_id}_component"
+
+    # Добавляем компонент
+    if ! "$XMLSTARLET_PATH" sel -t -v "//TABLE[@Name='Component']/ROW[@Component='$component_name']" "$ADV_INST_CONFIG" | grep -q .; then
+        "$XMLSTARLET_PATH" ed --inplace \
+            -s "//TABLE[@Name='Component']" -t elem -n ROW \
+            -a "//TABLE[@Name='Component']/ROW[last()]" -t attr -n Component -v "$component_name" \
+            -a "//TABLE[@Name='Component']/ROW[last()]" -t attr -n ComponentId -v "{$(powershell.exe "[guid]::NewGuid().ToString()" | tr -d '\r')}" \
+            -a "//TABLE[@Name='Component']/ROW[last()]" -t attr -n Directory_ -v "$component_dir" \
+            -a "//TABLE[@Name='Component']/ROW[last()]" -t attr -n Attributes -v "$attributes" \
+            -a "//TABLE[@Name='Component']/ROW[last()]" -t attr -n KeyPath -v "$file_id" \
+            "$ADV_INST_CONFIG" 2>> "$ERROR_LOG_FILE"
+        check_error_log
+    fi
+
+    # Добавляем файл
+    "$XMLSTARLET_PATH" ed --inplace \
+        -s "//TABLE[@Name='File']" -t elem -n ROW \
+        -a "//TABLE[@Name='File']/ROW[last()]" -t attr -n File -v "$file_id" \
+        -a "//TABLE[@Name='File']/ROW[last()]" -t attr -n Component_ -v "$component_name" \
+        -a "//TABLE[@Name='File']/ROW[last()]" -t attr -n FileName -v "${shortname}|${filename}" \
+        -a "//TABLE[@Name='File']/ROW[last()]" -t attr -n Attributes -v "$attributes" \
+        -a "//TABLE[@Name='File']/ROW[last()]" -t attr -n SourcePath -v "$file" \
+        -a "//TABLE[@Name='File']/ROW[last()]" -t attr -n SelfReg -v "false" \
+        "$ADV_INST_CONFIG" 2>> "$ERROR_LOG_FILE"
+    check_error_log
+
+    # Добавляем в FeatureComponents
+    "$XMLSTARLET_PATH" ed --inplace \
+        -s "//TABLE[@Name='FeatureComponents']" -t elem -n ROW \
+        -a "//TABLE[@Name='FeatureComponents']/ROW[last()]" -t attr -n Feature_ -v "MainFeature" \
+        -a "//TABLE[@Name='FeatureComponents']/ROW[last()]" -t attr -n Component_ -v "$component_name" \
+        "$ADV_INST_CONFIG" 2>> "$ERROR_LOG_FILE"
+    check_error_log
+}
+
 #while IFS='=' read -r key value; do
 #  key=$(echo "$key" | xargs)
 #  value=$(echo "$value" | xargs)
@@ -114,7 +187,6 @@ echo "[DEBUG] xmlstarlet found at: $XMLSTARLET_PATH" >> cleanup.log
 sleep 10
 
 echo "[INFO] Adding app and runtime directories to .aip..."
-# Проверяем, существуют ли app_Dir или runtime_Dir, чтобы избежать дублирования
 if "$XMLSTARLET_PATH" sel -t -v "//TABLE[@Name='Directory']/ROW[@Directory='app_Dir']" "$ADV_INST_CONFIG" | grep -q .; then
     echo "[WARNING] app_Dir уже существует в .aip, пропускаем добавление"
 else
@@ -123,7 +195,8 @@ else
         -a "//TABLE[@Name='Directory']/ROW[last()]" -t attr -n Directory -v "app_Dir" \
         -a "//TABLE[@Name='Directory']/ROW[last()]" -t attr -n Directory_Parent -v "NewFolder_Dir" \
         -a "//TABLE[@Name='Directory']/ROW[last()]" -t attr -n DefaultDir -v "app" \
-        "$ADV_INST_CONFIG" 2>> "$ERROR_LOG_FILE" || { echo "[ERROR] Не удалось добавить app_Dir"; cat "$ERROR_LOG_FILE"; exit 1; }
+        "$ADV_INST_CONFIG" 2>> "$ERROR_LOG_FILE"
+    check_error_log
 fi
 
 if "$XMLSTARLET_PATH" sel -t -v "//TABLE[@Name='Directory']/ROW[@Directory='runtime_Dir']" "$ADV_INST_CONFIG" | grep -q .; then
@@ -134,17 +207,18 @@ else
         -a "//TABLE[@Name='Directory']/ROW[last()]" -t attr -n Directory -v "runtime_Dir" \
         -a "//TABLE[@Name='Directory']/ROW[last()]" -t attr -n Directory_Parent -v "NewFolder_Dir" \
         -a "//TABLE[@Name='Directory']/ROW[last()]" -t attr -n DefaultDir -v "runtime" \
-        "$ADV_INST_CONFIG" 2>> "$ERROR_LOG_FILE" || { echo "[ERROR] Не удалось добавить runtime_Dir"; cat "$ERROR_LOG_FILE"; exit 1; }
+        "$ADV_INST_CONFIG" 2>> "$ERROR_LOG_FILE"
+    check_error_log
 fi
 
-# Добавляем компоненты для app и runtime
 "$XMLSTARLET_PATH" ed --inplace \
     -s "//TABLE[@Name='Component']" -t elem -n ROW \
     -a "//TABLE[@Name='Component']/ROW[last()]" -t attr -n Component -v "app_Dir" \
     -a "//TABLE[@Name='Component']/ROW[last()]" -t attr -n ComponentId -v "{$(powershell.exe "[guid]::NewGuid().ToString()" | tr -d '\r')}" \
     -a "//TABLE[@Name='Component']/ROW[last()]" -t attr -n Directory_ -v "app_Dir" \
     -a "//TABLE[@Name='Component']/ROW[last()]" -t attr -n Attributes -v "0" \
-    "$ADV_INST_CONFIG" 2>> "$ERROR_LOG_FILE" || { echo "[ERROR] Не удалось добавить компонент app_Dir"; cat "$ERROR_LOG_FILE"; exit 1; }
+    "$ADV_INST_CONFIG" 2>> "$ERROR_LOG_FILE"
+check_error_log
 
 "$XMLSTARLET_PATH" ed --inplace \
     -s "//TABLE[@Name='Component']" -t elem -n ROW \
@@ -152,75 +226,47 @@ fi
     -a "//TABLE[@Name='Component']/ROW[last()]" -t attr -n ComponentId -v "{$(powershell.exe "[guid]::NewGuid().ToString()" | tr -d '\r')}" \
     -a "//TABLE[@Name='Component']/ROW[last()]" -t attr -n Directory_ -v "runtime_Dir" \
     -a "//TABLE[@Name='Component']/ROW[last()]" -t attr -n Attributes -v "0" \
-    "$ADV_INST_CONFIG" 2>> "$ERROR_LOG_FILE" || { echo "[ERROR] Не удалось добавить компонент runtime_Dir"; cat "$ERROR_LOG_FILE"; exit 1; }
+    "$ADV_INST_CONFIG" 2>> "$ERROR_LOG_FILE"
+check_error_log
 
-# Добавляем app и runtime в компоненты фич
 "$XMLSTARLET_PATH" ed --inplace \
     -s "//TABLE[@Name='FeatureComponents']" -t elem -n ROW \
     -a "//TABLE[@Name='FeatureComponents']/ROW[last()]" -t attr -n Feature_ -v "MainFeature" \
     -a "//TABLE[@Name='FeatureComponents']/ROW[last()]" -t attr -n Component_ -v "app_Dir" \
-    "$ADV_INST_CONFIG" 2>> "$ERROR_LOG_FILE" || { echo "[ERROR] Не удалось добавить app_Dir в FeatureComponents"; cat "$ERROR_LOG_FILE"; exit 1; }
+    "$ADV_INST_CONFIG" 2>> "$ERROR_LOG_FILE"
+check_error_log
 
 "$XMLSTARLET_PATH" ed --inplace \
     -s "//TABLE[@Name='FeatureComponents']" -t elem -n ROW \
     -a "//TABLE[@Name='FeatureComponents']/ROW[last()]" -t attr -n Feature_ -v "MainFeature" \
     -a "//TABLE[@Name='FeatureComponents']/ROW[last()]" -t attr -n Component_ -v "runtime_Dir" \
-    "$ADV_INST_CONFIG" 2>> "$ERROR_LOG_FILE" || { echo "[ERROR] Не удалось добавить runtime_Dir в FeatureComponents"; cat "$ERROR_LOG_FILE"; exit 1; }
+    "$ADV_INST_CONFIG" 2>> "$ERROR_LOG_FILE"
+check_error_log
 
-# Динамическое добавление файлов из папки app
 echo "[INFO] Adding files from app directory..."
-APP_DIR="${ADV_INST_SETUP_FILES}/app"
+APP_DIR=$(convert_path "${ADV_INST_SETUP_FILES}/app")
 if [ -d "$APP_DIR" ]; then
+    add_subdirectories "$APP_DIR" "app_Dir"
     find "$APP_DIR" -type f | while read -r file; do
-        filename=$(basename "$file")
-        shortname=$(echo "$filename" | cut -c1-8 | tr '[:lower:]' '[:upper:]' | sed 's/[^A-Z0-9]//g')
-        shortname="${shortname}~1.${filename##*.}"
-        file_id=$(echo "$filename" | tr -d '.-' | tr '[:upper:]' '[:lower:]')
-        "$XMLSTARLET_PATH" ed --inplace \
-            -s "//TABLE[@Name='File']" -t elem -n ROW \
-            -a "//TABLE[@Name='File']/ROW[last()]" -t attr -n File -v "$file_id" \
-            -a "//TABLE[@Name='File']/ROW[last()]" -t attr -n Component_ -v "app_Dir" \
-            -a "//TABLE[@Name='File']/ROW[last()]" -t attr -n FileName -v "${shortname}|${filename}" \
-            -a "//TABLE[@Name='File']/ROW[last()]" -t attr -n Attributes -v "0" \
-            -a "//TABLE[@Name='File']/ROW[last()]" -t attr -n SourcePath -v "$file" \
-            -a "//TABLE[@Name='File']/ROW[last()]" -t attr -n SelfReg -v "false" \
-            "$ADV_INST_CONFIG" 2>> "$ERROR_LOG_FILE" || { echo "[ERROR] Не удалось добавить файл $filename"; cat "$ERROR_LOG_FILE"; exit 1; }
+        add_file "$file" "app_Dir" "app_Dir"
     done
 else
     echo "[ERROR] Папка $APP_DIR не найдена, прерываем выполнение"
     exit 1
 fi
 
-# Динамическое добавление файлов из папки runtime
 echo "[INFO] Adding files from runtime directory..."
-RUNTIME_DIR="${ADV_INST_SETUP_FILES}/runtime"
+RUNTIME_DIR=$(convert_path "${ADV_INST_SETUP_FILES}/runtime")
 if [ -d "$RUNTIME_DIR" ]; then
+    add_subdirectories "$RUNTIME_DIR" "runtime_Dir"
     find "$RUNTIME_DIR" -type f | while read -r file; do
-        filename=$(basename "$file")
-        shortname=$(echo "$filename" | cut -c1-8 | tr '[:lower:]' '[:upper:]' | sed 's/[^A-Z0-9]//g')
-        shortname="${shortname}~1.${filename##*.}"
-        file_id=$(echo "$filename" | tr -d '.-' | tr '[:upper:]' '[:lower:]')
-        if [[ "$filename" == *.dll ]]; then
-            attributes="256"
-        else
-            attributes="0"
-        fi
-        "$XMLSTARLET_PATH" ed --inplace \
-            -s "//TABLE[@Name='File']" -t elem -n ROW \
-            -a "//TABLE[@Name='File']/ROW[last()]" -t attr -n File -v "$file_id" \
-            -a "//TABLE[@Name='File']/ROW[last()]" -t attr -n Component_ -v "runtime_Dir" \
-            -a "//TABLE[@Name='File']/ROW[last()]" -t attr -n FileName -v "${shortname}|${filename}" \
-            -a "//TABLE[@Name='File']/ROW[last()]" -t attr -n Attributes -v "$attributes" \
-            -a "//TABLE[@Name='File']/ROW[last()]" -t attr -n SourcePath -v "$file" \
-            -a "//TABLE[@Name='File']/ROW[last()]" -t attr -n SelfReg -v "false" \
-            "$ADV_INST_CONFIG" 2>> "$ERROR_LOG_FILE" || { echo "[ERROR] Не удалось добавить файл $filename"; cat "$ERROR_LOG_FILE"; exit 1; }
+        add_file "$file" "runtime_Dir" "runtime_Dir"
     done
 else
     echo "[ERROR] Папка $RUNTIME_DIR не найдена, прерываем выполнение"
     exit 1
 fi
 
-# Проверяем модифицированный .aip
 echo "[INFO] Checking modified .aip file..."
 if ! "$XMLSTARLET_PATH" val "$ADV_INST_CONFIG" 2>> "$ERROR_LOG_FILE"; then
     echo "[ERROR] Модифицированный .aip файл невалиден"
@@ -228,17 +274,14 @@ if ! "$XMLSTARLET_PATH" val "$ADV_INST_CONFIG" 2>> "$ERROR_LOG_FILE"; then
     exit 1
 fi
 
-# Преобразуем путь для Windows
 WIN_AIP_PATH=$(convert_path "$ADV_INST_CONFIG")
 echo "[DEBUG] Используемый путь для Advanced Installer: $WIN_AIP_PATH"
 
-# Проверяем существование .aip файла
 if [ ! -f "$ADV_INST_CONFIG" ]; then
     echo "[ERROR] Файл $ADV_INST_CONFIG не существует"
     exit 1
 fi
 
-# Проверяем существование Advanced Installer
 ADV_INST_PATH="C:/Program Files (x86)/Caphyon/Advanced Installer 22.6/bin/x86/AdvancedInstaller.com"
 if [ ! -f "$ADV_INST_PATH" ]; then
     echo "[ERROR] Advanced Installer не найден по пути $ADV_INST_PATH"
@@ -248,10 +291,6 @@ fi
 echo "[INFO] Building MSI with Advanced Installer..."
 echo "[DEBUG] Выполняемая команда: cmd.exe /c \"$ADV_INST_PATH\" /build \"$WIN_AIP_PATH\""
 cmd.exe /c "\"$ADV_INST_PATH\" /build \"$WIN_AIP_PATH\"" 2>> "$ERROR_LOG_FILE" || { echo "[ERROR] Не удалось собрать MSI"; cat "$ERROR_LOG_FILE"; exit 1; }
-
-echo "[INFO] Restoring original .aip to remove app and runtime references..."
-mv "${ADV_INST_CONFIG}.orig" "$ADV_INST_CONFIG" || { echo "[ERROR] Не удалось восстановить оригинальный .aip"; exit 1; }
-rm -f "${ADV_INST_CONFIG}.bak"
 
 echo "[INFO] Cleaning up temporary files..."
 rm -rf "${ADV_INST_SETUP_FILES}/app"
