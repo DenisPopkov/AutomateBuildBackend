@@ -181,7 +181,18 @@ if [ -z "$OUTPUT_JAR" ] || [ -z "$SHARED_JAR" ] || [ -z "$SKIKO_JAR" ]; then
     exit 1
 fi
 
-# Обновление .aip с проверкой
+# Проверка содержимого $EXTRACT_DIR/app на лишние файлы
+log "[INFO] Checking $EXTRACT_DIR/app for unexpected files..."
+find "$EXTRACT_DIR/app" -maxdepth 1 -type f > /tmp/app_files.txt
+while IFS= read -r file; do
+    if [[ ! "$file" =~ output-.*\.jar$ && ! "$file" =~ shared-jvm-.*\.jar$ && ! "$file" =~ skiko-awt-runtime-windows-x64-.*\.jar$ ]]; then
+        log "[WARNING] Unexpected file in $EXTRACT_DIR/app: $file"
+        rm -f "$file" && log "[INFO] Removed unexpected file: $file"
+    fi
+done < /tmp/app_files.txt
+rm -f /tmp/app_files.txt
+
+# Обновление .aip с резервной копией
 sed -i.bak "s|app\\\\output-[^\"]*\.jar|app\\\\${OUTPUT_JAR}|g" "$ADV_INST_CONFIG" || { log "[ERROR] Failed to update output.jar in .aip"; post_error_message "$BRANCH_NAME"; exit 1; }
 sed -i.bak "s|app\\\\shared-jvm-[^\"]*\.jar|app\\\\${SHARED_JAR}|g" "$ADV_INST_CONFIG" || { log "[ERROR] Failed to update shared-jvm.jar in .aip"; post_error_message "$BRANCH_NAME"; exit 1; }
 sed -i.bak "s|app\\\\skiko-awt-runtime-windows-x64-[^\"]*\.jar|app\\\\${SKIKO_JAR}|g" "$ADV_INST_CONFIG" || { log "[ERROR] Failed to update skiko.jar in .aip"; post_error_message "$BRANCH_NAME"; exit 1; }
@@ -200,7 +211,7 @@ cp -rf "${EXTRACT_DIR}/app" "${ADV_INST_SETUP_FILES}/app" || { log "[ERROR] Fail
 cp -rf "${EXTRACT_DIR}/runtime" "${ADV_INST_SETUP_FILES}/runtime" || { log "[ERROR] Failed to copy runtime folder"; post_error_message "$BRANCH_NAME"; exit 1; }
 [ -d "${ADV_INST_SETUP_FILES}/runtime" ] && log "[INFO] Runtime folder copied" || { log "[ERROR] Runtime folder not found after copy"; post_error_message "$BRANCH_NAME"; exit 1; }
 
-# Проверка размера скопированных папок
+# Проверка размеров папок
 APP_SIZE=$(du -sm "${ADV_INST_SETUP_FILES}/app" | cut -f1)
 RUNTIME_SIZE=$(du -sm "${ADV_INST_SETUP_FILES}/runtime" | cut -f1)
 log "[INFO] App folder size: $APP_SIZE MB, Runtime folder size: $RUNTIME_SIZE MB"
@@ -218,10 +229,19 @@ NEW_GUID=$(powershell.exe "[guid]::NewGuid().ToString()" | tr -d '\r')
 sed -i.bak "s/\(Property=\"ProductCode\" Value=\"\)[^\"]*\(\".*\)/\1${NEW_GUID}\2/" "$ADV_INST_CONFIG" || { log "[ERROR] Failed to update ProductCode"; post_error_message "$BRANCH_NAME"; exit 1; }
 sed -i.bak "s/\(PackageFileName=\"Neuro_Desktop-\)[^\"]*\(\".*\)/\1${VERSION_NAME}-${VERSION_CODE}\2/" "$ADV_INST_CONFIG" || { log "[ERROR] Failed to update PackageFileName"; post_error_message "$BRANCH_NAME"; exit 1; }
 
+# Очистка ссылок на старые MSI в .aip
+log "[INFO] Removing references to old MSI files in .aip..."
+sed -i.bak "/Neuro_Desktop-[0-9]\.[0-9]\.[0-9]-[0-9]*\.msi/d" "$ADV_INST_CONFIG" || { log "[ERROR] Failed to clean old MSI references in .aip"; post_error_message "$BRANCH_NAME"; exit 1; }
+
 log "[INFO] Building MSI with Advanced Installer..."
 ADV_INST_WIN_PATH=$(convert_path "$ADV_INST_PATH")
 CONFIG_WIN_PATH=$(convert_path "$ADV_INST_CONFIG")
-cmd.exe /c "chcp 65001 > nul && \"${ADV_INST_WIN_PATH}\" /build \"${CONFIG_WIN_PATH}\"" 2>> "$ERROR_LOG_FILE" || { log "[ERROR] Failed to build MSI"; cat "$ERROR_LOG_FILE" | iconv -f CP1251 -t UTF-8 | tee -a "$LOG_FILE"; post_error_message "$BRANCH_NAME"; exit 1; }
+cmd.exe /c "chcp 65001 > nul && \"${ADV_INST_WIN_PATH}\" /build \"${CONFIG_WIN_PATH}\"" 2>> "$ERROR_LOG_FILE" || {
+    log "[ERROR] Failed to build MSI"
+    cat "$ERROR_LOG_FILE" | iconv -f CP1251 -t UTF-8 | tee -a "$LOG_FILE"
+    post_error_message "$BRANCH_NAME"
+    exit 1
+}
 check_error_log
 
 log "[INFO] Preparing to upload MSI to Slack..."
@@ -233,13 +253,6 @@ if [ ! -f "$SIGNED_MSI_PATH" ]; then
     log "[ERROR] MSI file not found at $SIGNED_MSI_PATH"
     post_error_message "$BRANCH_NAME"
     exit 1
-fi
-
-MSI_SIZE=$(stat -c %s "$SIGNED_MSI_PATH")
-MSI_SIZE_MB=$((MSI_SIZE / 1024 / 1024))
-log "[INFO] MSI size: $MSI_SIZE_MB MB"
-if [ "$MSI_SIZE_MB" -gt 300 ]; then
-    log "[WARNING] MSI size exceeds 300 MB, expected ~250 MB"
 fi
 
 #log "[INFO] Signing MSI: $SIGNED_MSI_WIN_PATH"
