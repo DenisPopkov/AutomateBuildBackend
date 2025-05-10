@@ -14,7 +14,6 @@ ADV_INST_SETUP_FILES="/c/Users/BlackBricks/Applications/Neuro installer"
 ADV_INST_COM="/c/Program Files (x86)/Caphyon/Advanced Installer 22.6/bin/x86/AdvancedInstaller.com"
 ADVANCED_INSTALLER_MSI_FILES="/c/Users/BlackBricks/Applications/Neuro installer/installer_win/Neuro Desktop-SetupFiles"
 
-# Функция для преобразования пути из /c/ в C:\ с экранированием
 convert_path() {
     local path="$1"
     if command -v cygpath >/dev/null; then
@@ -24,10 +23,51 @@ convert_path() {
     fi
 }
 
+#while IFS='=' read -r key value; do
+#  key=$(echo "$key" | xargs)
+#  value=$(echo "$value" | xargs)
+#  case "$key" in
+#    "SLACK_BOT_TOKEN") SLACK_BOT_TOKEN="$value" ;;
+#    "SLACK_CHANNEL") SLACK_CHANNEL="$value" ;;
+#  esac
+#done < "$SECRET_FILE"
+#
+#post_error_message() {
+#  local branch_name=$1
+#  local message=":x: Failed to build Windows on \`$branch_name\`"
+#  execute_file_upload "$SLACK_BOT_TOKEN" "$SLACK_CHANNEL" "$message" "upload" "$ERROR_LOG_FILE"
+#}
+#
 cd "$PROJECT_DIR" || exit 1
-
+##git stash push -m "Pre-build stash"
+##git fetch --all
+##git checkout "$BRANCH_NAME"
+##git pull origin "$BRANCH_NAME" --no-rebase
+#
 VERSION_CODE=$(grep '^desktop\.build\.number\s*=' gradle.properties | sed 's/.*=\s*\([0-9]*\)/\1/' | xargs)
 VERSION_NAME=$(grep '^desktop\.version\s*=' gradle.properties | sed 's/.*=\s*\([0-9]*\.[0-9]*\.[0-9]*\)/\1/' | xargs)
+##VERSION_CODE=$((VERSION_CODE + 1))
+##
+##sed -i "s/^desktop\.build\.number\s*=\s*[0-9]*$/desktop.build.number=$VERSION_CODE/" gradle.properties
+##git add gradle.properties
+##git commit -m "Windows version bump to $VERSION_CODE"
+##git push origin "$BRANCH_NAME"
+#
+#analyticsMessage="prod"
+#[ "$isUseDevAnalytics" == "true" ] && analyticsMessage="dev"
+#
+##end_time=$(date -d "+15 minutes" +"%H:%M")
+##message=":hammer_and_wrench: Windows build started on \`$BRANCH_NAME\` with $analyticsMessage analytics. It will be ready approximately at $end_time"
+##first_ts=$(post_message "$SLACK_BOT_TOKEN" "$SLACK_CHANNEL" "$message")
+#
+#if [ "$isUseDevAnalytics" == "false" ]; then
+#  enable_prod_keys
+#  sleep 5
+#  powershell -command "Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.SendKeys]::SendWait('^(+o)')"
+#  sleep 50
+#fi
+#
+#./gradlew packageReleaseMsi || { post_error_message "$BRANCH_NAME"; exit 1; }
 
 DESKTOP_BUILD_PATH="$PROJECT_DIR/desktopApp/build/compose/binaries/main-release/msi"
 MSI_FILE=$(find "$DESKTOP_BUILD_PATH" -name "Neuro*.msi" | head -n 1)
@@ -52,6 +92,10 @@ echo "[INFO] Copying new app and runtime folders..."
 cp -r "${EXTRACT_DIR}/app" "${ADV_INST_SETUP_FILES}/" || { echo "[ERROR] Failed to copy 'app' folder"; exit 1; }
 cp -r "${EXTRACT_DIR}/runtime" "${ADV_INST_SETUP_FILES}/" || { echo "[ERROR] Failed to copy 'runtime' folder"; exit 1; }
 
+echo "[INFO] Backing up original .aip..."
+cp "$ADV_INST_CONFIG" "${ADV_INST_CONFIG}.orig" || { echo "[ERROR] Failed to backup original .aip"; exit 1; }
+cp "$ADV_INST_CONFIG" "${ADV_INST_CONFIG}.bak" || { echo "[ERROR] Failed to backup .aip"; exit 1; }
+
 echo "[INFO] Updating version and product code..."
 sed -i "s/\(Property=\"ProductVersion\" Value=\"\)[^\"]*\(\".*\)/\1${VERSION_NAME}\2/" "$ADV_INST_CONFIG"
 NEW_GUID=$(powershell.exe "[guid]::NewGuid().ToString()" | tr -d '\r')
@@ -59,127 +103,80 @@ NEW_GUID=$(powershell.exe "[guid]::NewGuid().ToString()" | tr -d '\r')
 sed -i "s/\(Property=\"ProductCode\" Value=\"\)[^\"]*\(\".*\)/\1${NEW_GUID}\2/" "$ADV_INST_CONFIG"
 sed -i "s/\(PackageFileName=\"Neuro_Desktop-\)[^\"]*\(\".*\)/\1${VERSION_NAME}-${VERSION_CODE}\2/" "$ADV_INST_CONFIG"
 
-echo "[INFO] Backing up .aip..."
-cp "$ADV_INST_CONFIG" "${ADV_INST_CONFIG}.bak" || { echo "[ERROR] Failed to backup .aip"; exit 1; }
-
-echo "[INFO] Cleaning .aip from all references to app/runtime..."
-echo "[DEBUG] Checking for xmlstarlet..." >> cleanup.log
+echo "[INFO] Checking for xmlstarlet..."
 XMLSTARLET_PATH=$(command -v xmlstarlet || command -v xmlstarlet.exe || echo "C:/ProgramData/chocolatey/bin/xmlstarlet.exe")
 if [ ! -x "$XMLSTARLET_PATH" ]; then
     echo "[ERROR] xmlstarlet is not installed or not executable."
-    echo "[DEBUG] XMLSTARLET_PATH=$XMLSTARLET_PATH" >> cleanup.log
     exit 1
 fi
 echo "[DEBUG] xmlstarlet found at: $XMLSTARLET_PATH" >> cleanup.log
 
-echo "[DEBUG] Saving pre-cleanup .aip copy..." >> cleanup.log
-cp "$ADV_INST_CONFIG" "${ADV_INST_CONFIG}.preclean" || { echo "[ERROR] Failed to save pre-cleanup .aip copy"; exit 1; }
+echo "[INFO] Adding app and runtime directories to .aip..."
+"$XMLSTARLET_PATH" ed -s '//COMPONENT[@cid="caphyon.advinst.msicomp.MsiDirsComponent"]' -t elem -n ROW -v '' \
+    -i '//ROW[last()]' -t attr -n Directory -v "app_Dir" \
+    -i '//ROW[last()]' -t attr -n Directory_Parent -v "NewFolder_Dir" \
+    -i '//ROW[last()]' -t attr -n DefaultDir -v "app" "$ADV_INST_CONFIG" > "${ADV_INST_CONFIG}.tmp" && mv "${ADV_INST_CONFIG}.tmp" "$ADV_INST_CONFIG" || { echo "[ERROR] Failed to add app_Dir"; exit 1; }
 
-echo "[DEBUG] Removing app and runtime directories..." >> cleanup.log
-"$XMLSTARLET_PATH" ed -d '//ROW[contains(@Directory, "app_Dir")]' "$ADV_INST_CONFIG" > "${ADV_INST_CONFIG}.tmp" && mv "${ADV_INST_CONFIG}.tmp" "$ADV_INST_CONFIG" || { echo "[ERROR] Failed to remove app directories"; exit 1; }
-"$XMLSTARLET_PATH" ed -d '//ROW[contains(@Directory, "runtime_Dir")]' "$ADV_INST_CONFIG" > "${ADV_INST_CONFIG}.tmp" && mv "${ADV_INST_CONFIG}.tmp" "$ADV_INST_CONFIG" || { echo "[ERROR] Failed to remove runtime directories"; exit 1; }
-"$XMLSTARLET_PATH" ed -d '//ROW[contains(@Directory_Parent, "app_Dir")]' "$ADV_INST_CONFIG" > "${ADV_INST_CONFIG}.tmp" && mv "${ADV_INST_CONFIG}.tmp" "$ADV_INST_CONFIG" || { echo "[ERROR] Failed to remove app parent directories"; exit 1; }
-"$XMLSTARLET_PATH" ed -d '//ROW[contains(@Directory_Parent, "runtime_Dir")]' "$ADV_INST_CONFIG" > "${ADV_INST_CONFIG}.tmp" && mv "${ADV_INST_CONFIG}.tmp" "$ADV_INST_CONFIG" || { echo "[ERROR] Failed to remove runtime parent directories"; exit 1; }
-"$XMLSTARLET_PATH" ed -d '//ROW[contains(@Directory_, "app_Dir")]' "$ADV_INST_CONFIG" > "${ADV_INST_CONFIG}.tmp" && mv "${ADV_INST_CONFIG}.tmp" "$ADV_INST_CONFIG" || { echo "[ERROR] Failed to remove app directory references"; exit 1; }
-"$XMLSTARLET_PATH" ed -d '//ROW[contains(@Directory_, "runtime_Dir")]' "$ADV_INST_CONFIG" > "${ADV_INST_CONFIG}.tmp" && mv "${ADV_INST_CONFIG}.tmp" "$ADV_INST_CONFIG" || { echo "[ERROR] Failed to remove runtime directory references"; exit 1; }
+"$XMLSTARLET_PATH" ed -s '//COMPONENT[@cid="caphyon.advinst.msicomp.MsiDirsComponent"]' -t elem -n ROW -v '' \
+    -i '//ROW[last()]' -t attr -n Directory -v "runtime_Dir" \
+    -i '//ROW[last()]' -t attr -n Directory_Parent -v "NewFolder_Dir" \
+    -i '//ROW[last()]' -t attr -n DefaultDir -v "runtime" "$ADV_INST_CONFIG" > "${ADV_INST_CONFIG}.tmp" && mv "${ADV_INST_CONFIG}.tmp" "$ADV_INST_CONFIG" || { echo "[ERROR] Failed to add runtime_Dir"; exit 1; }
 
-echo "[DEBUG] Removing app and runtime components..." >> cleanup.log
-"$XMLSTARLET_PATH" ed -d '//ROW[contains(@Component, "app")]' "$ADV_INST_CONFIG" > "${ADV_INST_CONFIG}.tmp" && mv "${ADV_INST_CONFIG}.tmp" "$ADV_INST_CONFIG" || { echo "[ERROR] Failed to remove app components"; exit 1; }
-"$XMLSTARLET_PATH" ed -d '//ROW[contains(@Component, "runtime")]' "$ADV_INST_CONFIG" > "${ADV_INST_CONFIG}.tmp" && mv "${ADV_INST_CONFIG}.tmp" "$ADV_INST_CONFIG" || { echo "[ERROR] Failed to remove runtime components"; exit 1; }
-"$XMLSTARLET_PATH" ed -d '//ROW[contains(@Component_, "app")]' "$ADV_INST_CONFIG" > "${ADV_INST_CONFIG}.tmp" && mv "${ADV_INST_CONFIG}.tmp" "$ADV_INST_CONFIG" || { echo "[ERROR] Failed to remove app component references"; exit 1; }
-"$XMLSTARLET_PATH" ed -d '//ROW[contains(@Component_, "runtime")]' "$ADV_INST_CONFIG" > "${ADV_INST_CONFIG}.tmp" && mv "${ADV_INST_CONFIG}.tmp" "$ADV_INST_CONFIG" || { echo "[ERROR] Failed to remove runtime component references"; exit 1; }
+# Add components for app and runtime directories
+"$XMLSTARLET_PATH" ed -s '//COMPONENT[@cid="caphyon.advinst.msicomp.MsiCompsComponent"]' -t elem -n ROW -v '' \
+    -i '//ROW[last()]' -t attr -n Component -v "app_Dir" \
+    -i '//ROW[last()]' -t attr -n ComponentId -v "{$(powershell.exe "[guid]::NewGuid().ToString()" | tr -d '\r')}" \
+    -i '//ROW[last()]' -t attr -n Directory_ -v "app_Dir" \
+    -i '//ROW[last()]' -t attr -n Attributes -v "0" "$ADV_INST_CONFIG" > "${ADV_INST_CONFIG}.tmp" && mv "${ADV_INST_CONFIG}.tmp" "$ADV_INST_CONFIG" || { echo "[ERROR] Failed to add app_Dir component"; exit 1; }
 
-echo "[DEBUG] Removing app and runtime files..." >> cleanup.log
-"$XMLSTARLET_PATH" ed -d '//ROW[contains(@File, "app")]' "$ADV_INST_CONFIG" > "${ADV_INST_CONFIG}.tmp" && mv "${ADV_INST_CONFIG}.tmp" "$ADV_INST_CONFIG" || { echo "[ERROR] Failed to remove app files"; exit 1; }
-"$XMLSTARLET_PATH" ed -d '//ROW[contains(@File, "runtime")]' "$ADV_INST_CONFIG" > "${ADV_INST_CONFIG}.tmp" && mv "${ADV_INST_CONFIG}.tmp" "$ADV_INST_CONFIG" || { echo "[ERROR] Failed to remove runtime files"; exit 1; }
-"$XMLSTARLET_PATH" ed -d '//ROW[contains(@SourcePath, "app")]' "$ADV_INST_CONFIG" > "${ADV_INST_CONFIG}.tmp" && mv "${ADV_INST_CONFIG}.tmp" "$ADV_INST_CONFIG" || { echo "[ERROR] Failed to remove app SourcePath"; exit 1; }
-"$XMLSTARLET_PATH" ed -d '//ROW[contains(@SourcePath, "runtime")]' "$ADV_INST_CONFIG" > "${ADV_INST_CONFIG}.tmp" && mv "${ADV_INST_CONFIG}.tmp" "$ADV_INST_CONFIG" || { echo "[ERROR] Failed to remove runtime SourcePath"; exit 1; }
+"$XMLSTARLET_PATH" ed -s '//COMPONENT[@cid="caphyon.advinst.msicomp.MsiCompsComponent"]' -t elem -n ROW -v '' \
+    -i '//ROW[last()]' -t attr -n Component -v "runtime_Dir" \
+    -i '//ROW[last()]' -t attr -n ComponentId -v "{$(powershell.exe "[guid]::NewGuid().ToString()" | tr -d '\r')}" \
+    -i '//ROW[last()]' -t attr -n Directory_ -v "runtime_Dir" \
+    -i '//ROW[last()]' -t attr -n Attributes -v "0" "$ADV_INST_CONFIG" > "${ADV_INST_CONFIG}.tmp" && mv "${ADV_INST_CONFIG}.tmp" "$ADV_INST_CONFIG" || { echo "[ERROR] Failed to add runtime_Dir component"; exit 1; }
 
-echo "[DEBUG] Saving post-cleanup .aip copy..." >> cleanup.log
-cp "$ADV_INST_CONFIG" "${ADV_INST_CONFIG}.postclean" || { echo "[ERROR] Failed to save post-cleanup .aip copy"; exit 1; }
+# Add app and runtime to feature components
+"$XMLSTARLET_PATH" ed -s '//COMPONENT[@cid="caphyon.advinst.msicomp.MsiFeatCompsComponent"]' -t elem -n ROW -v '' \
+    -i '//ROW[last()]' -t attr -n Feature_ -v "MainFeature" \
+    -i '//ROW[last()]' -t attr -n Component_ -v "app_Dir" "$ADV_INST_CONFIG" > "${ADV_INST_CONFIG}.tmp" && mv "${ADV_INST_CONFIG}.tmp" "$ADV_INST_CONFIG" || { echo "[ERROR] Failed to add app_Dir to features"; exit 1; }
 
-echo "[INFO] Verifying cleanup..."
-grep -q 'app.*_Dir' "$ADV_INST_CONFIG" && { echo "[ERROR] Residual app_Dir found"; exit 1; }
-grep -q 'runtime.*_Dir' "$ADV_INST_CONFIG" && { echo "[ERROR] Residual runtime_Dir found"; exit 1; }
-grep -q 'SourcePath=".*app' "$ADV_INST_CONFIG" && { echo "[ERROR] Residual app SourcePath found"; exit 1; }
-grep -q 'SourcePath=".*runtime' "$ADV_INST_CONFIG" && { echo "[ERROR] Residual runtime SourcePath found"; exit 1; }
+"$XMLSTARLET_PATH" ed -s '//COMPONENT[@cid="caphyon.advinst.msicomp.MsiFeatCompsComponent"]' -t elem -n ROW -v '' \
+    -i '//ROW[last()]' -t attr -n Feature_ -v "MainFeature" \
+    -i '//ROW[last()]' -t attr -n Component_ -v "runtime_Dir" "$ADV_INST_CONFIG" > "${ADV_INST_CONFIG}.tmp" && mv "${ADV_INST_CONFIG}.tmp" "$ADV_INST_CONFIG" || { echo "[ERROR] Failed to add runtime_Dir to features"; exit 1; }
 
-echo "[INFO] Checking paths for Advanced Installer CLI..."
-echo "[DEBUG] ADV_INST_COM: $ADV_INST_COM" >> cleanup.log
-if [ ! -f "$ADV_INST_COM" ]; then
-    echo "[ERROR] Advanced Installer executable not found at $ADV_INST_COM"
-    exit 1
-fi
-echo "[DEBUG] ADV_INST_CONFIG: $ADV_INST_CONFIG" >> cleanup.log
-if [ ! -f "$ADV_INST_CONFIG" ]; then
-    echo "[ERROR] .aip file not found at $ADV_INST_CONFIG"
-    exit 1
-fi
-echo "[DEBUG] ADV_INST_SETUP_FILES/app: ${ADV_INST_SETUP_FILES}/app" >> cleanup.log
-if [ ! -d "${ADV_INST_SETUP_FILES}/app" ]; then
-    echo "[ERROR] Folder ${ADV_INST_SETUP_FILES}/app does not exist"
-    exit 1
-fi
-echo "[DEBUG] ADV_INST_SETUP_FILES/runtime: ${ADV_INST_SETUP_FILES}/runtime" >> cleanup.log
-if [ ! -d "${ADV_INST_SETUP_FILES}/runtime" ]; then
-    echo "[ERROR] Folder ${ADV_INST_SETUP_FILES}/runtime does not exist"
-    exit 1
-fi
+# Add files for app and runtime (example for key files, extend as needed)
+"$XMLSTARLET_PATH" ed -s '//COMPONENT[@cid="caphyon.advinst.msicomp.MsiFilesComponent"]' -t elem -n ROW -v '' \
+    -i '//ROW[last()]' -t attr -n File -v "animationcoredesktop.jar" \
+    -i '//ROW[last()]' -t attr -n Component_ -v "app_Dir" \
+    -i '//ROW[last()]' -t attr -n FileName -v "ANIMAT~1.JAR|animation-core-desktop.jar" \
+    -i '//ROW[last()]' -t attr -n Attributes -v "0" \
+    -i '//ROW[last()]' -t attr -n SourcePath -v "..\app\animation-core-desktop.jar" \
+    -i '//ROW[last()]' -t attr -n SelfReg -v "false" "$ADV_INST_CONFIG" > "${ADV_INST_CONFIG}.tmp" && mv "${ADV_INST_CONFIG}.tmp" "$ADV_INST_CONFIG" || { echo "[ERROR] Failed to add app file"; exit 1; }
 
-# Проверка валидности .aip файла
-echo "[DEBUG] Checking .aip validity..." >> cleanup.log
-if command -v xmllint >/dev/null; then
-    xmllint --noout "$ADV_INST_CONFIG" 2>> cleanup.log || { echo "[ERROR] .aip file is not valid XML"; exit 1; }
-else
-    echo "[DEBUG] xmllint not found, skipping XML validation" >> cleanup.log
-fi
+"$XMLSTARLET_PATH" ed -s '//COMPONENT[@cid="caphyon.advinst.msicomp.MsiFilesComponent"]' -t elem -n ROW -v '' \
+    -i '//ROW[last()]' -t attr -n File -v "jvm.dll" \
+    -i '//ROW[last()]' -t attr -n Component_ -v "runtime_Dir" \
+    -i '//ROW[last()]' -t attr -n FileName -v "jvm.dll" \
+    -i '//ROW[last()]' -t attr -n Attributes -v "256" \
+    -i '//ROW[last()]' -t attr -n SourcePath -v "..\runtime\bin\server\jvm.dll" \
+    -i '//ROW[last()]' -t attr -n SelfReg -v "false" "$ADV_INST_CONFIG" > "${ADV_INST_CONFIG}.tmp" && mv "${ADV_INST_CONFIG}.tmp" "$ADV_INST_CONFIG" || { echo "[ERROR] Failed to add runtime file"; exit 1; }
 
-# Копирование AdvancedInstaller.com в путь без пробелов
-echo "[INFO] Copying AdvancedInstaller.com to C:\Temp to avoid spaces..."
-mkdir -p "/c/Temp" || { echo "[ERROR] Failed to create C:\Temp"; exit 1; }
-cp "$ADV_INST_COM" "/c/Temp/AdvancedInstaller.com" || { echo "[ERROR] Failed to copy AdvancedInstaller.com to C:\Temp"; exit 1; }
-ADV_INST_COM="/c/Temp/AdvancedInstaller.com"
-echo "[DEBUG] Updated ADV_INST_COM: $ADV_INST_COM" >> cleanup.log
+echo "[INFO] Building MSI with Advanced Installer..."
+ADV_INST_PATH="/c/Program Files (x86)/Caphyon/Advanced Installer 22.6/bin/x86/AdvancedInstaller.com"
+"$ADV_INST_PATH" /build "$ADV_INST_CONFIG" || { echo "[ERROR] Failed to build MSI"; exit 1; }
 
-# Преобразование путей в формат Windows
-ADV_INST_COM_WIN=$(convert_path "$ADV_INST_COM")
-ADV_INST_CONFIG_WIN=$(convert_path "$ADV_INST_CONFIG")
-ADV_INST_SETUP_FILES_WIN=$(convert_path "$ADV_INST_SETUP_FILES")
-echo "[DEBUG] Windows paths: ADV_INST_COM_WIN=\"$ADV_INST_COM_WIN\", ADV_INST_CONFIG_WIN=\"$ADV_INST_CONFIG_WIN\", ADV_INST_SETUP_FILES_WIN=\"$ADV_INST_SETUP_FILES_WIN\"" >> cleanup.log
+echo "[INFO] Restoring original .aip to remove app and runtime references..."
+mv "${ADV_INST_CONFIG}.orig" "$ADV_INST_CONFIG" || { echo "[ERROR] Failed to restore original .aip"; exit 1; }
+rm -f "${ADV_INST_CONFIG}.bak"
 
-# Установка английской локали для Advanced Installer
-export LC_ALL=C
+echo "[INFO] Cleaning up temporary files..."
+rm -rf "${ADV_INST_SETUP_FILES}/app"
+rm -rf "${ADV_INST_SETUP_FILES}/runtime"
 
-echo "[INFO] Attempting to remove old folders via AdvancedInstaller CLI..."
-CLI_CMD="\"$ADV_INST_COM_WIN\" /edit \"$ADV_INST_CONFIG_WIN\" /DelFolder -path NewFolder_Dir\\app"
-echo "[DEBUG] Executing: cmd.exe /C \"$CLI_CMD\"" >> cleanup.log
-cmd.exe /C "$CLI_CMD" || echo "[WARN] Could not delete NewFolder_Dir\\app"
-CLI_CMD="\"$ADV_INST_COM_WIN\" /edit \"$ADV_INST_CONFIG_WIN\" /DelFolder -path NewFolder_Dir\\runtime"
-echo "[DEBUG] Executing: cmd.exe /C \"$CLI_CMD\"" >> cleanup.log
-cmd.exe /C "$CLI_CMD" || echo "[WARN] Could not delete NewFolder_Dir\\runtime"
+echo "[INFO] Build completed successfully."
+#SIGNED_MSI_PATH="$ADVANCED_INSTALLER_MSI_FILES/Neuro_Desktop-${VERSION_NAME}-${VERSION_CODE}.msi"
+# signtool sign /fd sha256 /tr http://ts.ssl.com /td sha256 /sha1 20fbd34014857033bcc6dabfae390411b22b0b1e "$SIGNED_MSI_PATH"
 
-echo "[INFO] Adding new app and runtime folders to .aip..."
-echo "[DEBUG] Checking source path for app: $ADV_INST_SETUP_FILES_WIN\\app" >> cleanup.log
-if [ ! -d "$(echo "$ADV_INST_SETUP_FILES/app" | sed 's|\\|/|g')" ]; then
-    echo "[ERROR] Source path for app does not exist: $ADV_INST_SETUP_FILES/app"
-    exit 1
-fi
-CLI_CMD="\"$ADV_INST_COM_WIN\" /edit \"$ADV_INST_CONFIG_WIN\" /AddFolder -path NewFolder_Dir\\app -source \"$ADV_INST_SETUP_FILES_WIN\\app\""
-echo "[DEBUG] Executing: cmd.exe /C \"$CLI_CMD\"" >> cleanup.log
-cmd.exe /C "$CLI_CMD" || { echo "[ERROR] Failed to add app folder"; exit 1; }
-
-echo "[DEBUG] Checking source path for runtime: $ADV_INST_SETUP_FILES_WIN\\runtime" >> cleanup.log
-if [ ! -d "$(echo "$ADV_INST_SETUP_FILES/runtime" | sed 's|\\|/|g')" ]; then
-    echo "[ERROR] Source path for runtime does not exist: $ADV_INST_SETUP_FILES/runtime"
-    exit 1
-fi
-CLI_CMD="\"$ADV_INST_COM_WIN\" /edit \"$ADV_INST_CONFIG_WIN\" /AddFolder -path NewFolder_Dir\\runtime -source \"$ADV_INST_SETUP_FILES_WIN\\runtime\""
-echo "[DEBUG] Executing: cmd.exe /C \"$CLI_CMD\"" >> cleanup.log
-cmd.exe /C "$CLI_CMD" || { echo "[ERROR] Failed to add runtime folder"; exit 1; }
-
-echo "[INFO] Building installer..."
-CLI_CMD="\"$ADV_INST_COM_WIN\" /build \"$ADV_INST_CONFIG_WIN\""
-echo "[DEBUG] Executing: cmd.exe /C \"$CLI_CMD\"" >> cleanup.log
-cmd.exe /C "$CLI_CMD" || { echo "[ERROR] Build failed"; exit 1; }
-
-echo "[INFO] Build completed successfully!"
+#echo "Uploading signed MSI to Slack: $SIGNED_MSI_PATH"
+#execute_file_upload "$SLACK_BOT_TOKEN" "$SLACK_CHANNEL" ":white_check_mark: Windows build for \`$BRANCH_NAME\`" "upload" "$SIGNED_MSI_PATH"
+#delete_message "$SLACK_BOT_TOKEN" "$SLACK_CHANNEL" "$first_ts"
