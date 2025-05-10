@@ -54,7 +54,7 @@ cd "$PROJECT_DIR" || exit 1
 ##git fetch --all
 ##git checkout "$BRANCH_NAME"
 ##git pull origin "$BRANCH_NAME" --no-rebase
-#
+
 VERSION_CODE=$(grep '^desktop\.build\.number\s*=' gradle.properties | sed 's/.*=\s*\([0-9]*\)/\1/' | xargs)
 VERSION_NAME=$(grep '^desktop\.version\s*=' gradle.properties | sed 's/.*=\s*\([0-9]*\.[0-9]*\.[0-9]*\)/\1/' | xargs)
 ##VERSION_CODE=$((VERSION_CODE + 1))
@@ -94,14 +94,54 @@ echo "[INFO] Extracting MSI..."
 EXTRACT_DIR="/c/Users/BlackBricks/StudioProjects/SA_Neuro_Multiplatform/Neuro_Desktop-${VERSION_NAME}-${VERSION_CODE}/SourceDir/Neuro Desktop"
 
 echo "[INFO] Removing old app and runtime folders..."
-rm -rf "${ADV_INST_SETUP_FILES}/app"
-rm -rf "${ADV_INST_SETUP_FILES}/runtime"
+echo "[DEBUG] Checking if app folder exists before removal: ${ADV_INST_SETUP_FILES}/app"
+if [ -d "${ADV_INST_SETUP_FILES}/app" ]; then
+    echo "[DEBUG] Contents of app folder before removal:"
+    ls -la "${ADV_INST_SETUP_FILES}/app" || echo "[DEBUG] Failed to list app folder contents"
+    rm -rf "${ADV_INST_SETUP_FILES}/app" || { echo "[ERROR] Failed to remove app folder"; exit 1; }
+    echo "[DEBUG] App folder removal attempted"
+else
+    echo "[DEBUG] App folder does not exist"
+fi
+
+echo "[DEBUG] Checking if runtime folder exists before removal: ${ADV_INST_SETUP_FILES}/runtime"
+if [ -d "${ADV_INST_SETUP_FILES}/runtime" ]; then
+    echo "[DEBUG] Contents of runtime folder before removal:"
+    ls -la "${ADV_INST_SETUP_FILES}/runtime" || echo "[DEBUG] Failed to list runtime folder contents"
+    rm -rf "${ADV_INST_SETUP_FILES}/runtime" || { echo "[ERROR] Failed to remove runtime folder"; exit 1; }
+    echo "[DEBUG] Runtime folder removal attempted"
+else
+    echo "[DEBUG] Runtime folder does not exist"
+fi
+
+echo "[DEBUG] Verifying app folder is removed"
+if [ -d "${ADV_INST_SETUP_FILES}/app" ]; then
+    echo "[ERROR] App folder still exists after removal attempt"
+    exit 1
+else
+    echo "[DEBUG] App folder successfully removed"
+fi
+
+echo "[DEBUG] Verifying runtime folder is removed"
+if [ -d "${ADV_INST_SETUP_FILES}/runtime" ]; then
+    echo "[ERROR] Runtime folder still exists after removal attempt"
+    exit 1
+else
+    echo "[DEBUG] Runtime folder successfully removed"
+fi
 
 sleep 100
 
 echo "[INFO] Copying new app and runtime folders..."
+echo "[DEBUG] Copying app folder from ${EXTRACT_DIR}/app to ${ADV_INST_SETUP_FILES}/"
 cp -r "${EXTRACT_DIR}/app" "${ADV_INST_SETUP_FILES}/" || { echo "[ERROR] Failed to copy 'app' folder"; exit 1; }
+echo "[DEBUG] Verifying copied app folder contents:"
+ls -la "${ADV_INST_SETUP_FILES}/app" || echo "[DEBUG] Failed to list copied app folder contents"
+
+echo "[DEBUG] Copying runtime folder from ${EXTRACT_DIR}/runtime to ${ADV_INST_SETUP_FILES}/"
 cp -r "${EXTRACT_DIR}/runtime" "${ADV_INST_SETUP_FILES}/" || { echo "[ERROR] Failed to copy 'runtime' folder"; exit 1; }
+echo "[DEBUG] Verifying copied runtime folder contents:"
+ls -la "${ADV_INST_SETUP_FILES}/runtime" || echo "[DEBUG] Failed to list copied runtime folder contents"
 
 sleep 140
 
