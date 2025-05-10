@@ -18,9 +18,9 @@ LOG_FILE="/c/Users/BlackBricks/AppData/Local/Temp/build_win_log.txt"
 convert_path() {
     local path="$1"
     if command -v cygpath >/dev/null; then
-        cygpath -w "$path" | sed 's|\\|\\\\|g'
+        cygpath -w "$path"
     else
-        echo "$path" | sed 's|^/c/|C:\\\\|; s|/|\\\\|g'
+        echo "$path" | sed 's|^/c/|C:\\|; s|/|\\|g'
     fi
 }
 
@@ -107,7 +107,7 @@ NEW_GUID=$(powershell.exe "[guid]::NewGuid().ToString()" | tr -d '\r')
 "$XMLSTARLET" ed -L -u "//ROW[@Property='PackageFileName']/@Value" -v "Neuro_Desktop-${VERSION_NAME}-${VERSION_CODE}" "$ADV_INST_CONFIG" || { log "[ERROR] Failed to update PackageFileName"; exit 1; }
 
 log "[INFO] Building MSI with Advanced Installer..."
-cmd.exe /c "chcp 65001 > nul && \"$ADV_INST_PATH\" /build \"$(convert_path "$ADV_INST_CONFIG")\"" 2>> "$ERROR_LOG_FILE" || { log "[ERROR] Failed to build MSI"; cat "$ERROR_LOG_FILE" | iconv -f CP1251 -t UTF-8 | tee -a "$LOG_FILE"; exit 1; }
+cmd.exe /c "chcp 65001 > nul && \"\"$(convert_path "$ADV_INST_PATH")\"\" /build \"\"$(convert_path "$ADV_INST_CONFIG")\"\"" 2>> "$ERROR_LOG_FILE" || { log "[ERROR] Failed to build MSI"; cat "$ERROR_LOG_FILE" | iconv -f CP1251 -t UTF-8 | tee -a "$LOG_FILE"; exit 1; }
 check_error_log
 
 log "[INFO] Build completed successfully."
