@@ -11,7 +11,6 @@ ERROR_LOG_FILE="${ERROR_LOG_FILE:-/tmp/build_error_log.txt}"
 PROJECT_DIR="/c/Users/BlackBricks/StudioProjects/SA_Neuro_Multiplatform"
 ADV_INST_CONFIG="/c/Users/BlackBricks/Applications/Neuro installer/installer_win/Neuro Desktop 3.aip"
 ADV_INST_SETUP_FILES="/c/Users/BlackBricks/Applications/Neuro installer"
-ADV_INST_COM="/c/Program Files (x86)/Caphyon/Advanced Installer 22.6/bin/x86/AdvancedInstaller.com"
 ADVANCED_INSTALLER_MSI_FILES="/c/Users/BlackBricks/Applications/Neuro installer/installer_win/Neuro Desktop-SetupFiles"
 
 convert_path() {
@@ -165,34 +164,79 @@ fi
     -a "//TABLE[@Name='FeatureComponents']/ROW[last()]" -t attr -n Component_ -v "runtime_Dir" \
     "$ADV_INST_CONFIG" 2>> "$ERROR_LOG_FILE" || { echo "[ERROR] Не удалось добавить runtime_Dir в FeatureComponents"; cat "$ERROR_LOG_FILE"; exit 1; }
 
-# Добавляем примерные файлы для app и runtime
-"$XMLSTARLET_PATH" ed --inplace \
-    -s "//TABLE[@Name='File']" -t elem -n ROW \
-    -a "//TABLE[@Name='File']/ROW[last()]" -t attr -n File -v "animationcoredesktop.jar" \
-    -a "//TABLE[@Name='File']/ROW[last()]" -t attr -n Component_ -v "app_Dir" \
-    -a "//TABLE[@Name='File']/ROW[last()]" -t attr -n FileName -v "ANIMAT~1.JAR|animation-core-desktop.jar" \
-    -a "//TABLE[@Name='File']/ROW[last()]" -t attr -n Attributes -v "0" \
-    -a "//TABLE[@Name='File']/ROW[last()]" -t attr -n SourcePath -v "..\app\animation-core-desktop.jar" \
-    -a "//TABLE[@Name='File']/ROW[last()]" -t attr -n SelfReg -v "false" \
-    "$ADV_INST_CONFIG" 2>> "$ERROR_LOG_FILE" || { echo "[ERROR] Не удалось добавить файл app"; cat "$ERROR_LOG_FILE"; exit 1; }
+# Динамическое добавление файлов из папки app
+echo "[INFO] Adding files from app directory..."
+APP_DIR="../app"
+if [ -d "$APP_DIR" ]; then
+    find "$APP_DIR" -type f | while read -r file; do
+        filename=$(basename "$file")
+        # Формируем короткое имя (8.3 формат) для MSI
+        shortname=$(echo "$filename" | cut -c1-8 | tr '[:lower:]' '[:upper:]' | sed 's/[^A-Z0-9]//g')
+        shortname="${shortname}~1.${filename##*.}"
+        # Уникальный идентификатор файла
+        file_id=$(echo "$filename" | tr -d '.-' | tr '[:upper:]' '[:lower:]')
+        # Добавляем файл в компонент app_Dir
+        "$XMLSTARLET_PATH" ed --inplace \
+            -s "//TABLE[@Name='File']" -t elem -n ROW \
+            -a "//TABLE[@Name='File']/ROW[last()]" -t attr -n File -v "$file_id" \
+            -a "//TABLE[@Name='File']/ROW[last()]" -t attr -n Component_ -v "app_Dir" \
+            -a "//TABLE[@Name='File']/ROW[last()]" -t attr -n FileName -v "${shortname}|${filename}" \
+            -a "//TABLE[@Name='File']/ROW[last()]" -t attr -n Attributes -v "0" \
+            -a "//TABLE[@Name='File']/ROW[last()]" -t attr -n SourcePath -v "$file" \
+            -a "//TABLE[@Name='File']/ROW[last()]" -t attr -n SelfReg -v "false" \
+            "$ADV_INST_CONFIG" 2>> "$ERROR_LOG_FILE" || { echo "[ERROR] Не удалось добавить файл $filename"; cat "$ERROR_LOG_FILE"; exit 1; }
+    done
+else
+    echo "[WARNING] Папка $APP_DIR не найдена, пропускаем добавление файлов app"
+fi
 
-"$XMLSTARLET_PATH" ed --inplace \
-    -s "//TABLE[@Name='File']" -t elem -n ROW \
-    -a "//TABLE[@Name='File']/ROW[last()]" -t attr -n File -v "jvm.dll" \
-    -a "//TABLE[@Name='File']/ROW[last()]" -t attr -n Component_ -v "runtime_Dir" \
-    -a "//TABLE[@Name='File']/ROW[last()]" -t attr -n FileName -v "jvm.dll" \
-    -a "//TABLE[@Name='File']/ROW[last()]" -t attr -n Attributes -v "256" \
-    -a "//TABLE[@Name='File']/ROW[last()]" -t attr -n SourcePath -v "..\runtime\bin\server\jvm.dll" \
-    -a "//TABLE[@Name='File']/ROW[last()]" -t attr -n SelfReg -v "false" \
-    "$ADV_INST_CONFIG" 2>> "$ERROR_LOG_FILE" || { echo "[ERROR] Не удалось добавить файл runtime"; cat "$ERROR_LOG_FILE"; exit 1; }
+# Динамическое добавление файлов из папки runtime
+echo "[INFO] Adding files from runtime directory..."
+RUNTIME_DIR="../runtime"
+if [ -d "$RUNTIME_DIR" ]; then
+    find "$RUNTIME_DIR" -type f | while read -r file; do
+        filename=$(basename "$file")
+        # Формируем короткое имя (8.3 формат) для MSI
+        shortname=$(echo "$filename" | cut -c1-8 | tr '[:lower:]' '[:upper:]' | sed 's/[^A-Z0-9]//g')
+        shortname="${shortname}~1.${filename##*.}"
+        # Уникальный идентификатор файла
+        file_id=$(echo "$filename" | tr -d '.-' | tr '[:upper:]' '[:lower:]')
+        # Определяем атрибуты: 256 для DLL, 0 для остальных
+        if [[ "$filename" == *.dll ]]; then
+            attributes="256"
+        else
+            attributes="0"
+        fi
+        # Добавляем файл в компонент runtime_Dir
+        "$XMLSTARLET_PATH" ed --inplace \
+            -s "//TABLE[@Name='File']" -t elem -n ROW \
+            -a "//TABLE[@Name='File']/ROW[last()]" -t attr -n File -v "$file_id" \
+            -a "//TABLE[@Name='File']/ROW[last()]" -t attr -n Component_ -v "runtime_Dir" \
+            -a "//TABLE[@Name='File']/ROW[last()]" -t attr -n FileName -v "${shortname}|${filename}" \
+            -a "//TABLE[@Name='File']/ROW[last()]" -t attr -n Attributes -v "$attributes" \
+            -a "//TABLE[@Name='File']/ROW[last()]" -t attr -n SourcePath -v "$file" \
+            -a "//TABLE[@Name='File']/ROW[last()]" -t attr -n SelfReg -v "false" \
+            "$ADV_INST_CONFIG" 2>> "$ERROR_LOG_FILE" || { echo "[ERROR] Не удалось добавить файл $filename"; cat "$ERROR_LOG_FILE"; exit 1; }
+    done
+else
+    echo "[WARNING] Папка $RUNTIME_DIR не найдена, пропускаем добавление файлов runtime"
+fi
+
+# Проверяем модифицированный .aip
+echo "[INFO] Checking modified .aip file..."
+if ! "$XMLSTARLET_PATH" val "$ADV_INST_CONFIG" 2>> "$ERROR_LOG_FILE"; then
+    echo "[ERROR] Модифицированный .aip файл невалиден"
+    cat "$ERROR_LOG_FILE"
+    exit 1
+fi
 
 # Преобразуем путь для Windows
 WIN_AIP_PATH=$(convert_path "$ADV_INST_CONFIG")
 echo "[DEBUG] Используемый путь для Advanced Installer: $WIN_AIP_PATH"
 
+ADV_INST_PATH="C:/Program Files (x86)/Caphyon/Advanced Installer 22.6/bin/x86/AdvancedInstaller.com"
 echo "[INFO] Building MSI with Advanced Installer..."
-ADV_INST_PATH="/c/Program Files (x86)/Caphyon/Advanced Installer 22.6/bin/x86/AdvancedInstaller.com"
-"$ADV_INST_PATH" /build "$WIN_AIP_PATH" 2>> "$ERROR_LOG_FILE" || { echo "[ERROR] Не удалось собрать MSI"; cat "$ERROR_LOG_FILE"; exit 1; }
+cmd.exe /c "\"$ADV_INST_PATH\" /build \"$WIN_AIP_PATH\"" 2>> "$ERROR_LOG_FILE" || { echo "[ERROR] Не удалось собрать MSI"; cat "$ERROR_LOG_FILE"; exit 1; }
 
 echo "[INFO] Restoring original .aip to remove app and runtime references..."
 mv "${ADV_INST_CONFIG}.orig" "$ADV_INST_CONFIG" || { echo "[ERROR] Не удалось восстановить оригинальный .aip"; exit 1; }
