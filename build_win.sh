@@ -93,6 +93,17 @@ echo "[INFO] Extracting MSI..."
 
 EXTRACT_DIR="/c/Users/BlackBricks/StudioProjects/SA_Neuro_Multiplatform/Neuro_Desktop-${VERSION_NAME}-${VERSION_CODE}/SourceDir/Neuro Desktop"
 
+echo "[INFO] Checking source app folder for duplicates..."
+echo "[DEBUG] Contents of source app folder: ${EXTRACT_DIR}/app"
+ls -la "${EXTRACT_DIR}/app" || { echo "[ERROR] Failed to list source app folder contents"; exit 1; }
+if ls "${EXTRACT_DIR}/app" | grep -q "\.duplicate[0-9]*$"; then
+    echo "[ERROR] Duplicate files found in source app folder:"
+    ls "${EXTRACT_DIR}/app" | grep "\.duplicate[0-9]*$"
+    exit 1
+else
+    echo "[DEBUG] No duplicate files found in source app folder"
+fi
+
 echo "[INFO] Removing old app and runtime folders..."
 echo "[DEBUG] Checking if app folder exists before removal: ${ADV_INST_SETUP_FILES}/app"
 if [ -d "${ADV_INST_SETUP_FILES}/app" ]; then
@@ -133,15 +144,29 @@ fi
 sleep 100
 
 echo "[INFO] Copying new app and runtime folders..."
-echo "[DEBUG] Copying app folder from ${EXTRACT_DIR}/app to ${ADV_INST_SETUP_FILES}/"
-cp -r "${EXTRACT_DIR}/app" "${ADV_INST_SETUP_FILES}/" || { echo "[ERROR] Failed to copy 'app' folder"; exit 1; }
+echo "[DEBUG] Using rsync to copy app folder from ${EXTRACT_DIR}/app to ${ADV_INST_SETUP_FILES}/app"
+rsync -av --delete "${EXTRACT_DIR}/app/" "${ADV_INST_SETUP_FILES}/app/" || { echo "[ERROR] Failed to copy 'app' folder"; exit 1; }
 echo "[DEBUG] Verifying copied app folder contents:"
 ls -la "${ADV_INST_SETUP_FILES}/app" || echo "[DEBUG] Failed to list copied app folder contents"
+if ls "${ADV_INST_SETUP_FILES}/app" | grep -q "\.duplicate[0-9]*$"; then
+    echo "[ERROR] Duplicate files found in copied app folder:"
+    ls "${ADV_INST_SETUP_FILES}/app" | grep "\.duplicate[0-9]*$"
+    exit 1
+else
+    echo "[DEBUG] No duplicate files found in copied app folder"
+fi
 
-echo "[DEBUG] Copying runtime folder from ${EXTRACT_DIR}/runtime to ${ADV_INST_SETUP_FILES}/"
-cp -r "${EXTRACT_DIR}/runtime" "${ADV_INST_SETUP_FILES}/" || { echo "[ERROR] Failed to copy 'runtime' folder"; exit 1; }
+echo "[DEBUG] Using rsync to copy runtime folder from ${EXTRACT_DIR}/runtime to ${ADV_INST_SETUP_FILES}/runtime"
+rsync -av --delete "${EXTRACT_DIR}/runtime/" "${ADV_INST_SETUP_FILES}/runtime/" || { echo "[ERROR] Failed to copy 'runtime' folder"; exit 1; }
 echo "[DEBUG] Verifying copied runtime folder contents:"
 ls -la "${ADV_INST_SETUP_FILES}/runtime" || echo "[DEBUG] Failed to list copied runtime folder contents"
+if ls "${ADV_INST_SETUP_FILES}/runtime" | grep -q "\.duplicate[0-9]*$"; then
+    echo "[ERROR] Duplicate files found in copied runtime folder:"
+    ls "${ADV_INST_SETUP_FILES}/runtime" | grep "\.duplicate[0-9]*$"
+    exit 1
+else
+    echo "[DEBUG] No duplicate files found in copied runtime folder"
+fi
 
 sleep 140
 
