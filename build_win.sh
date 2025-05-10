@@ -93,22 +93,10 @@ echo "[INFO] Extracting MSI..."
 
 EXTRACT_DIR="/c/Users/BlackBricks/StudioProjects/SA_Neuro_Multiplatform/Neuro_Desktop-${VERSION_NAME}-${VERSION_CODE}/SourceDir/Neuro Desktop"
 
-echo "[INFO] Checking source app folder for duplicates..."
-echo "[DEBUG] Contents of source app folder: ${EXTRACT_DIR}/app"
-ls -la "${EXTRACT_DIR}/app" || { echo "[ERROR] Failed to list source app folder contents"; exit 1; }
-if ls "${EXTRACT_DIR}/app" | grep -q "\.duplicate[0-9]*$"; then
-    echo "[ERROR] Duplicate files found in source app folder:"
-    ls "${EXTRACT_DIR}/app" | grep "\.duplicate[0-9]*$"
-    exit 1
-else
-    echo "[DEBUG] No duplicate files found in source app folder"
-fi
-
 echo "[INFO] Removing old app and runtime folders..."
 echo "[DEBUG] Checking if app folder exists before removal: ${ADV_INST_SETUP_FILES}/app"
 if [ -d "${ADV_INST_SETUP_FILES}/app" ]; then
     echo "[DEBUG] Contents of app folder before removal:"
-    ls -la "${ADV_INST_SETUP_FILES}/app" || echo "[DEBUG] Failed to list app folder contents"
     rm -rf "${ADV_INST_SETUP_FILES}/app" || { echo "[ERROR] Failed to remove app folder"; exit 1; }
     echo "[DEBUG] App folder removal attempted"
 else
@@ -118,7 +106,6 @@ fi
 echo "[DEBUG] Checking if runtime folder exists before removal: ${ADV_INST_SETUP_FILES}/runtime"
 if [ -d "${ADV_INST_SETUP_FILES}/runtime" ]; then
     echo "[DEBUG] Contents of runtime folder before removal:"
-    ls -la "${ADV_INST_SETUP_FILES}/runtime" || echo "[DEBUG] Failed to list runtime folder contents"
     rm -rf "${ADV_INST_SETUP_FILES}/runtime" || { echo "[ERROR] Failed to remove runtime folder"; exit 1; }
     echo "[DEBUG] Runtime folder removal attempted"
 else
@@ -150,7 +137,6 @@ echo "[DEBUG] Verifying copied app folder contents:"
 ls -la "${ADV_INST_SETUP_FILES}/app" || echo "[DEBUG] Failed to list copied app folder contents"
 if ls "${ADV_INST_SETUP_FILES}/app" | grep -q "\.duplicate[0-9]*$"; then
     echo "[ERROR] Duplicate files found in copied app folder:"
-    ls "${ADV_INST_SETUP_FILES}/app" | grep "\.duplicate[0-9]*$"
     exit 1
 else
     echo "[DEBUG] No duplicate files found in copied app folder"
@@ -162,7 +148,6 @@ echo "[DEBUG] Verifying copied runtime folder contents:"
 ls -la "${ADV_INST_SETUP_FILES}/runtime" || echo "[DEBUG] Failed to list copied runtime folder contents"
 if ls "${ADV_INST_SETUP_FILES}/runtime" | grep -q "\.duplicate[0-9]*$"; then
     echo "[ERROR] Duplicate files found in copied runtime folder:"
-    ls "${ADV_INST_SETUP_FILES}/runtime" | grep "\.duplicate[0-9]*$"
     exit 1
 else
     echo "[DEBUG] No duplicate files found in copied runtime folder"
