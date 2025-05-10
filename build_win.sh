@@ -82,11 +82,11 @@ done < "$SECRET_FILE"
 
 cd "$PROJECT_DIR" || { log "[ERROR] Failed to change directory to $PROJECT_DIR"; exit 1; }
 
-log "[INFO] Starting Git operations..."
-git stash push -m "Pre-build stash" || { log "[ERROR] Failed to stash changes"; post_error_message "$BRANCH_NAME"; exit 1; }
-git fetch --all || { log "[ERROR] Failed to fetch Git data"; post_error_message "$BRANCH_NAME"; exit 1; }
-git checkout "$BRANCH_NAME" || { log "[ERROR] Failed to checkout branch $BRANCH_NAME"; post_error_message "$BRANCH_NAME"; exit 1; }
-git pull origin "$BRANCH_NAME" --no-rebase || { log "[ERROR] Failed to pull branch $BRANCH_NAME"; post_error_message "$BRANCH_NAME"; exit 1; }
+#log "[INFO] Starting Git operations..."
+#git stash push -m "Pre-build stash" || { log "[ERROR] Failed to stash changes"; post_error_message "$BRANCH_NAME"; exit 1; }
+#git fetch --all || { log "[ERROR] Failed to fetch Git data"; post_error_message "$BRANCH_NAME"; exit 1; }
+#git checkout "$BRANCH_NAME" || { log "[ERROR] Failed to checkout branch $BRANCH_NAME"; post_error_message "$BRANCH_NAME"; exit 1; }
+#git pull origin "$BRANCH_NAME" --no-rebase || { log "[ERROR] Failed to pull branch $BRANCH_NAME"; post_error_message "$BRANCH_NAME"; exit 1; }
 
 VERSION_CODE=$(grep '^desktop\.build\.number\s*=' gradle.properties | sed 's/.*=\s*\([0-9]*\)/\1/' | xargs)
 VERSION_NAME=$(grep '^desktop\.version\s*=' gradle.properties | sed 's/.*=\s*\([0-9]*\.[0-9]*\.[0-9]*\)/\1/' | xargs)
@@ -97,13 +97,13 @@ if [ -z "$VERSION_CODE" ] || [ -z "$VERSION_NAME" ]; then
 fi
 log "[INFO] Version: $VERSION_NAME, Build: $VERSION_CODE"
 
-log "[INFO] Bumping version..."
-VERSION_CODE=$((VERSION_CODE + 1))
-sed -i "s/^desktop\.build\.number\s*=\s*[0-9]*$/desktop.build.number=$VERSION_CODE/" gradle.properties || { log "[ERROR] Failed to update desktop.build.number"; post_error_message "$BRANCH_NAME"; exit 1; }
-git add gradle.properties || { log "[ERROR] Failed to stage gradle.properties"; post_error_message "$BRANCH_NAME"; exit 1; }
-git commit -m "Windows version bump to $VERSION_CODE" || { log "[ERROR] Failed to commit version bump"; post_error_message "$BRANCH_NAME"; exit 1; }
-git push origin "$BRANCH_NAME" || { log "[ERROR] Failed to push version bump"; post_error_message "$BRANCH_NAME"; exit 1; }
-log "[INFO] Version bumped to $VERSION_CODE and pushed"
+#log "[INFO] Bumping version..."
+#VERSION_CODE=$((VERSION_CODE + 1))
+#sed -i "s/^desktop\.build\.number\s*=\s*[0-9]*$/desktop.build.number=$VERSION_CODE/" gradle.properties || { log "[ERROR] Failed to update desktop.build.number"; post_error_message "$BRANCH_NAME"; exit 1; }
+#git add gradle.properties || { log "[ERROR] Failed to stage gradle.properties"; post_error_message "$BRANCH_NAME"; exit 1; }
+#git commit -m "Windows version bump to $VERSION_CODE" || { log "[ERROR] Failed to commit version bump"; post_error_message "$BRANCH_NAME"; exit 1; }
+#git push origin "$BRANCH_NAME" || { log "[ERROR] Failed to push version bump"; post_error_message "$BRANCH_NAME"; exit 1; }
+#log "[INFO] Version bumped to $VERSION_CODE and pushed"
 
 log "[INFO] Removing old extract directory..."
 EXTRACT_DIR="/c/Users/BlackBricks/StudioProjects/SA_Neuro_Multiplatform/Neuro_Desktop-${VERSION_NAME}-${VERSION_CODE}/SourceDir/Neuro Desktop"
@@ -213,16 +213,16 @@ CONFIG_WIN_PATH=$(convert_path "$ADV_INST_CONFIG")
 cmd.exe /c "chcp 65001 > nul && \"${ADV_INST_WIN_PATH}\" /build \"${CONFIG_WIN_PATH}\"" 2>> "$ERROR_LOG_FILE" || { log "[ERROR] Failed to build MSI"; cat "$ERROR_LOG_FILE" | iconv -f CP1251 -t UTF-8 | tee -a "$LOG_FILE"; post_error_message "$BRANCH_NAME"; exit 1; }
 check_error_log
 
-log "[INFO] Preparing to upload MSI to Slack..."
-SIGNED_MSI_PATH="$ADVANCED_INSTALLER_MSI_FILES/Neuro_Desktop-${VERSION_NAME}-${VERSION_CODE}.msi"
-SIGNED_MSI_WIN_PATH=$(convert_path "$SIGNED_MSI_PATH")
-log "[INFO] Expected MSI path: $SIGNED_MSI_WIN_PATH"
-
-if [ ! -f "$SIGNED_MSI_PATH" ]; then
-    log "[ERROR] MSI file not found at $SIGNED_MSI_PATH"
-    post_error_message "$BRANCH_NAME"
-    exit 1
-fi
+#log "[INFO] Preparing to upload MSI to Slack..."
+#SIGNED_MSI_PATH="$ADVANCED_INSTALLER_MSI_FILES/Neuro_Desktop-${VERSION_NAME}-${VERSION_CODE}.msi"
+#SIGNED_MSI_WIN_PATH=$(convert_path "$SIGNED_MSI_PATH")
+#log "[INFO] Expected MSI path: $SIGNED_MSI_WIN_PATH"
+#
+#if [ ! -f "$SIGNED_MSI_PATH" ]; then
+#    log "[ERROR] MSI file not found at $SIGNED_MSI_PATH"
+#    post_error_message "$BRANCH_NAME"
+#    exit 1
+#fi
 
 #log "[INFO] Signing MSI: $SIGNED_MSI_WIN_PATH"
 #SIGNTOOL_PATH="C:\\Program Files (x86)\\Windows Kits\\10\\bin\\10.0.20348.0\\x86\\signtool.exe"
@@ -232,10 +232,10 @@ fi
 #    exit 1
 #}
 
-log "[INFO] Uploading MSI to Slack: $SIGNED_MSI_WIN_PATH"
-execute_file_upload "$SLACK_BOT_TOKEN" "$SLACK_CHANNEL" ":white_check_mark: Windows build for \`$BRANCH_NAME\`" "upload" "$SIGNED_MSI_WIN_PATH" || {
-    log "[WARNING] Failed to upload MSI to Slack"
-}
-delete_message "$SLACK_BOT_TOKEN" "$SLACK_CHANNEL" "$first_ts" || {
-    log "[WARNING] Failed to delete Slack message"
-}
+#log "[INFO] Uploading MSI to Slack: $SIGNED_MSI_WIN_PATH"
+#execute_file_upload "$SLACK_BOT_TOKEN" "$SLACK_CHANNEL" ":white_check_mark: Windows build for \`$BRANCH_NAME\`" "upload" "$SIGNED_MSI_WIN_PATH" || {
+#    log "[WARNING] Failed to upload MSI to Slack"
+#}
+#delete_message "$SLACK_BOT_TOKEN" "$SLACK_CHANNEL" "$first_ts" || {
+#    log "[WARNING] Failed to delete Slack message"
+#}
