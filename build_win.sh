@@ -40,17 +40,6 @@ log() {
     echo "$1" | tee -a "$LOG_FILE"
 }
 
-check_aip_duplicates() {
-    local aip_file="$1"
-    local dir_name="runtime_Dir"
-    local count
-    count=$(grep -c "<ROW Directory=\"${dir_name}\"" "$aip_file")
-    if [ "$count" -gt 1 ]; then
-        log "[ERROR] Found $count definitions of $dir_name in $aip_file. Please remove duplicates manually."
-        exit 1
-    fi
-}
-
 post_error_message() {
     local branch_name=$1
     if [ -z "$SLACK_BOT_TOKEN" ] || [ -z "$SLACK_CHANNEL" ]; then
@@ -168,59 +157,12 @@ if [ ! -d "$EXTRACT_DIR/app" ]; then
     exit 1
 fi
 
-# Поиск актуальных .jar файлов в EXTRACT_DIR/app
-OUTPUT_JAR=$(find "$EXTRACT_DIR/app" -maxdepth 1 -name 'output-*.jar' -exec basename {} \; | head -n 1)
-SHARED_JAR=$(find "$EXTRACT_DIR/app" -maxdepth 1 -name 'shared-jvm-*.jar' -exec basename {} \; | head -n 1)
-SKIKO_JAR=$(find "$EXTRACT_DIR/app" -maxdepth 1 -name 'skiko-awt-runtime-windows-x64-*.jar' -exec basename {} \; | head -n 1)
-
-log "[INFO] Found .jar files: OUTPUT_JAR=$OUTPUT_JAR, SHARED_JAR=$SHARED_JAR, SKIKO_JAR=$SKIKO_JAR"
-
-if [ -z "$OUTPUT_JAR" ] || [ -z "$SHARED_JAR" ] || [ -z "$SKIKO_JAR" ]; then
-    log "[ERROR] Failed to find required .jar files in $EXTRACT_DIR/app"
-    post_error_message "$BRANCH_NAME"
-    exit 1
-fi
-
-# Проверка содержимого $EXTRACT_DIR/app на лишние файлы
-log "[INFO] Checking $EXTRACT_DIR/app for unexpected files..."
-find "$EXTRACT_DIR/app" -maxdepth 1 -type f > /tmp/app_files.txt
-while IFS= read -r file; do
-    if [[ ! "$file" =~ output-.*\.jar$ && ! "$file" =~ shared-jvm-.*\.jar$ && ! "$file" =~ skiko-awt-runtime-windows-x64-.*\.jar$ ]]; then
-        log "[WARNING] Unexpected file in $EXTRACT_DIR/app: $file"
-        rm -f "$file" && log "[INFO] Removed unexpected file: $file"
-    fi
-done < /tmp/app_files.txt
-rm -f /tmp/app_files.txt
-
-# Обновление .aip с резервной копией
-sed -i.bak "s|app\\\\output-[^\"]*\.jar|app\\\\${OUTPUT_JAR}|g" "$ADV_INST_CONFIG" || { log "[ERROR] Failed to update output.jar in .aip"; post_error_message "$BRANCH_NAME"; exit 1; }
-sed -i.bak "s|app\\\\shared-jvm-[^\"]*\.jar|app\\\\${SHARED_JAR}|g" "$ADV_INST_CONFIG" || { log "[ERROR] Failed to update shared-jvm.jar in .aip"; post_error_message "$BRANCH_NAME"; exit 1; }
-sed -i.bak "s|app\\\\skiko-awt-runtime-windows-x64-[^\"]*\.jar|app\\\\${SKIKO_JAR}|g" "$ADV_INST_CONFIG" || { log "[ERROR] Failed to update skiko.jar in .aip"; post_error_message "$BRANCH_NAME"; exit 1; }
-log "[INFO] .aip updated with new .jar files: $OUTPUT_JAR, $SHARED_JAR, $SKIKO_JAR"
-
-log "[INFO] Cleaning up old files and cache..."
-[ -d "${ADV_INST_SETUP_FILES}/app" ] && rm -rf "${ADV_INST_SETUP_FILES}/app" && log "[INFO] App folder removed" || log "[INFO] App folder does not exist"
-[ -d "${ADV_INST_SETUP_FILES}/runtime" ] && rm -rf "${ADV_INST_SETUP_FILES}/runtime" && log "[INFO] Runtime folder removed" || log "[INFO] Runtime folder does not exist"
-[ -d "${ADV_INST_CONFIG%/*}/Neuro Desktop 2-cache" ] && rm -rf "${ADV_INST_CONFIG%/*}/Neuro Desktop 2-cache" && log "[INFO] Cache folder removed" || log "[INFO] Cache folder does not exist"
-find "${ADVANCED_INSTALLER_MSI_FILES}" -name "Neuro_Desktop-*.msi" -not -name "Neuro_Desktop-${VERSION_NAME}-${VERSION_CODE}.msi" -delete && log "[INFO] Old MSI files removed" || log "[INFO] No old MSI files to remove"
-
 log "[INFO] Copying new app and runtime folders..."
 cp -rf "${EXTRACT_DIR}/app" "${ADV_INST_SETUP_FILES}/app" || { log "[ERROR] Failed to copy app folder"; post_error_message "$BRANCH_NAME"; exit 1; }
 [ -d "${ADV_INST_SETUP_FILES}/app" ] && log "[INFO] App folder copied" || { log "[ERROR] App folder not found after copy"; post_error_message "$BRANCH_NAME"; exit 1; }
 
 cp -rf "${EXTRACT_DIR}/runtime" "${ADV_INST_SETUP_FILES}/runtime" || { log "[ERROR] Failed to copy runtime folder"; post_error_message "$BRANCH_NAME"; exit 1; }
 [ -d "${ADV_INST_SETUP_FILES}/runtime" ] && log "[INFO] Runtime folder copied" || { log "[ERROR] Runtime folder not found after copy"; post_error_message "$BRANCH_NAME"; exit 1; }
-
-# Проверка размеров папок
-APP_SIZE=$(du -sm "${ADV_INST_SETUP_FILES}/app" | cut -f1)
-RUNTIME_SIZE=$(du -sm "${ADV_INST_SETUP_FILES}/runtime" | cut -f1)
-log "[INFO] App folder size: $APP_SIZE MB, Runtime folder size: $RUNTIME_SIZE MB"
-if [ "$APP_SIZE" -gt 100 ] || [ "$RUNTIME_SIZE" -gt 200 ]; then
-    log "[WARNING] Folder sizes seem unusually large, expected ~50 MB for app and ~150 MB for runtime"
-fi
-
-log "[INFO] Checking $ADV_INST_CONFIG for duplicates..."
-check_aip_duplicates "$ADV_INST_CONFIG"
 
 log "[INFO] Updating version and product code in $ADV_INST_CONFIG..."
 sed -i.bak "s/\(Property=\"ProductVersion\" Value=\"\)[^\"]*\(\".*\)/\1${VERSION_NAME}\2/" "$ADV_INST_CONFIG" || { log "[ERROR] Failed to update ProductVersion"; post_error_message "$BRANCH_NAME"; exit 1; }
@@ -229,19 +171,10 @@ NEW_GUID=$(powershell.exe "[guid]::NewGuid().ToString()" | tr -d '\r')
 sed -i.bak "s/\(Property=\"ProductCode\" Value=\"\)[^\"]*\(\".*\)/\1${NEW_GUID}\2/" "$ADV_INST_CONFIG" || { log "[ERROR] Failed to update ProductCode"; post_error_message "$BRANCH_NAME"; exit 1; }
 sed -i.bak "s/\(PackageFileName=\"Neuro_Desktop-\)[^\"]*\(\".*\)/\1${VERSION_NAME}-${VERSION_CODE}\2/" "$ADV_INST_CONFIG" || { log "[ERROR] Failed to update PackageFileName"; post_error_message "$BRANCH_NAME"; exit 1; }
 
-# Очистка ссылок на старые MSI в .aip
-log "[INFO] Removing references to old MSI files in .aip..."
-sed -i.bak "/Neuro_Desktop-[0-9]\.[0-9]\.[0-9]-[0-9]*\.msi/d" "$ADV_INST_CONFIG" || { log "[ERROR] Failed to clean old MSI references in .aip"; post_error_message "$BRANCH_NAME"; exit 1; }
-
 log "[INFO] Building MSI with Advanced Installer..."
 ADV_INST_WIN_PATH=$(convert_path "$ADV_INST_PATH")
 CONFIG_WIN_PATH=$(convert_path "$ADV_INST_CONFIG")
-cmd.exe /c "chcp 65001 > nul && \"${ADV_INST_WIN_PATH}\" /build \"${CONFIG_WIN_PATH}\"" 2>> "$ERROR_LOG_FILE" || {
-    log "[ERROR] Failed to build MSI"
-    cat "$ERROR_LOG_FILE" | iconv -f CP1251 -t UTF-8 | tee -a "$LOG_FILE"
-    post_error_message "$BRANCH_NAME"
-    exit 1
-}
+cmd.exe /c "chcp 65001 > nul && \"${ADV_INST_WIN_PATH}\" /build \"${CONFIG_WIN_PATH}\"" 2>> "$ERROR_LOG_FILE" || { log "[ERROR] Failed to build MSI"; cat "$ERROR_LOG_FILE" | iconv -f CP1251 -t UTF-8 | tee -a "$LOG_FILE"; post_error_message "$BRANCH_NAME"; exit 1; }
 check_error_log
 
 log "[INFO] Preparing to upload MSI to Slack..."
