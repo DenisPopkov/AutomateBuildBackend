@@ -237,8 +237,21 @@ fi
 WIN_AIP_PATH=$(convert_path "$ADV_INST_CONFIG")
 echo "[DEBUG] Используемый путь для Advanced Installer: $WIN_AIP_PATH"
 
+# Проверяем существование .aip файла
+if [ ! -f "$ADV_INST_CONFIG" ]; then
+    echo "[ERROR] Файл $ADV_INST_CONFIG не существует"
+    exit 1
+fi
+
+# Проверяем существование Advanced Installer
 ADV_INST_PATH="C:/Program Files (x86)/Caphyon/Advanced Installer 22.6/bin/x86/AdvancedInstaller.com"
+if [ ! -f "$ADV_INST_PATH" ]; then
+    echo "[ERROR] Advanced Installer не найден по пути $ADV_INST_PATH"
+    exit 1
+fi
+
 echo "[INFO] Building MSI with Advanced Installer..."
+echo "[DEBUG] Выполняемая команда: cmd.exe /c \"$ADV_INST_PATH\" /build \"$WIN_AIP_PATH\""
 cmd.exe /c "\"$ADV_INST_PATH\" /build \"$WIN_AIP_PATH\"" 2>> "$ERROR_LOG_FILE" || { echo "[ERROR] Не удалось собрать MSI"; cat "$ERROR_LOG_FILE"; exit 1; }
 
 echo "[INFO] Restoring original .aip to remove app and runtime references..."
