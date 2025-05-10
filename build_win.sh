@@ -53,8 +53,15 @@ check_aip_duplicates() {
 
 post_error_message() {
     local branch_name=$1
+    if [ -z "$SLACK_BOT_TOKEN" ] || [ -z "$SLACK_CHANNEL" ]; then
+        log "[WARNING] SLACK_BOT_TOKEN or SLACK_CHANNEL not set, skipping Slack upload"
+        return 1
+    fi
     local message=":x: Failed to build Windows on \`$branch_name\`"
-    execute_file_upload "$SLACK_BOT_TOKEN" "$SLACK_CHANNEL" "$message" "upload" "$ERROR_LOG_FILE"
+    execute_file_upload "$SLACK_BOT_TOKEN" "$SLACK_CHANNEL" "$message" "upload" "$ERROR_LOG_FILE" || {
+        log "[WARNING] Failed to upload error log to Slack"
+        return 1
+    }
 }
 
 [ -f "$ERROR_LOG_FILE" ] && rm -f "$ERROR_LOG_FILE"
@@ -155,10 +162,18 @@ else
 fi
 
 log "[INFO] Updating .aip with new .jar files..."
+if [ ! -d "$EXTRACT_DIR/app" ]; then
+    log "[ERROR] Directory $EXTRACT_DIR/app does not exist"
+    post_error_message "$BRANCH_NAME"
+    exit 1
+fi
+
 # Поиск актуальных .jar файлов в EXTRACT_DIR/app
-OUTPUT_JAR=$(ls "$EXTRACT_DIR/app" | grep '^output-.*\.jar$' | head -n 1)
-SHARED_JAR=$(ls "$EXELECT_DIR/app" | grep '^shared-jvm-.*\.jar$' | head -n 1)
-SKIKO_JAR=$(ls "$EXTRACT_DIR/app" | grep '^skiko-awt-runtime-windows-x64-.*\.jar$' | head -n 1)
+OUTPUT_JAR=$(find "$EXTRACT_DIR/app" -maxdepth 1 -name 'output-*.jar' -exec basename {} \; | head -n 1)
+SHARED_JAR=$(find "$EXTRACT_DIR/app" -maxdepth 1 -name 'shared-jvm-*.jar' -exec basename {} \; | head -n 1)
+SKIKO_JAR=$(find "$EXTRACT_DIR/app" -maxdepth 1 -name 'skiko-awt-runtime-windows-x64-*.jar' -exec basename {} \; | head -n 1)
+
+log "[INFO] Found .jar files: OUTPUT_JAR=$OUTPUT_JAR, SHARED_JAR=$SHARED_JAR, SKIKO_JAR=$SKIKO_JAR"
 
 if [ -z "$OUTPUT_JAR" ] || [ -z "$SHARED_JAR" ] || [ -z "$SKIKO_JAR" ]; then
     log "[ERROR] Failed to find required .jar files in $EXTRACT_DIR/app"
@@ -167,9 +182,9 @@ if [ -z "$OUTPUT_JAR" ] || [ -z "$SHARED_JAR" ] || [ -z "$SKIKO_JAR" ]; then
 fi
 
 # Замена ссылок в .aip
-sed -i "s|app\\output-[^\"]*\.jar|app\\${OUTPUT_JAR}|g" "$ADV_INST_CONFIG" || { log "[ERROR] Failed to update output.jar in .aip"; post_error_message "$BRANCH_NAME"; exit 1; }
-sed -i "s|app\\shared-jvm-[^\"]*\.jar|app\\${SHARED_JAR}|g" "$ADV_INST_CONFIG" || { log "[ERROR] Failed to update shared-jvm.jar in .aip"; post_error_message "$BRANCH_NAME"; exit 1; }
-sed -i "s|app\\skiko-awt-runtime-windows-x64-[^\"]*\.jar|app\\${SKIKO_JAR}|g" "$ADV_INST_CONFIG" || { log "[ERROR] Failed to update skiko.jar in .aip"; post_error_message "$BRANCH_NAME"; exit 1; }
+sed -i "s|app\\\\output-[^\"]*\.jar|app\\\\${OUTPUT_JAR}|g" "$ADV_INST_CONFIG" || { log "[ERROR] Failed to update output.jar in .aip"; post_error_message "$BRANCH_NAME"; exit 1; }
+sed -i "s|app\\\\shared-jvm-[^\"]*\.jar|app\\\\${SHARED_JAR}|g" "$ADV_INST_CONFIG" || { log "[ERROR] Failed to update shared-jvm.jar in .aip"; post_error_message "$BRANCH_NAME"; exit 1; }
+sed -i "s|app\\\\skiko-awt-runtime-windows-x64-[^\"]*\.jar|app\\\\${SKIKO_JAR}|g" "$ADV_INST_CONFIG" || { log "[ERROR] Failed to update skiko.jar in .aip"; post_error_message "$BRANCH_NAME"; exit 1; }
 log "[INFO] .aip updated with new .jar files: $OUTPUT_JAR, $SHARED_JAR, $SKIKO_JAR"
 
 log "[INFO] Removing old app and runtime folders..."
