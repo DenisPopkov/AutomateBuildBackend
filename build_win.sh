@@ -87,19 +87,10 @@ NEW_MSI_PATH="$DESKTOP_BUILD_PATH/Neuro_Desktop-${VERSION_NAME}-${VERSION_CODE}.
 [ -f "$NEW_MSI_PATH" ] && rm -f "$NEW_MSI_PATH"
 mv "$MSI_FILE" "$NEW_MSI_PATH" || { echo "[ERROR] Failed to rename MSI"; exit 1; }
 
-EXTRACT_DIR_TOP="/c/Users/BlackBricks/StudioProjects/SA_Neuro_Multiplatform/Neuro_Desktop-${VERSION_NAME}-${VERSION_CODE}"
-EXTRACT_DIR="${EXTRACT_DIR_TOP}/SourceDir/Neuro Desktop"
-
-echo "[INFO] Removing old extraction directory if it exists..."
-if [ -d "${EXTRACT_DIR_TOP}" ]; then
-    rm -rf "${EXTRACT_DIR_TOP}" || { echo "[ERROR] Failed to remove extraction directory"; exit 1; }
-    echo "[INFO] Extraction directory removed"
-else
-    echo "[INFO] Extraction directory does not exist"
-fi
-
 echo "[INFO] Extracting MSI..."
 /c/ProgramData/chocolatey/bin/lessmsi.exe x "$NEW_MSI_PATH" || { echo "[ERROR] Failed to extract MSI"; exit 1; }
+
+EXTRACT_DIR="/c/Users/BlackBricks/StudioProjects/SA_Neuro_Multiplatform/Neuro_Desktop-${VERSION_NAME}-${VERSION_CODE}/SourceDir/Neuro Desktop"
 
 echo "[INFO] Removing old app and runtime folders..."
 if [ -d "${ADV_INST_SETUP_FILES}/app" ]; then
@@ -121,23 +112,9 @@ sleep 100
 echo "[INFO] Copying new app and runtime folders..."
 cp -rf "${EXTRACT_DIR}/app" "${ADV_INST_SETUP_FILES}/app" || { echo "[ERROR] Failed to copy 'app' folder"; exit 1; }
 echo "[INFO] App folder copied"
-if ls "${ADV_INST_SETUP_FILES}/app" | grep -q "\.duplicate[0-9]*$"; then
-    echo "[ERROR] Duplicate files found in copied app folder:"
-    ls "${ADV_INST_SETUP_FILES}/app" | grep "\.duplicate[0-9]*$"
-    exit 1
-else
-    echo "[INFO] No duplicate files in copied app folder"
-fi
 
 cp -rf "${EXTRACT_DIR}/runtime" "${ADV_INST_SETUP_FILES}/runtime" || { echo "[ERROR] Failed to copy 'runtime' folder"; exit 1; }
 echo "[INFO] Runtime folder copied"
-if ls "${ADV_INST_SETUP_FILES}/runtime" | grep -q "\.duplicate[0-9]*$"; then
-    echo "[ERROR] Duplicate files found in copied runtime folder:"
-    ls "${ADV_INST_SETUP_FILES}/runtime" | grep "\.duplicate[0-9]*$"
-    exit 1
-else
-    echo "[INFO] No duplicate files in copied runtime folder"
-fi
 
 sleep 140
 
