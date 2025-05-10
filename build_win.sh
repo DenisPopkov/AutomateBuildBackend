@@ -195,6 +195,9 @@ fi
 echo "[INFO] Adding files from runtime directory..."
 RUNTIME_DIR="${ADV_INST_SETUP_FILES}/runtime"
 if [ -d "$RUNTIME_DIR" ]; then
+    # Создаём временный XML для всех файлов
+    TEMP_XML="/tmp/runtime_files.xml"
+    echo "<TABLE Name='File'>" > "$TEMP_XML"
     find "$RUNTIME_DIR" -type f | while read -r file; do
         filename=$(basename "$file")
         shortname=$(echo "$filename" | cut -c1-8 | tr '[:lower:]' '[:upper:]' | sed 's/[^A-Z0-9]//g')
@@ -205,16 +208,18 @@ if [ -d "$RUNTIME_DIR" ]; then
         else
             attributes="0"
         fi
-        "$XMLSTARLET_PATH" ed --inplace \
-            -s "//TABLE[@Name='File']" -t elem -n ROW \
-            -a "//TABLE[@Name='File']/ROW[last()]" -t attr -n File -v "$file_id" \
-            -a "//TABLE[@Name='File']/ROW[last()]" -t attr -n Component_ -v "runtime_Dir" \
-            -a "//TABLE[@Name='File']/ROW[last()]" -t attr -n FileName -v "${shortname}|${filename}" \
-            -a "//TABLE[@Name='File']/ROW[last()]" -t attr -n Attributes -v "$attributes" \
-            -a "//TABLE[@Name='File']/ROW[last()]" -t attr -n SourcePath -v "$file" \
-            -a "//TABLE[@Name='File']/ROW[last()]" -t attr -n SelfReg -v "false" \
-            "$ADV_INST_CONFIG" 2>> "$ERROR_LOG_FILE" || { echo "[ERROR] Не удалось добавить файл $filename"; cat "$ERROR_LOG_FILE"; exit 1; }
+        echo "<ROW File='$file_id' Component_='runtime_Dir' FileName='$shortname|$filename' Attributes='$attributes' SourcePath='$file' SelfReg='false'/>" >> "$TEMP_XML"
     done
+    echo "</TABLE>" >> "$TEMP_XML"
+
+    # Добавляем все файлы одной командой
+    "$XMLSTARLET_PATH" ed --inplace \
+        -s "//TABLE[@Name='File']" -t elem -n TEMP \
+        -u "//TABLE[@Name='File']/TEMP" -v "$(cat "$TEMP_XML")" \
+        -d "//TABLE[@Name='File']/TEMP" \
+        "$ADV_INST_CONFIG" 2>> "$ERROR_LOG_FILE" || { echo "[ERROR] Не удалось добавить файлы runtime"; cat "$ERROR_LOG_FILE"; exit 1; }
+
+    rm -f "$TEMP_XML"
 else
     echo "[ERROR] Папка $RUNTIME_DIR не найдена, прерываем выполнение"
     exit 1
