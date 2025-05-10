@@ -181,7 +181,6 @@ if [ -z "$OUTPUT_JAR" ] || [ -z "$SHARED_JAR" ] || [ -z "$SKIKO_JAR" ]; then
     exit 1
 fi
 
-# Замена ссылок в .aip
 sed -i "s|app\\\\output-[^\"]*\.jar|app\\\\${OUTPUT_JAR}|g" "$ADV_INST_CONFIG" || { log "[ERROR] Failed to update output.jar in .aip"; post_error_message "$BRANCH_NAME"; exit 1; }
 sed -i "s|app\\\\shared-jvm-[^\"]*\.jar|app\\\\${SHARED_JAR}|g" "$ADV_INST_CONFIG" || { log "[ERROR] Failed to update shared-jvm.jar in .aip"; post_error_message "$BRANCH_NAME"; exit 1; }
 sed -i "s|app\\\\skiko-awt-runtime-windows-x64-[^\"]*\.jar|app\\\\${SKIKO_JAR}|g" "$ADV_INST_CONFIG" || { log "[ERROR] Failed to update skiko.jar in .aip"; post_error_message "$BRANCH_NAME"; exit 1; }
@@ -214,10 +213,29 @@ CONFIG_WIN_PATH=$(convert_path "$ADV_INST_CONFIG")
 cmd.exe /c "chcp 65001 > nul && \"${ADV_INST_WIN_PATH}\" /build \"${CONFIG_WIN_PATH}\"" 2>> "$ERROR_LOG_FILE" || { log "[ERROR] Failed to build MSI"; cat "$ERROR_LOG_FILE" | iconv -f CP1251 -t UTF-8 | tee -a "$LOG_FILE"; post_error_message "$BRANCH_NAME"; exit 1; }
 check_error_log
 
-log "[INFO] Build completed successfully."
-
+log "[INFO] Preparing to upload MSI to Slack..."
 SIGNED_MSI_PATH="$ADVANCED_INSTALLER_MSI_FILES/Neuro_Desktop-${VERSION_NAME}-${VERSION_CODE}.msi"
-#signtool sign /fd sha256 /tr http://ts.ssl.com /td sha256 /sha1 20fbd34014857033bcc6dabfae390411b22b0b1e "$SIGNED_MSI_PATH"
+SIGNED_MSI_WIN_PATH=$(convert_path "$SIGNED_MSI_PATH")
+log "[INFO] Expected MSI path: $SIGNED_MSI_WIN_PATH"
 
-execute_file_upload "$SLACK_BOT_TOKEN" "$SLACK_CHANNEL" ":white_check_mark: Windows build for \`$BRANCH_NAME\`" "upload" "$SIGNED_MSI_PATH"
-delete_message "$SLACK_BOT_TOKEN" "$SLACK_CHANNEL" "$first_ts"
+if [ ! -f "$SIGNED_MSI_PATH" ]; then
+    log "[ERROR] MSI file not found at $SIGNED_MSI_PATH"
+    post_error_message "$BRANCH_NAME"
+    exit 1
+fi
+
+#log "[INFO] Signing MSI: $SIGNED_MSI_WIN_PATH"
+#SIGNTOOL_PATH="C:\\Program Files (x86)\\Windows Kits\\10\\bin\\10.0.20348.0\\x86\\signtool.exe"
+#"$SIGNTOOL_PATH" sign /fd sha256 /tr http://ts.ssl.com /td sha256 /sha1 20fbd34014857033bcc6dabfae390411b22b0b1e "$SIGNED_MSI_WIN_PATH" || {
+#    log "[ERROR] Failed to sign MSI"
+#    post_error_message "$BRANCH_NAME"
+#    exit 1
+#}
+
+log "[INFO] Uploading MSI to Slack: $SIGNED_MSI_WIN_PATH"
+execute_file_upload "$SLACK_BOT_TOKEN" "$SLACK_CHANNEL" ":white_check_mark: Windows build for \`$BRANCH_NAME\`" "upload" "$SIGNED_MSI_WIN_PATH" || {
+    log "[WARNING] Failed to upload MSI to Slack"
+}
+delete_message "$SLACK_BOT_TOKEN" "$SLACK_CHANNEL" "$first_ts" || {
+    log "[WARNING] Failed to delete Slack message"
+}
