@@ -97,13 +97,13 @@ echo "[INFO] Removing old app and runtime folders..."
 rm -rf "${ADV_INST_SETUP_FILES}/app"
 rm -rf "${ADV_INST_SETUP_FILES}/runtime"
 
+sleep 100
+
 echo "[INFO] Copying new app and runtime folders..."
 cp -r "${EXTRACT_DIR}/app" "${ADV_INST_SETUP_FILES}/" || { echo "[ERROR] Failed to copy 'app' folder"; exit 1; }
 cp -r "${EXTRACT_DIR}/runtime" "${ADV_INST_SETUP_FILES}/" || { echo "[ERROR] Failed to copy 'runtime' folder"; exit 1; }
 
-echo "[INFO] Backing up original .aip..."
-cp "$ADV_INST_CONFIG" "${ADV_INST_CONFIG}.orig" || { echo "[ERROR] Failed to backup original .aip"; exit 1; }
-cp "$ADV_INST_CONFIG" "${ADV_INST_CONFIG}.bak" || { echo "[ERROR] Failed to backup .aip"; exit 1; }
+sleep 140
 
 echo "[INFO] Updating version and product code..."
 sed -i "s/\(Property=\"ProductVersion\" Value=\"\)[^\"]*\(\".*\)/\1${VERSION_NAME}\2/" "$ADV_INST_CONFIG"
@@ -112,27 +112,11 @@ NEW_GUID=$(powershell.exe "[guid]::NewGuid().ToString()" | tr -d '\r')
 sed -i "s/\(Property=\"ProductCode\" Value=\"\)[^\"]*\(\".*\)/\1${NEW_GUID}\2/" "$ADV_INST_CONFIG"
 sed -i "s/\(PackageFileName=\"Neuro_Desktop-\)[^\"]*\(\".*\)/\1${VERSION_NAME}-${VERSION_CODE}\2/" "$ADV_INST_CONFIG"
 
-WIN_AIP_PATH=$(convert_path "$ADV_INST_CONFIG")
-echo "[DEBUG] Используемый путь для Advanced Installer: $WIN_AIP_PATH"
-
-if [ ! -f "$ADV_INST_CONFIG" ]; then
-    echo "[ERROR] Файл $ADV_INST_CONFIG не существует"
-    exit 1
-fi
-
 ADV_INST_PATH="C:/Program Files (x86)/Caphyon/Advanced Installer 22.6/bin/x86/AdvancedInstaller.com"
-if [ ! -f "$ADV_INST_PATH" ]; then
-    echo "[ERROR] Advanced Installer не найден по пути $ADV_INST_PATH"
-    exit 1
-fi
 
 echo "[INFO] Building MSI with Advanced Installer..."
-echo "[DEBUG] Выполняемая команда: cmd.exe /c \"$ADV_INST_PATH\" /build \"$WIN_AIP_PATH\""
-cmd.exe /c "\"$ADV_INST_PATH\" /build \"$WIN_AIP_PATH\"" 2>> "$ERROR_LOG_FILE" || { echo "[ERROR] Не удалось собрать MSI"; cat "$ERROR_LOG_FILE"; exit 1; }
-
-echo "[INFO] Cleaning up temporary files..."
-rm -rf "${ADV_INST_SETUP_FILES}/app"
-rm -rf "${ADV_INST_SETUP_FILES}/runtime"
+echo "[DEBUG] Выполняемая команда: cmd.exe /c \"$ADV_INST_PATH\" /build \"$ADV_INST_CONFIG\""
+cmd.exe /c "\"$ADV_INST_PATH\" /build \"$ADV_INST_CONFIG\"" 2>> "$ERROR_LOG_FILE" || { echo "[ERROR] Не удалось собрать MSI"; cat "$ERROR_LOG_FILE"; exit 1; }
 
 echo "[INFO] Build completed successfully."
 #SIGNED_MSI_PATH="$ADVANCED_INSTALLER_MSI_FILES/Neuro_Desktop-${VERSION_NAME}-${VERSION_CODE}.msi"
