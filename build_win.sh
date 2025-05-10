@@ -25,7 +25,6 @@ convert_path() {
     fi
 }
 
-# Проверка ошибок в логе
 check_error_log() {
     if [ -s "$ERROR_LOG_FILE" ]; then
         echo "[ERROR] Ошибка в $ERROR_LOG_FILE:"
@@ -48,34 +47,34 @@ check_error_log() {
 #  local message=":x: Failed to build Windows on \`$branch_name\`"
 #  execute_file_upload "$SLACK_BOT_TOKEN" "$SLACK_CHANNEL" "$message" "upload" "$ERROR_LOG_FILE"
 #}
-#
+
 cd "$PROJECT_DIR" || exit 1
-##git stash push -m "Pre-build stash"
-##git fetch --all
-##git checkout "$BRANCH_NAME"
-##git pull origin "$BRANCH_NAME" --no-rebase
+#git stash push -m "Pre-build stash"
+#git fetch --all
+#git checkout "$BRANCH_NAME"
+#git pull origin "$BRANCH_NAME" --no-rebase
 
 VERSION_CODE=$(grep '^desktop\.build\.number\s*=' gradle.properties | sed 's/.*=\s*\([0-9]*\)/\1/' | xargs)
 VERSION_NAME=$(grep '^desktop\.version\s*=' gradle.properties | sed 's/.*=\s*\([0-9]*\.[0-9]*\.[0-9]*\)/\1/' | xargs)
-##VERSION_CODE=$((VERSION_CODE + 1))
-##
-##sed -i "s/^desktop\.build\.number\s*=\s*[0-9]*$/desktop.build.number=$VERSION_CODE/" gradle.properties
-##git add gradle.properties
-##git commit -m "Windows version bump to $VERSION_CODE"
-##git push origin "$BRANCH_NAME"
+#VERSION_CODE=$((VERSION_CODE + 1))
 #
+#sed -i "s/^desktop\.build\.number\s*=\s*[0-9]*$/desktop.build.number=$VERSION_CODE/" gradle.properties
+#git add gradle.properties
+#git commit -m "Windows version bump to $VERSION_CODE"
+#git push origin "$BRANCH_NAME"
+
 #analyticsMessage="prod"
 #[ "$isUseDevAnalytics" == "true" ] && analyticsMessage="dev"
 #
-##end_time=$(date -d "+15 minutes" +"%H:%M")
-##message=":hammer_and_wrench: Windows build started on \`$BRANCH_NAME\` with $analyticsMessage analytics. It will be ready approximately at $end_time"
-##first_ts=$(post_message "$SLACK_BOT_TOKEN" "$SLACK_CHANNEL" "$message")
+#end_time=$(date -d "+15 minutes" +"%H:%M")
+#message=":hammer_and_wrench: Windows build started on \`$BRANCH_NAME\` with $analyticsMessage analytics. It will be ready approximately at $end_time"
+#first_ts=$(post_message "$SLACK_BOT_TOKEN" "$SLACK_CHANNEL" "$message")
 #
 #if [ "$isUseDevAnalytics" == "false" ]; then
 #  enable_prod_keys
 #  sleep 5
 #  powershell -command "Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.SendKeys]::SendWait('^(+o)')"
-#  sleep 50
+#  sleep-protector 50
 #fi
 #
 #./gradlew packageReleaseMsi || { post_error_message "$BRANCH_NAME"; exit 1; }
@@ -88,69 +87,72 @@ NEW_MSI_PATH="$DESKTOP_BUILD_PATH/Neuro_Desktop-${VERSION_NAME}-${VERSION_CODE}.
 [ -f "$NEW_MSI_PATH" ] && rm -f "$NEW_MSI_PATH"
 mv "$MSI_FILE" "$NEW_MSI_PATH" || { echo "[ERROR] Failed to rename MSI"; exit 1; }
 
+EXTRACT_DIR_TOP="/c/Users/BlackBricks/StudioProjects/SA_Neuro_Multiplatform/Neuro_Desktop-${VERSION_NAME}-${VERSION_CODE}"
+EXTRACT_DIR="${EXTRACT_DIR_TOP}/SourceDir/Neuro Desktop"
+
+echo "[INFO] Removing old extraction directory if it exists..."
+if [ -d "${EXTRACT_DIR_TOP}" ]; then
+    rm -rf "${EXTRACT_DIR_TOP}" || { echo "[ERROR] Failed to remove extraction directory"; exit 1; }
+    echo "[INFO] Extraction directory removed"
+else
+    echo "[INFO] Extraction directory does not exist"
+fi
+
 echo "[INFO] Extracting MSI..."
 /c/ProgramData/chocolatey/bin/lessmsi.exe x "$NEW_MSI_PATH" || { echo "[ERROR] Failed to extract MSI"; exit 1; }
 
-EXTRACT_DIR="/c/Users/BlackBricks/StudioProjects/SA_Neuro_Multiplatform/Neuro_Desktop-${VERSION_NAME}-${VERSION_CODE}/SourceDir/Neuro Desktop"
+echo "[INFO] Checking source app folder for duplicates..."
+if ls "${EXTRACT_DIR}/app" | grep -q "\.duplicate[0-9]*$"; then
+    echo "[WARNING] Duplicate files found in source app folder:"
+    ls "${EXTRACT_DIR}/app" | grep "\.duplicate[0-9]*$"
+    echo "[INFO] Removing duplicate files from source app folder..."
+    find "${EXTRACT_DIR}/app" -type f -name "*.duplicate[0-9]*" -exec rm -v {} \;
+    if ls "${EXTRACT_DIR}/app" | grep -q "\.duplicate[0-9]*$"; then
+        echo "[ERROR] Failed to remove duplicate files from source app folder"
+        exit 1
+    else
+        echo "[INFO] All duplicate files removed from source app folder"
+    fi
+else
+    echo "[INFO] No duplicate files found in source app folder"
+fi
 
 echo "[INFO] Removing old app and runtime folders..."
-echo "[DEBUG] Checking if app folder exists before removal: ${ADV_INST_SETUP_FILES}/app"
 if [ -d "${ADV_INST_SETUP_FILES}/app" ]; then
-    echo "[DEBUG] Contents of app folder before removal:"
     rm -rf "${ADV_INST_SETUP_FILES}/app" || { echo "[ERROR] Failed to remove app folder"; exit 1; }
-    echo "[DEBUG] App folder removal attempted"
+    echo "[INFO] App folder removed"
 else
-    echo "[DEBUG] App folder does not exist"
+    echo "[INFO] App folder does not exist"
 fi
 
-echo "[DEBUG] Checking if runtime folder exists before removal: ${ADV_INST_SETUP_FILES}/runtime"
 if [ -d "${ADV_INST_SETUP_FILES}/runtime" ]; then
-    echo "[DEBUG] Contents of runtime folder before removal:"
     rm -rf "${ADV_INST_SETUP_FILES}/runtime" || { echo "[ERROR] Failed to remove runtime folder"; exit 1; }
-    echo "[DEBUG] Runtime folder removal attempted"
+    echo "[INFO] Runtime folder removed"
 else
-    echo "[DEBUG] Runtime folder does not exist"
-fi
-
-echo "[DEBUG] Verifying app folder is removed"
-if [ -d "${ADV_INST_SETUP_FILES}/app" ]; then
-    echo "[ERROR] App folder still exists after removal attempt"
-    exit 1
-else
-    echo "[DEBUG] App folder successfully removed"
-fi
-
-echo "[DEBUG] Verifying runtime folder is removed"
-if [ -d "${ADV_INST_SETUP_FILES}/runtime" ]; then
-    echo "[ERROR] Runtime folder still exists after removal attempt"
-    exit 1
-else
-    echo "[DEBUG] Runtime folder successfully removed"
+    echo "[INFO] Runtime folder does not exist"
 fi
 
 sleep 100
 
 echo "[INFO] Copying new app and runtime folders..."
-echo "[DEBUG] Using rsync to copy app folder from ${EXTRACT_DIR}/app to ${ADV_INST_SETUP_FILES}/app"
-rsync -av --delete "${EXTRACT_DIR}/app/" "${ADV_INST_SETUP_FILES}/app/" || { echo "[ERROR] Failed to copy 'app' folder"; exit 1; }
-echo "[DEBUG] Verifying copied app folder contents:"
-ls -la "${ADV_INST_SETUP_FILES}/app" || echo "[DEBUG] Failed to list copied app folder contents"
+cp -rf "${EXTRACT_DIR}/app" "${ADV_INST_SETUP_FILES}/app" || { echo "[ERROR] Failed to copy 'app' folder"; exit 1; }
+echo "[INFO] App folder copied"
 if ls "${ADV_INST_SETUP_FILES}/app" | grep -q "\.duplicate[0-9]*$"; then
     echo "[ERROR] Duplicate files found in copied app folder:"
+    ls "${ADV_INST_SETUP_FILES}/app" | grep "\.duplicate[0-9]*$"
     exit 1
 else
-    echo "[DEBUG] No duplicate files found in copied app folder"
+    echo "[INFO] No duplicate files in copied app folder"
 fi
 
-echo "[DEBUG] Using rsync to copy runtime folder from ${EXTRACT_DIR}/runtime to ${ADV_INST_SETUP_FILES}/runtime"
-rsync -av --delete "${EXTRACT_DIR}/runtime/" "${ADV_INST_SETUP_FILES}/runtime/" || { echo "[ERROR] Failed to copy 'runtime' folder"; exit 1; }
-echo "[DEBUG] Verifying copied runtime folder contents:"
-ls -la "${ADV_INST_SETUP_FILES}/runtime" || echo "[DEBUG] Failed to list copied runtime folder contents"
+cp -rf "${EXTRACT_DIR}/runtime" "${ADV_INST_SETUP_FILES}/runtime" || { echo "[ERROR] Failed to copy 'runtime' folder"; exit 1; }
+echo "[INFO] Runtime folder copied"
 if ls "${ADV_INST_SETUP_FILES}/runtime" | grep -q "\.duplicate[0-9]*$"; then
     echo "[ERROR] Duplicate files found in copied runtime folder:"
+    ls "${ADV_INST_SETUP_FILES}/runtime" | grep "\.duplicate[0-9]*$"
     exit 1
 else
-    echo "[DEBUG] No duplicate files found in copied runtime folder"
+    echo "[INFO] No duplicate files in copied runtime folder"
 fi
 
 sleep 140
@@ -165,13 +167,12 @@ sed -i "s/\(PackageFileName=\"Neuro_Desktop-\)[^\"]*\(\".*\)/\1${VERSION_NAME}-$
 ADV_INST_PATH="C:/Program Files (x86)/Caphyon/Advanced Installer 22.6/bin/x86/AdvancedInstaller.com"
 
 echo "[INFO] Building MSI with Advanced Installer..."
-echo "[DEBUG] Выполняемая команда: cmd.exe /c \"$ADV_INST_PATH\" /build \"$ADV_INST_CONFIG\""
 cmd.exe /c "\"$ADV_INST_PATH\" /build \"$ADV_INST_CONFIG\"" 2>> "$ERROR_LOG_FILE" || { echo "[ERROR] Не удалось собрать MSI"; cat "$ERROR_LOG_FILE"; exit 1; }
 
 echo "[INFO] Build completed successfully."
 #SIGNED_MSI_PATH="$ADVANCED_INSTALLER_MSI_FILES/Neuro_Desktop-${VERSION_NAME}-${VERSION_CODE}.msi"
-# signtool sign /fd sha256 /tr http://ts.ssl.com /td sha256 /sha1 20fbd34014857033bcc6dabfae390411b22b0b1e "$SIGNED_MSI_PATH"
-
+#signtool sign /fd sha256 /tr http://ts.ssl.com /td sha256 /sha1 20fbd34014857033bcc6dabfae390411b22b0b1e "$SIGNED_MSI_PATH"
+#
 #echo "Uploading signed MSI to Slack: $SIGNED_MSI_PATH"
 #execute_file_upload "$SLACK_BOT_TOKEN" "$SLACK_CHANNEL" ":white_check_mark: Windows build for \`$BRANCH_NAME\`" "upload" "$SIGNED_MSI_PATH"
 #delete_message "$SLACK_BOT_TOKEN" "$SLACK_CHANNEL" "$first_ts"
