@@ -186,9 +186,13 @@ fi
     -a "//TABLE[@Name='File']/ROW[last()]" -t attr -n SelfReg -v "false" \
     "$ADV_INST_CONFIG" 2>> "$ERROR_LOG_FILE" || { echo "[ERROR] Не удалось добавить файл runtime"; cat "$ERROR_LOG_FILE"; exit 1; }
 
+# Преобразуем путь для Windows
+WIN_AIP_PATH=$(convert_path "$ADV_INST_CONFIG")
+echo "[DEBUG] Используемый путь для Advanced Installer: $WIN_AIP_PATH"
+
 echo "[INFO] Building MSI with Advanced Installer..."
 ADV_INST_PATH="/c/Program Files (x86)/Caphyon/Advanced Installer 22.6/bin/x86/AdvancedInstaller.com"
-"$ADV_INST_PATH" /build "$ADV_INST_CONFIG" || { echo "[ERROR] Не удалось собрать MSI"; exit 1; }
+"$ADV_INST_PATH" /build "$WIN_AIP_PATH" 2>> "$ERROR_LOG_FILE" || { echo "[ERROR] Не удалось собрать MSI"; cat "$ERROR_LOG_FILE"; exit 1; }
 
 echo "[INFO] Restoring original .aip to remove app and runtime references..."
 mv "${ADV_INST_CONFIG}.orig" "$ADV_INST_CONFIG" || { echo "[ERROR] Не удалось восстановить оригинальный .aip"; exit 1; }
