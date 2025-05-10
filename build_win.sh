@@ -33,6 +33,23 @@ check_error_log() {
     fi
 }
 
+remove_directory() {
+    local dir_id="$1"
+    echo "[INFO] Removing existing $dir_id from .aip..."
+    "$XMLSTARLET_PATH" ed --inplace \
+        -d "//TABLE[@Name='Directory']/ROW[@Directory='$dir_id']" \
+        "$ADV_INST_CONFIG" 2>> "$ERROR_LOG_FILE"
+    check_error_log
+    "$XMLSTARLET_PATH" ed --inplace \
+        -d "//TABLE[@Name='Component']/ROW[@Directory_='$dir_id']" \
+        "$ADV_INST_CONFIG" 2>> "$ERROR_LOG_FILE"
+    check_error_log
+    "$XMLSTARLET_PATH" ed --inplace \
+        -d "//TABLE[@Name='FeatureComponents']/ROW[@Component_='$dir_id']" \
+        "$ADV_INST_CONFIG" 2>> "$ERROR_LOG_FILE"
+    check_error_log
+}
+
 add_subdirectories() {
     local parent_dir="$1"
     local parent_dir_id="$2"
@@ -64,7 +81,6 @@ add_file() {
     attributes=$([[ "$filename" == *.dll ]] && echo "256" || echo "0")
     component_name="${file_id}_component"
 
-    # Добавляем компонент
     if ! "$XMLSTARLET_PATH" sel -t -v "//TABLE[@Name='Component']/ROW[@Component='$component_name']" "$ADV_INST_CONFIG" | grep -q .; then
         "$XMLSTARLET_PATH" ed --inplace \
             -s "//TABLE[@Name='Component']" -t elem -n ROW \
@@ -77,7 +93,6 @@ add_file() {
         check_error_log
     fi
 
-    # Добавляем файл
     "$XMLSTARLET_PATH" ed --inplace \
         -s "//TABLE[@Name='File']" -t elem -n ROW \
         -a "//TABLE[@Name='File']/ROW[last()]" -t attr -n File -v "$file_id" \
@@ -89,13 +104,25 @@ add_file() {
         "$ADV_INST_CONFIG" 2>> "$ERROR_LOG_FILE"
     check_error_log
 
-    # Добавляем в FeatureComponents
     "$XMLSTARLET_PATH" ed --inplace \
         -s "//TABLE[@Name='FeatureComponents']" -t elem -n ROW \
         -a "//TABLE[@Name='FeatureComponents']/ROW[last()]" -t attr -n Feature_ -v "MainFeature" \
         -a "//TABLE[@Name='FeatureComponents']/ROW[last()]" -t attr -n Component_ -v "$component_name" \
         "$ADV_INST_CONFIG" 2>> "$ERROR_LOG_FILE"
     check_error_log
+}
+
+add_files() {
+    local dir="$1"
+    local component_dir="$2"
+    echo "[INFO] Adding files from $dir..."
+    if [ -d "$dir" ]; then
+        add_subdirectories "$dir" "$component_dir"
+        find "$dir" -type f -print0 | xargs -0 -I {} bash -c 'add_file "{}" "'"$component_dir"'" "'"$component_dir"'"'
+    else
+        echo "[ERROR] Папка $dir не найдена, прерываем выполнение"
+        exit 1
+    fi
 }
 
 #while IFS='=' read -r key value; do
@@ -177,7 +204,7 @@ sed -i "s/\(Property=\"ProductCode\" Value=\"\)[^\"]*\(\".*\)/\1${NEW_GUID}\2/" 
 sed -i "s/\(PackageFileName=\"Neuro_Desktop-\)[^\"]*\(\".*\)/\1${VERSION_NAME}-${VERSION_CODE}\2/" "$ADV_INST_CONFIG"
 
 echo "[INFO] Checking for xmlstarlet..."
-XMLSTARLET_PATH=$(command -v xmlstarlet || command -v xmlstarlet.exe || echo "C:/ProgramData/chocolatey/bin/xmlstarlet.exe")
+XMLSTARLET_PATH=$(convert_path "$(command -v xmlstarlet || command -v xmlstarlet.exe || echo 'C:/ProgramData/chocolatey/bin/xmlstarlet.exe')")
 if [ ! -x "$XMLSTARLET_PATH" ]; then
     echo "[ERROR] xmlstarlet is not installed or not executable."
     exit 1
@@ -187,29 +214,24 @@ echo "[DEBUG] xmlstarlet found at: $XMLSTARLET_PATH" >> cleanup.log
 sleep 10
 
 echo "[INFO] Adding app and runtime directories to .aip..."
-if "$XMLSTARLET_PATH" sel -t -v "//TABLE[@Name='Directory']/ROW[@Directory='app_Dir']" "$ADV_INST_CONFIG" | grep -q .; then
-    echo "[WARNING] app_Dir уже существует в .aip, пропускаем добавление"
-else
-    "$XMLSTARLET_PATH" ed --inplace \
-        -s "//TABLE[@Name='Directory']" -t elem -n ROW \
-        -a "//TABLE[@Name='Directory']/ROW[last()]" -t attr -n Directory -v "app_Dir" \
-        -a "//TABLE[@Name='Directory']/ROW[last()]" -t attr -n Directory_Parent -v "NewFolder_Dir" \
-        -a "//TABLE[@Name='Directory']/ROW[last()]" -t attr -n DefaultDir -v "app" \
-        "$ADV_INST_CONFIG" 2>> "$ERROR_LOG_FILE"
-    check_error_log
-fi
+remove_directory "app_Dir"
+remove_directory "runtime_Dir"
 
-if "$XMLSTARLET_PATH" sel -t -v "//TABLE[@Name='Directory']/ROW[@Directory='runtime_Dir']" "$ADV_INST_CONFIG" | grep -q .; then
-    echo "[WARNING] runtime_Dir уже существует в .aip, пропускаем добавление"
-else
-    "$XMLSTARLET_PATH" ed --inplace \
-        -s "//TABLE[@Name='Directory']" -t elem -n ROW \
-        -a "//TABLE[@Name='Directory']/ROW[last()]" -t attr -n Directory -v "runtime_Dir" \
-        -a "//TABLE[@Name='Directory']/ROW[last()]" -t attr -n Directory_Parent -v "NewFolder_Dir" \
-        -a "//TABLE[@Name='Directory']/ROW[last()]" -t attr -n DefaultDir -v "runtime" \
-        "$ADV_INST_CONFIG" 2>> "$ERROR_LOG_FILE"
-    check_error_log
-fi
+"$XMLSTARLET_PATH" ed --inplace \
+    -s "//TABLE[@Name='Directory']" -t elem -n ROW \
+    -a "//TABLE[@Name='Directory']/ROW[last()]" -t attr -n Directory -v "app_Dir" \
+    -a "//TABLE[@Name='Directory']/ROW[last()]" -t attr -n Directory_Parent -v "NewFolder_Dir" \
+    -a "//TABLE[@Name='Directory']/ROW[last()]" -t attr -n DefaultDir -v "app" \
+    "$ADV_INST_CONFIG" 2>> "$ERROR_LOG_FILE"
+check_error_log
+
+"$XMLSTARLET_PATH" ed --inplace \
+    -s "//TABLE[@Name='Directory']" -t elem -n ROW \
+    -a "//TABLE[@Name='Directory']/ROW[last()]" -t attr -n Directory -v "runtime_Dir" \
+    -a "//TABLE[@Name='Directory']/ROW[last()]" -t attr -n Directory_Parent -v "NewFolder_Dir" \
+    -a "//TABLE[@Name='Directory']/ROW[last()]" -t attr -n DefaultDir -v "runtime" \
+    "$ADV_INST_CONFIG" 2>> "$ERROR_LOG_FILE"
+check_error_log
 
 "$XMLSTARLET_PATH" ed --inplace \
     -s "//TABLE[@Name='Component']" -t elem -n ROW \
@@ -244,28 +266,10 @@ check_error_log
 check_error_log
 
 echo "[INFO] Adding files from app directory..."
-APP_DIR=$(convert_path "${ADV_INST_SETUP_FILES}/app")
-if [ -d "$APP_DIR" ]; then
-    add_subdirectories "$APP_DIR" "app_Dir"
-    find "$APP_DIR" -type f | while read -r file; do
-        add_file "$file" "app_Dir" "app_Dir"
-    done
-else
-    echo "[ERROR] Папка $APP_DIR не найдена, прерываем выполнение"
-    exit 1
-fi
+add_files "$(convert_path "${ADV_INST_SETUP_FILES}/app")" "app_Dir"
 
 echo "[INFO] Adding files from runtime directory..."
-RUNTIME_DIR=$(convert_path "${ADV_INST_SETUP_FILES}/runtime")
-if [ -d "$RUNTIME_DIR" ]; then
-    add_subdirectories "$RUNTIME_DIR" "runtime_Dir"
-    find "$RUNTIME_DIR" -type f | while read -r file; do
-        add_file "$file" "runtime_Dir" "runtime_Dir"
-    done
-else
-    echo "[ERROR] Папка $RUNTIME_DIR не найдена, прерываем выполнение"
-    exit 1
-fi
+add_files "$(convert_path "${ADV_INST_SETUP_FILES}/runtime")" "runtime_Dir"
 
 echo "[INFO] Checking modified .aip file..."
 if ! "$XMLSTARLET_PATH" val "$ADV_INST_CONFIG" 2>> "$ERROR_LOG_FILE"; then
