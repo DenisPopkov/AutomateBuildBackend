@@ -80,8 +80,6 @@ mv "$MSI_FILE" "$NEW_MSI_PATH" || { echo "[ERROR] Failed to rename MSI"; exit 1;
 echo "[INFO] Extracting MSI..."
 /c/ProgramData/chocolatey/bin/lessmsi.exe x "$NEW_MSI_PATH" || { echo "[ERROR] Failed to extract MSI"; exit 1; }
 
-sleep 10
-
 EXTRACT_DIR="/c/Users/BlackBricks/StudioProjects/SA_Neuro_Multiplatform/Neuro_Desktop-${VERSION_NAME}-${VERSION_CODE}/SourceDir/Neuro Desktop"
 
 echo "[INFO] Removing old app and runtime folders..."
@@ -112,54 +110,64 @@ fi
 echo "[DEBUG] xmlstarlet found at: $XMLSTARLET_PATH" >> cleanup.log
 
 echo "[INFO] Adding app and runtime directories to .aip..."
-"$XMLSTARLET_PATH" ed -s '//COMPONENT[@cid="caphyon.advinst.msicomp.MsiDirsComponent"]' -t elem -n ROW -v '' \
-    -i '//ROW[last()]' -t attr -n Directory -v "app_Dir" \
-    -i '//ROW[last()]' -t attr -n Directory_Parent -v "NewFolder_Dir" \
-    -i '//ROW[last()]' -t attr -n DefaultDir -v "app" "$ADV_INST_CONFIG" > "${ADV_INST_CONFIG}.tmp" && mv "${ADV_INST_CONFIG}.tmp" "$ADV_INST_CONFIG" || { echo "[ERROR] Failed to add app_Dir"; exit 1; }
+# Add app_Dir to MsiDirsComponent
+"$XMLSTARLET_PATH" ed -s '//COMPONENT[@cid="caphyon.advinst.msicomp.MsiDirsComponent"]/TABLE[@Name="Directory"]' -t elem -n ROW -v '' \
+    -s '//COMPONENT[@cid="caphyon.advinst.msicomp.MsiDirsComponent"]/TABLE[@Name="Directory"]/ROW[last()]' -t attr -n Directory -v "app_Dir" \
+    -s '//COMPONENT[@cid="caphyon.advinst.msicomp.MsiDirsComponent"]/TABLE[@Name="Directory"]/ROW[last()]' -t attr -n Directory_Parent -v "NewFolder_Dir" \
+    -s '//COMPONENT[@cid="caphyon.advinst.msicomp.MsiDirsComponent"]/TABLE[@Name="Directory"]/ROW[last()]' -t attr -n DefaultDir -v "app" \
+    "$ADV_INST_CONFIG" > "${ADV_INST_CONFIG}.tmp" && mv "${ADV_INST_CONFIG}.tmp" "$ADV_INST_CONFIG" || { echo "[ERROR] Failed to add app_Dir"; exit 1; }
 
-"$XMLSTARLET_PATH" ed -s '//COMPONENT[@cid="caphyon.advinst.msicomp.MsiDirsComponent"]' -t elem -n ROW -v '' \
-    -i '//ROW[last()]' -t attr -n Directory -v "runtime_Dir" \
-    -i '//ROW[last()]' -t attr -n Directory_Parent -v "NewFolder_Dir" \
-    -i '//ROW[last()]' -t attr -n DefaultDir -v "runtime" "$ADV_INST_CONFIG" > "${ADV_INST_CONFIG}.tmp" && mv "${ADV_INST_CONFIG}.tmp" "$ADV_INST_CONFIG" || { echo "[ERROR] Failed to add runtime_Dir"; exit 1; }
+# Add runtime_Dir to MsiDirsComponent
+"$XMLSTARLET_PATH" ed -s '//COMPONENT[@cid="caphyon.advinst.msicomp.MsiDirsComponent"]/TABLE[@Name="Directory"]' -t elem -n ROW -v '' \
+    -s '//COMPONENT[@cid="caphyon.advinst.msicomp.MsiDirsComponent"]/TABLE[@Name="Directory"]/ROW[last()]' -t attr -n Directory -v "runtime_Dir" \
+    -s '//COMPONENT[@cid="caphyon.advinst.msicomp.MsiDirsComponent"]/TABLE[@Name="Directory"]/ROW[last()]' -t attr -n Directory_Parent -v "NewFolder_Dir" \
+    -s '//COMPONENT[@cid="caphyon.advinst.msicomp.MsiDirsComponent"]/TABLE[@Name="Directory"]/ROW[last()]' -t attr -n DefaultDir -v "runtime" \
+    "$ADV_INST_CONFIG" > "${ADV_INST_CONFIG}.tmp" && mv "${ADV_INST_CONFIG}.tmp" "$ADV_INST_CONFIG" || { echo "[ERROR] Failed to add runtime_Dir"; exit 1; }
 
 # Add components for app and runtime directories
-"$XMLSTARLET_PATH" ed -s '//COMPONENT[@cid="caphyon.advinst.msicomp.MsiCompsComponent"]' -t elem -n ROW -v '' \
-    -i '//ROW[last()]' -t attr -n Component -v "app_Dir" \
-    -i '//ROW[last()]' -t attr -n ComponentId -v "{$(powershell.exe "[guid]::NewGuid().ToString()" | tr -d '\r')}" \
-    -i '//ROW[last()]' -t attr -n Directory_ -v "app_Dir" \
-    -i '//ROW[last()]' -t attr -n Attributes -v "0" "$ADV_INST_CONFIG" > "${ADV_INST_CONFIG}.tmp" && mv "${ADV_INST_CONFIG}.tmp" "$ADV_INST_CONFIG" || { echo "[ERROR] Failed to add app_Dir component"; exit 1; }
+"$XMLSTARLET_PATH" ed -s '//COMPONENT[@cid="caphyon.advinst.msicomp.MsiCompsComponent"]/TABLE[@Name="Component"]' -t elem -n ROW -v '' \
+    -s '//COMPONENT[@cid="caphyon.advinst.msicomp.MsiCompsComponent"]/TABLE[@Name="Component"]/ROW[last()]' -t attr -n Component -v "app_Dir" \
+    -s '//COMPONENT[@cid="caphyon.advinst.msicomp.MsiCompsComponent"]/TABLE[@Name="Component"]/ROW[last()]' -t attr -n ComponentId -v "{$(powershell.exe "[guid]::NewGuid().ToString()" | tr -d '\r')}" \
+    -s '//COMPONENT[@cid="caphyon.advinst.msicomp.MsiCompsComponent"]/TABLE[@Name="Component"]/ROW[last()]' -t attr -n Directory_ -v "app_Dir" \
+    -s '//COMPONENT[@cid="caphyon.advinst.msicomp.MsiCompsComponent"]/TABLE[@Name="Component"]/ROW[last()]' -t attr -n Attributes -v "0" \
+    "$ADV_INST_CONFIG" > "${ADV_INST_CONFIG}.tmp" && mv "${ADV_INST_CONFIG}.tmp" "$ADV_INST_CONFIG" || { echo "[ERROR] Failed to add app_Dir component"; exit 1; }
 
-"$XMLSTARLET_PATH" ed -s '//COMPONENT[@cid="caphyon.advinst.msicomp.MsiCompsComponent"]' -t elem -n ROW -v '' \
-    -i '//ROW[last()]' -t attr -n Component -v "runtime_Dir" \
-    -i '//ROW[last()]' -t attr -n ComponentId -v "{$(powershell.exe "[guid]::NewGuid().ToString()" | tr -d '\r')}" \
-    -i '//ROW[last()]' -t attr -n Directory_ -v "runtime_Dir" \
-    -i '//ROW[last()]' -t attr -n Attributes -v "0" "$ADV_INST_CONFIG" > "${ADV_INST_CONFIG}.tmp" && mv "${ADV_INST_CONFIG}.tmp" "$ADV_INST_CONFIG" || { echo "[ERROR] Failed to add runtime_Dir component"; exit 1; }
+"$XMLSTARLET_PATH" ed -s '//COMPONENT[@cid="caphyon.advinst.msicomp.MsiCompsComponent"]/TABLE[@Name="Component"]' -t elem -n ROW -v '' \
+    -s '//COMPONENT[@cid="caphyon.advinst.msicomp.MsiCompsComponent"]/TABLE[@Name="Component"]/ROW[last()]' -t attr -n Component -v "runtime_Dir" \
+    -s '//COMPONENT[@cid="caphyon.advinst.msicomp.MsiCompsComponent"]/TABLE[@Name="Component"]/ROW[last()]' -t attr -n ComponentId -v "{$(powershell.exe "[guid]::NewGuid().ToString()" | tr -d '\r')}" \
+    -s '//COMPONENT[@cid="caphyon.advinst.msicomp.MsiCompsComponent"]/TABLE[@Name="Component"]/ROW[last()]' -t attr -n Directory_ -v "runtime_Dir" \
+    -s '//COMPONENT[@cid="caphyon.advinst.msicomp.MsiCompsComponent"]/TABLE[@Name="Component"]/ROW[last()]' -t attr -n Attributes -v "0" \
+    "$ADV_INST_CONFIG" > "${ADV_INST_CONFIG}.tmp" && mv "${ADV_INST_CONFIG}.tmp" "$ADV_INST_CONFIG" || { echo "[ERROR] Failed to add runtime_Dir component"; exit 1; }
 
 # Add app and runtime to feature components
-"$XMLSTARLET_PATH" ed -s '//COMPONENT[@cid="caphyon.advinst.msicomp.MsiFeatCompsComponent"]' -t elem -n ROW -v '' \
-    -i '//ROW[last()]' -t attr -n Feature_ -v "MainFeature" \
-    -i '//ROW[last()]' -t attr -n Component_ -v "app_Dir" "$ADV_INST_CONFIG" > "${ADV_INST_CONFIG}.tmp" && mv "${ADV_INST_CONFIG}.tmp" "$ADV_INST_CONFIG" || { echo "[ERROR] Failed to add app_Dir to features"; exit 1; }
+"$XMLSTARLET_PATH" ed -s '//COMPONENT[@cid="caphyon.advinst.msicomp.MsiFeatCompsComponent"]/TABLE[@Name="FeatureComponents"]' -t elem -n ROW -v '' \
+    -s '//COMPONENT[@cid="caphyon.advinst.msicomp.MsiFeatCompsComponent"]/TABLE[@Name="FeatureComponents"]/ROW[last()]' -t attr -n Feature_ -v "MainFeature" \
+    -s '//COMPONENT[@cid="caphyon.advinst.msicomp.MsiFeatCompsComponent"]/TABLE[@Name="FeatureComponents"]/ROW[last()]' -t attr -n Component_ -v "app_Dir" \
+    "$ADV_INST_CONFIG" > "${ADV_INST_CONFIG}.tmp" && mv "${ADV_INST_CONFIG}.tmp" "$ADV_INST_CONFIG" || { echo "[ERROR] Failed to add app_Dir to features"; exit 1; }
 
-"$XMLSTARLET_PATH" ed -s '//COMPONENT[@cid="caphyon.advinst.msicomp.MsiFeatCompsComponent"]' -t elem -n ROW -v '' \
-    -i '//ROW[last()]' -t attr -n Feature_ -v "MainFeature" \
-    -i '//ROW[last()]' -t attr -n Component_ -v "runtime_Dir" "$ADV_INST_CONFIG" > "${ADV_INST_CONFIG}.tmp" && mv "${ADV_INST_CONFIG}.tmp" "$ADV_INST_CONFIG" || { echo "[ERROR] Failed to add runtime_Dir to features"; exit 1; }
+"$XMLSTARLET_PATH" ed -s '//COMPONENT[@cid="caphyon.advinst.msicomp.MsiFeatCompsComponent"]/TABLE[@Name="FeatureComponents"]' -t elem -n ROW -v '' \
+    -s '//COMPONENT[@cid="caphyon.advinst.msicomp.MsiFeatCompsComponent"]/TABLE[@Name="FeatureComponents"]/ROW[last()]' -t attr -n Feature_ -v "MainFeature" \
+    -s '//COMPONENT[@cid="caphyon.advinst.msicomp.MsiFeatCompsComponent"]/TABLE[@Name="FeatureComponents"]/ROW[last()]' -t attr -n Component_ -v "runtime_Dir" \
+    "$ADV_INST_CONFIG" > "${ADV_INST_CONFIG}.tmp" && mv "${ADV_INST_CONFIG}.tmp" "$ADV_INST_CONFIG" || { echo "[ERROR] Failed to add runtime_Dir to features"; exit 1; }
 
-# Add files for app and runtime (example for key files, extend as needed)
-"$XMLSTARLET_PATH" ed -s '//COMPONENT[@cid="caphyon.advinst.msicomp.MsiFilesComponent"]' -t elem -n ROW -v '' \
-    -i '//ROW[last()]' -t attr -n File -v "animationcoredesktop.jar" \
-    -i '//ROW[last()]' -t attr -n Component_ -v "app_Dir" \
-    -i '//ROW[last()]' -t attr -n FileName -v "ANIMAT~1.JAR|animation-core-desktop.jar" \
-    -i '//ROW[last()]' -t attr -n Attributes -v "0" \
-    -i '//ROW[last()]' -t attr -n SourcePath -v "..\app\animation-core-desktop.jar" \
-    -i '//ROW[last()]' -t attr -n SelfReg -v "false" "$ADV_INST_CONFIG" > "${ADV_INST_CONFIG}.tmp" && mv "${ADV_INST_CONFIG}.tmp" "$ADV_INST_CONFIG" || { echo "[ERROR] Failed to add app file"; exit 1; }
+# Add representative files for app and runtime
+"$XMLSTARLET_PATH" ed -s '//COMPONENT[@cid="caphyon.advinst.msicomp.MsiFilesComponent"]/TABLE[@Name="File"]' -t elem -n ROW -v '' \
+    -s '//COMPONENT[@cid="caphyon.advinst.msicomp.MsiFilesComponent"]/TABLE[@Name="File"]/ROW[last()]' -t attr -n File -v "animationcoredesktop.jar" \
+    -s '//COMPONENT[@cid="caphyon.advinst.msicomp.MsiFilesComponent"]/TABLE[@Name="File"]/ROW[last()]' -t attr -n Component_ -v "app_Dir" \
+    -s '//COMPONENT[@cid="caphyon.advinst.msicomp.MsiFilesComponent"]/TABLE[@Name="File"]/ROW[last()]' -t attr -n FileName -v "ANIMAT~1.JAR|animation-core-desktop.jar" \
+    -s '//COMPONENT[@cid="caphyon.advinst.msicomp.MsiFilesComponent"]/TABLE[@Name="File"]/ROW[last()]' -t attr -n Attributes -v "0" \
+    -s '//COMPONENT[@cid="caphyon.advinst.msicomp.MsiFilesComponent"]/TABLE[@Name="File"]/ROW[last()]' -t attr -n SourcePath -v "..\app\animation-core-desktop.jar" \
+    -s '//COMPONENT[@cid="caphyon.advinst.msicomp.MsiFilesComponent"]/TABLE[@Name="File"]/ROW[last()]' -t attr -n SelfReg -v "false" \
+    "$ADV_INST_CONFIG" > "${ADV_INST_CONFIG}.tmp" && mv "${ADV_INST_CONFIG}.tmp" "$ADV_INST_CONFIG" || { echo "[ERROR] Failed to add app file"; exit 1; }
 
-"$XMLSTARLET_PATH" ed -s '//COMPONENT[@cid="caphyon.advinst.msicomp.MsiFilesComponent"]' -t elem -n ROW -v '' \
-    -i '//ROW[last()]' -t attr -n File -v "jvm.dll" \
-    -i '//ROW[last()]' -t attr -n Component_ -v "runtime_Dir" \
-    -i '//ROW[last()]' -t attr -n FileName -v "jvm.dll" \
-    -i '//ROW[last()]' -t attr -n Attributes -v "256" \
-    -i '//ROW[last()]' -t attr -n SourcePath -v "..\runtime\bin\server\jvm.dll" \
-    -i '//ROW[last()]' -t attr -n SelfReg -v "false" "$ADV_INST_CONFIG" > "${ADV_INST_CONFIG}.tmp" && mv "${ADV_INST_CONFIG}.tmp" "$ADV_INST_CONFIG" || { echo "[ERROR] Failed to add runtime file"; exit 1; }
+"$XMLSTARLET_PATH" ed -s '//COMPONENT[@cid="caphyon.advinst.msicomp.MsiFilesComponent"]/TABLE[@Name="File"]' -t elem -n ROW -v '' \
+    -s '//COMPONENT[@cid="caphyon.advinst.msicomp.MsiFilesComponent"]/TABLE[@Name="File"]/ROW[last()]' -t attr -n File -v "jvm.dll" \
+    -s '//COMPONENT[@cid="caphyon.advinst.msicomp.MsiFilesComponent"]/TABLE[@Name="File"]/ROW[last()]' -t attr -n Component_ -v "runtime_Dir" \
+    -s '//COMPONENT[@cid="caphyon.advinst.msicomp.MsiFilesComponent"]/TABLE[@Name="File"]/ROW[last()]' -t attr -n FileName -v "jvm.dll" \
+    -s '//COMPONENT[@cid="caphyon.advinst.msicomp.MsiFilesComponent"]/TABLE[@Name="File"]/ROW[last()]' -t attr -n Attributes -v "256" \
+    -s '//COMPONENT[@cid="caphyon.advinst.msicomp.MsiFilesComponent"]/TABLE[@Name="File"]/ROW[last()]' -t attr -n SourcePath -v "..\runtime\bin\server\jvm.dll" \
+    -s '//COMPONENT[@cid="caphyon.advinst.msicomp.MsiFilesComponent"]/TABLE[@Name="File"]/ROW[last()]' -t attr -n SelfReg -v "false" \
+    "$ADV_INST_CONFIG" > "${ADV_INST_CONFIG}.tmp" && mv "${ADV_INST_CONFIG}.tmp" "$ADV_INST_CONFIG" || { echo "[ERROR] Failed to add runtime file"; exit 1; }
 
 echo "[INFO] Building MSI with Advanced Installer..."
 ADV_INST_PATH="/c/Program Files (x86)/Caphyon/Advanced Installer 22.6/bin/x86/AdvancedInstaller.com"
