@@ -181,14 +181,17 @@ if [ -z "$OUTPUT_JAR" ] || [ -z "$SHARED_JAR" ] || [ -z "$SKIKO_JAR" ]; then
     exit 1
 fi
 
-sed -i "s|app\\\\output-[^\"]*\.jar|app\\\\${OUTPUT_JAR}|g" "$ADV_INST_CONFIG" || { log "[ERROR] Failed to update output.jar in .aip"; post_error_message "$BRANCH_NAME"; exit 1; }
-sed -i "s|app\\\\shared-jvm-[^\"]*\.jar|app\\\\${SHARED_JAR}|g" "$ADV_INST_CONFIG" || { log "[ERROR] Failed to update shared-jvm.jar in .aip"; post_error_message "$BRANCH_NAME"; exit 1; }
-sed -i "s|app\\\\skiko-awt-runtime-windows-x64-[^\"]*\.jar|app\\\\${SKIKO_JAR}|g" "$ADV_INST_CONFIG" || { log "[ERROR] Failed to update skiko.jar in .aip"; post_error_message "$BRANCH_NAME"; exit 1; }
+# Обновление .aip с проверкой
+sed -i.bak "s|app\\\\output-[^\"]*\.jar|app\\\\${OUTPUT_JAR}|g" "$ADV_INST_CONFIG" || { log "[ERROR] Failed to update output.jar in .aip"; post_error_message "$BRANCH_NAME"; exit 1; }
+sed -i.bak "s|app\\\\shared-jvm-[^\"]*\.jar|app\\\\${SHARED_JAR}|g" "$ADV_INST_CONFIG" || { log "[ERROR] Failed to update shared-jvm.jar in .aip"; post_error_message "$BRANCH_NAME"; exit 1; }
+sed -i.bak "s|app\\\\skiko-awt-runtime-windows-x64-[^\"]*\.jar|app\\\\${SKIKO_JAR}|g" "$ADV_INST_CONFIG" || { log "[ERROR] Failed to update skiko.jar in .aip"; post_error_message "$BRANCH_NAME"; exit 1; }
 log "[INFO] .aip updated with new .jar files: $OUTPUT_JAR, $SHARED_JAR, $SKIKO_JAR"
 
-log "[INFO] Removing old app and runtime folders..."
+log "[INFO] Cleaning up old files and cache..."
 [ -d "${ADV_INST_SETUP_FILES}/app" ] && rm -rf "${ADV_INST_SETUP_FILES}/app" && log "[INFO] App folder removed" || log "[INFO] App folder does not exist"
 [ -d "${ADV_INST_SETUP_FILES}/runtime" ] && rm -rf "${ADV_INST_SETUP_FILES}/runtime" && log "[INFO] Runtime folder removed" || log "[INFO] Runtime folder does not exist"
+[ -d "${ADV_INST_CONFIG%/*}/Neuro Desktop 2-cache" ] && rm -rf "${ADV_INST_CONFIG%/*}/Neuro Desktop 2-cache" && log "[INFO] Cache folder removed" || log "[INFO] Cache folder does not exist"
+find "${ADVANCED_INSTALLER_MSI_FILES}" -name "Neuro_Desktop-*.msi" -not -name "Neuro_Desktop-${VERSION_NAME}-${VERSION_CODE}.msi" -delete && log "[INFO] Old MSI files removed" || log "[INFO] No old MSI files to remove"
 
 log "[INFO] Copying new app and runtime folders..."
 cp -rf "${EXTRACT_DIR}/app" "${ADV_INST_SETUP_FILES}/app" || { log "[ERROR] Failed to copy app folder"; post_error_message "$BRANCH_NAME"; exit 1; }
@@ -197,15 +200,23 @@ cp -rf "${EXTRACT_DIR}/app" "${ADV_INST_SETUP_FILES}/app" || { log "[ERROR] Fail
 cp -rf "${EXTRACT_DIR}/runtime" "${ADV_INST_SETUP_FILES}/runtime" || { log "[ERROR] Failed to copy runtime folder"; post_error_message "$BRANCH_NAME"; exit 1; }
 [ -d "${ADV_INST_SETUP_FILES}/runtime" ] && log "[INFO] Runtime folder copied" || { log "[ERROR] Runtime folder not found after copy"; post_error_message "$BRANCH_NAME"; exit 1; }
 
+# Проверка размера скопированных папок
+APP_SIZE=$(du -sm "${ADV_INST_SETUP_FILES}/app" | cut -f1)
+RUNTIME_SIZE=$(du -sm "${ADV_INST_SETUP_FILES}/runtime" | cut -f1)
+log "[INFO] App folder size: $APP_SIZE MB, Runtime folder size: $RUNTIME_SIZE MB"
+if [ "$APP_SIZE" -gt 100 ] || [ "$RUNTIME_SIZE" -gt 200 ]; then
+    log "[WARNING] Folder sizes seem unusually large, expected ~50 MB for app and ~150 MB for runtime"
+fi
+
 log "[INFO] Checking $ADV_INST_CONFIG for duplicates..."
 check_aip_duplicates "$ADV_INST_CONFIG"
 
 log "[INFO] Updating version and product code in $ADV_INST_CONFIG..."
-sed -i "s/\(Property=\"ProductVersion\" Value=\"\)[^\"]*\(\".*\)/\1${VERSION_NAME}\2/" "$ADV_INST_CONFIG" || { log "[ERROR] Failed to update ProductVersion"; post_error_message "$BRANCH_NAME"; exit 1; }
+sed -i.bak "s/\(Property=\"ProductVersion\" Value=\"\)[^\"]*\(\".*\)/\1${VERSION_NAME}\2/" "$ADV_INST_CONFIG" || { log "[ERROR] Failed to update ProductVersion"; post_error_message "$BRANCH_NAME"; exit 1; }
 NEW_GUID=$(powershell.exe "[guid]::NewGuid().ToString()" | tr -d '\r')
 [ -n "$NEW_GUID" ] || { log "[ERROR] Failed to generate ProductCode"; post_error_message "$BRANCH_NAME"; exit 1; }
-sed -i "s/\(Property=\"ProductCode\" Value=\"\)[^\"]*\(\".*\)/\1${NEW_GUID}\2/" "$ADV_INST_CONFIG" || { log "[ERROR] Failed to update ProductCode"; post_error_message "$BRANCH_NAME"; exit 1; }
-sed -i "s/\(PackageFileName=\"Neuro_Desktop-\)[^\"]*\(\".*\)/\1${VERSION_NAME}-${VERSION_CODE}\2/" "$ADV_INST_CONFIG" || { log "[ERROR] Failed to update PackageFileName"; post_error_message "$BRANCH_NAME"; exit 1; }
+sed -i.bak "s/\(Property=\"ProductCode\" Value=\"\)[^\"]*\(\".*\)/\1${NEW_GUID}\2/" "$ADV_INST_CONFIG" || { log "[ERROR] Failed to update ProductCode"; post_error_message "$BRANCH_NAME"; exit 1; }
+sed -i.bak "s/\(PackageFileName=\"Neuro_Desktop-\)[^\"]*\(\".*\)/\1${VERSION_NAME}-${VERSION_CODE}\2/" "$ADV_INST_CONFIG" || { log "[ERROR] Failed to update PackageFileName"; post_error_message "$BRANCH_NAME"; exit 1; }
 
 log "[INFO] Building MSI with Advanced Installer..."
 ADV_INST_WIN_PATH=$(convert_path "$ADV_INST_PATH")
@@ -213,16 +224,23 @@ CONFIG_WIN_PATH=$(convert_path "$ADV_INST_CONFIG")
 cmd.exe /c "chcp 65001 > nul && \"${ADV_INST_WIN_PATH}\" /build \"${CONFIG_WIN_PATH}\"" 2>> "$ERROR_LOG_FILE" || { log "[ERROR] Failed to build MSI"; cat "$ERROR_LOG_FILE" | iconv -f CP1251 -t UTF-8 | tee -a "$LOG_FILE"; post_error_message "$BRANCH_NAME"; exit 1; }
 check_error_log
 
-#log "[INFO] Preparing to upload MSI to Slack..."
-#SIGNED_MSI_PATH="$ADVANCED_INSTALLER_MSI_FILES/Neuro_Desktop-${VERSION_NAME}-${VERSION_CODE}.msi"
-#SIGNED_MSI_WIN_PATH=$(convert_path "$SIGNED_MSI_PATH")
-#log "[INFO] Expected MSI path: $SIGNED_MSI_WIN_PATH"
-#
-#if [ ! -f "$SIGNED_MSI_PATH" ]; then
-#    log "[ERROR] MSI file not found at $SIGNED_MSI_PATH"
-#    post_error_message "$BRANCH_NAME"
-#    exit 1
-#fi
+log "[INFO] Preparing to upload MSI to Slack..."
+SIGNED_MSI_PATH="$ADVANCED_INSTALLER_MSI_FILES/Neuro_Desktop-${VERSION_NAME}-${VERSION_CODE}.msi"
+SIGNED_MSI_WIN_PATH=$(convert_path "$SIGNED_MSI_PATH")
+log "[INFO] Expected MSI path: $SIGNED_MSI_WIN_PATH"
+
+if [ ! -f "$SIGNED_MSI_PATH" ]; then
+    log "[ERROR] MSI file not found at $SIGNED_MSI_PATH"
+    post_error_message "$BRANCH_NAME"
+    exit 1
+fi
+
+MSI_SIZE=$(stat -c %s "$SIGNED_MSI_PATH")
+MSI_SIZE_MB=$((MSI_SIZE / 1024 / 1024))
+log "[INFO] MSI size: $MSI_SIZE_MB MB"
+if [ "$MSI_SIZE_MB" -gt 300 ]; then
+    log "[WARNING] MSI size exceeds 300 MB, expected ~250 MB"
+fi
 
 #log "[INFO] Signing MSI: $SIGNED_MSI_WIN_PATH"
 #SIGNTOOL_PATH="C:\\Program Files (x86)\\Windows Kits\\10\\bin\\10.0.20348.0\\x86\\signtool.exe"
@@ -231,7 +249,7 @@ check_error_log
 #    post_error_message "$BRANCH_NAME"
 #    exit 1
 #}
-
+#
 #log "[INFO] Uploading MSI to Slack: $SIGNED_MSI_WIN_PATH"
 #execute_file_upload "$SLACK_BOT_TOKEN" "$SLACK_CHANNEL" ":white_check_mark: Windows build for \`$BRANCH_NAME\`" "upload" "$SIGNED_MSI_WIN_PATH" || {
 #    log "[WARNING] Failed to upload MSI to Slack"
