@@ -137,12 +137,10 @@ cp "$SWIFT_FILE_SOURCE" "$SWIFT_TARGET_FILE"
 
 cd "$IOS_APP_PATH" || exit
 
-undo_enable_prod_keys
-
-sleep 5
-
 # Run Fastlane with fallback
 if fastlane testflight_upload; then
+  undo_enable_prod_keys
+  sleep 10
   git pull origin "$BRANCH_NAME" --no-rebase
   git add .
   git commit -m "iOS version bump to $NEW_VERSION"
