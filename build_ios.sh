@@ -90,6 +90,7 @@ fi
 
 if [ "$isUseDevAnalytics" == "false" ]; then
   enable_prod_keys
+  echo "applied prod analytics"
 
   open -a "Android Studio"
 
