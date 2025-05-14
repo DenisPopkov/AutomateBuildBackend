@@ -8,9 +8,7 @@ PBXPROJ_PATH="$IOS_APP_PATH/iosApp.xcodeproj/project.pbxproj"
 INFO_PLIST_PATH="$IOS_APP_PATH/iosApp/app/Info.plist"
 FASTFILE_PATH="/Users/denispopkov/AndroidStudioProjects/SA_Neuro_Multiplatform/iosApp/fastlane/Fastfile"
 CACHE_PATH="/Users/denispopkov/AndroidStudioProjects/SA_Neuro_Multiplatform/shared/build"
-FILE_TO_DELETE="/Users/denispopkov/AndroidStudioProjects/SA_Neuro_Multiplatform/shared/src/commonMain/resources/MR/files/libdspmac.dylib"
 DYLIB_PATH="/Users/denispopkov/AndroidStudioProjects/SA_Neuro_Multiplatform/shared/src/commonMain/resources/MR/files/libkeychainbridge.dylib"
-FILE_BACKUP_PATH="/Users/denispopkov/Desktop/libdspmac.dylib"
 DYLIB_FILE_BACKUP_PATH="/Users/denispopkov/Desktop/libkeychainbridge.dylib"
 SWIFT_FILE_SOURCE="/Users/denispopkov/Desktop/SA_Neuro_Multiplatform_shared.swift"
 SWIFT_TARGET_DIR="/Users/denispopkov/AndroidStudioProjects/SA_Neuro_Multiplatform/shared/build/bin/iosArm64/podDebugFramework/sharedSwift"
@@ -122,7 +120,6 @@ move_file() {
   fi
 }
 
-move_file "$FILE_TO_DELETE" "$FILE_BACKUP_PATH"
 move_file "$DYLIB_PATH" "$DYLIB_FILE_BACKUP_PATH"
 
 # Delete cache directory
@@ -170,7 +167,6 @@ restore_file() {
   fi
 }
 
-restore_file "$FILE_BACKUP_PATH" "$FILE_TO_DELETE"
 restore_file "$DYLIB_FILE_BACKUP_PATH" "$DYLIB_PATH"
 
 delete_message "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$first_ts"
