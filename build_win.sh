@@ -70,11 +70,11 @@ done < "$SECRET_FILE"
 
 cd "$PROJECT_DIR" || { log "[ERROR] Failed to change directory to $PROJECT_DIR"; exit 1; }
 
-#log "[INFO] Starting Git operations..."
-#git stash push -m "Pre-build stash" || { log "[ERROR] Failed to stash changes"; post_error_message "$BRANCH_NAME"; exit 1; }
-#git fetch --all || { log "[ERROR] Failed to fetch Git data"; post_error_message "$BRANCH_NAME"; exit 1; }
-#git checkout "$BRANCH_NAME" || { log "[ERROR] Failed to checkout branch $BRANCH_NAME"; post_error_message "$BRANCH_NAME"; exit 1; }
-#git pull origin "$BRANCH_NAME" --no-rebase || { log "[ERROR] Failed to pull branch $BRANCH_NAME"; post_error_message "$BRANCH_NAME"; exit 1; }
+log "[INFO] Starting Git operations..."
+git stash push -m "Pre-build stash" || { log "[ERROR] Failed to stash changes"; post_error_message "$BRANCH_NAME"; exit 1; }
+git fetch --all || { log "[ERROR] Failed to fetch Git data"; post_error_message "$BRANCH_NAME"; exit 1; }
+git checkout "$BRANCH_NAME" || { log "[ERROR] Failed to checkout branch $BRANCH_NAME"; post_error_message "$BRANCH_NAME"; exit 1; }
+git pull origin "$BRANCH_NAME" --no-rebase || { log "[ERROR] Failed to pull branch $BRANCH_NAME"; post_error_message "$BRANCH_NAME"; exit 1; }
 
 VERSION_CODE=$(grep '^desktop\.build\.number\s*=' gradle.properties | sed 's/.*=\s*\([0-9]*\)/\1/' | xargs)
 VERSION_NAME=$(grep '^desktop\.version\s*=' gradle.properties | sed 's/.*=\s*\([0-9]*\.[0-9]*\.[0-9]*\)/\1/' | xargs)
@@ -101,10 +101,10 @@ analyticsMessage="prod"
 [ "$isUseDevAnalytics" == "true" ] && analyticsMessage="dev"
 log "[INFO] Analytics mode: $analyticsMessage"
 
-end_time=$(date -d "+15 minutes" +"%H:%M")
-message=":hammer_and_wrench: Windows build started on \`$BRANCH_NAME\` with $analyticsMessage analytics. It will be ready approximately at $end_time"
-first_ts=$(post_message "$SLACK_BOT_TOKEN" "$SLACK_CHANNEL" "$message")
-log "[INFO] Slack message posted with timestamp: $first_ts"
+#end_time=$(date -d "+15 minutes" +"%H:%M")
+#message=":hammer_and_wrench: Windows build started on \`$BRANCH_NAME\` with $analyticsMessage analytics. It will be ready approximately at $end_time"
+#first_ts=$(post_message "$SLACK_BOT_TOKEN" "$SLACK_CHANNEL" "$message")
+#log "[INFO] Slack message posted with timestamp: $first_ts"
 
 if [ "$isUseDevAnalytics" == "false" ]; then
     log "[INFO] Enabling production keys..."
@@ -217,16 +217,32 @@ else
     exit 1
 fi
 
-log "[INFO] Preparing to upload MSI to Slack..."
-SIGNED_MSI_PATH="$ADVANCED_INSTALLER_MSI_FILES/Neuro_Desktop-${VERSION_NAME}-${VERSION_CODE}.msi"
-SIGNED_MSI_WIN_PATH=$(convert_path "$SIGNED_MSI_PATH")
-log "[INFO] Expected MSI path: $SIGNED_MSI_WIN_PATH"
-
-if [ ! -f "$SIGNED_MSI_PATH" ]; then
-    log "[ERROR] MSI file not found at $SIGNED_MSI_PATH"
+log "[INFO] Renaming MSI file in ADVANCED_INSTALLER_MSI_FILES..."
+ADVANCED_MSI_FILE=$(find "$ADVANCED_INSTALLER_MSI_FILES" -name "Neuro*.msi" | head -n 1)
+if [ -z "$ADVANCED_MSI_FILE" ]; then
+    log "[ERROR] MSI file not found in $ADVANCED_INSTALLER_MSI_FILES"
     post_error_message "$BRANCH_NAME"
     exit 1
 fi
+
+NEW_ADVANCED_MSI_PATH="$ADVANCED_INSTALLER_MSI_FILES/Neuro_Desktop-${VERSION_NAME}-${VERSION_CODE}.msi"
+[ -f "$NEW_ADVANCED_MSI_PATH" ] && rm -f "$NEW_ADVANCED_MSI_PATH"
+mv "$ADVANCED_MSI_FILE" "$NEW_ADVANCED_MSI_PATH" || {
+    log "[ERROR] Failed to rename MSI in ADVANCED_INSTALLER_MSI_FILES";
+    post_error_message "$BRANCH_NAME";
+    exit 1;
+}
+log "[INFO] Renamed MSI to: $NEW_ADVANCED_MSI_PATH"
+
+#log "[INFO] Preparing to upload MSI to Slack..."
+#SIGNED_MSI_WIN_PATH=$(convert_path "$NEW_ADVANCED_MSI_PATH")
+#log "[INFO] Expected MSI path: $SIGNED_MSI_WIN_PATH"
+#
+#if [ ! -f "$NEW_ADVANCED_MSI_PATH" ]; then
+#    log "[ERROR] MSI file not found at $NEW_ADVANCED_MSI_PATH"
+#    post_error_message "$BRANCH_NAME"
+#    exit 1
+#fi
 
 log "[INFO] Cleaning up temporary files..."
 rm -rf "$EXTRACT_DIR" && log "[INFO] Temporary extract directory removed" || log "[WARNING] Failed to remove temporary extract directory"
