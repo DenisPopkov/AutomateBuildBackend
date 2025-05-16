@@ -186,7 +186,7 @@ cp -f "${EXTRACT_DIR}/Neuro Desktop.exe" "${ADV_INST_SETUP_FILES}/Neuro Desktop.
 log "[INFO] Adding new .jar files to $ADV_INST_CONFIG..."
 
 # Verify Advanced Installer executable exists
-if [ ! -f "$(convert_path "$ADV_INST_PATH")" ]; then
+if [ ! -f "$ADV_INST_PATH" ]; then
     log "[ERROR] Advanced Installer not found at $ADV_INST_PATH"
     post_error_message "$BRANCH_NAME"
     exit 1
@@ -195,21 +195,35 @@ fi
 # Convert paths for Windows
 APP_FOLDER_WIN_PATH=$(convert_path "${ADV_INST_SETUP_FILES}/app")
 CONFIG_WIN_PATH=$(convert_path "$ADV_INST_CONFIG")
+ADV_INST_WIN_PATH=$(convert_path "$ADV_INST_PATH")
 
 # Debug: Log the paths
+log "[INFO] ADV_INST_PATH: $ADV_INST_PATH"
+log "[INFO] ADV_INST_WIN_PATH: $ADV_INST_WIN_PATH"
 log "[INFO] APP_FOLDER_WIN_PATH: $APP_FOLDER_WIN_PATH"
 log "[INFO] CONFIG_WIN_PATH: $CONFIG_WIN_PATH"
-log "[INFO] ADV_INST_WIN_PATH: $ADV_INST_WIN_PATH"
+
+# Verify Advanced Installer executable after path conversion
+if [ ! -f "$(cygpath -u "$ADV_INST_WIN_PATH" 2>/dev/null || echo "$ADV_INST_WIN_PATH")" ]; then
+    log "[ERROR] Converted Advanced Installer path not found: $ADV_INST_WIN_PATH"
+    post_error_message "$BRANCH_NAME"
+    exit 1
+fi
 
 # Find all .jar files in the app folder
 JAR_FILES=$(find "${ADV_INST_SETUP_FILES}/app" -maxdepth 1 -name "*.jar" -type f)
 if [ -z "$JAR_FILES" ]; then
     log "[ERROR] No .jar files found in ${ADV_INST_SETUP_FILES}/app"
+    ls -l "${ADV_INST_SETUP_FILES}/app" 2>> "$ERROR_LOG_FILE"
     post_error_message "$BRANCH_NAME"
     exit 1
 fi
 
-# Add each .jar file individually to avoid wildcard issues
+# Debug: Log all .jar files found
+log "[INFO] Found .jar files:"
+echo "$JAR_FILES" | while read -r jar; do log "[INFO] - $jar"; done
+
+# Add each .jar file individually
 for JAR_FILE in $JAR_FILES; do
     JAR_FILE_WIN_PATH=$(convert_path "$JAR_FILE")
     log "[INFO] Adding $JAR_FILE_WIN_PATH to $ADV_INST_CONFIG..."
