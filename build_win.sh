@@ -118,7 +118,7 @@ fi
 log "[INFO] Running gradlew packageReleaseMsi..."
 ./gradlew packageReleaseMsi || { log "[ERROR] Failed to run gradlew packageReleaseMsi"; post_error_message "$BRANCH_NAME"; exit 1; }
 
-DESKTOP_BUILD_PATH="$PROJECT_DIR/desktopApp/build/compose/binaries/main-release/msi"
+DESKTOP_BUILD_PATH="$PROJECT_DIR/desktopApp/business/binaries/main-release/msi"
 MSI_FILE=$(find "$DESKTOP_BUILD_PATH" -name "Neuro*.msi" | head -n 1)
 if [ -z "$MSI_FILE" ]; then
     log "[ERROR] MSI file not found in $DESKTOP_BUILD_PATH"
@@ -176,9 +176,13 @@ cmd.exe /c "chcp 65001 > nul && \"${ADV_INST_WIN_PATH}\" /edit \"${CONFIG_WIN_PA
     exit 1;
 }
 
-# Generate new ProductCode
-cmd.exe /c "chcp 65001 > nul && \"${ADV_INST_WIN_PATH}\" /edit \"${CONFIG_WIN_PATH}\" /NewProductCode" 2>> "$ERROR_LOG_FILE" || {
-    log "[ERROR] Failed to generate new ProductCode";
+# Generate new ProductCode GUID
+NEW_GUID=$(powershell.exe "[guid]::NewGuid().ToString()" | tr -d '\r')
+[ -n "$NEW_GUID" ] || { log "[ERROR] Failed to generate ProductCode GUID"; post_error_message "$BRANCH_NAME"; exit 1; }
+
+# Set ProductCode
+cmd.exe /c "chcp 65001 > nul && \"${ADV_INST_WIN_PATH}\" /edit \"${CONFIG_WIN_PATH}\" /SetProductCode ${NEW_GUID}" 2>> "$ERROR_LOG_FILE" || {
+    log "[ERROR] Failed to set ProductCode";
     cat "$ERROR_LOG_FILE" | iconv -f CP1251 -t UTF-8 | tee -a "$LOG_FILE";
     post_error_message "$BRANCH_NAME";
     exit 1;
