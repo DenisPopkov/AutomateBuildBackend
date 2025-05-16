@@ -184,15 +184,53 @@ cp -f "${EXTRACT_DIR}/Neuro Desktop.exe" "${ADV_INST_SETUP_FILES}/Neuro Desktop.
 
 # Add new .jar files to .aip
 log "[INFO] Adding new .jar files to $ADV_INST_CONFIG..."
-APP_FOLDER_WIN_PATH=$(convert_path "${ADV_INST_SETUP_FILES}/app")
-cmd.exe /c "chcp 65001 > nul && \"${ADV_INST_WIN_PATH}\" /edit \"${CONFIG_WIN_PATH}\" /AddFile APPFOLDER \"${APP_FOLDER_WIN_PATH}\*.jar\"" 2>&1
-if [ $? -eq 0 ]; then
-    log "[INFO] New .jar files added to $ADV_INST_CONFIG"
-else
-    log "[ERROR] Failed to add new .jar files to $ADV_INST_CONFIG"
+
+# Verify Advanced Installer executable exists
+if [ ! -f "$(convert_path "$ADV_INST_PATH")" ]; then
+    log "[ERROR] Advanced Installer not found at $ADV_INST_PATH"
     post_error_message "$BRANCH_NAME"
     exit 1
 fi
+
+# Convert paths for Windows
+APP_FOLDER_WIN_PATH=$(convert_path "${ADV_INST_SETUP_FILES}/app")
+CONFIG_WIN_PATH=$(convert_path "$ADV_INST_CONFIG")
+
+# Debug: Log the paths
+log "[INFO] APP_FOLDER_WIN_PATH: $APP_FOLDER_WIN_PATH"
+log "[INFO] CONFIG_WIN_PATH: $CONFIG_WIN_PATH"
+log "[INFO] ADV_INST_WIN_PATH: $ADV_INST_WIN_PATH"
+
+# Find all .jar files in the app folder
+JAR_FILES=$(find "${ADV_INST_SETUP_FILES}/app" -maxdepth 1 -name "*.jar" -type f)
+if [ -z "$JAR_FILES" ]; then
+    log "[ERROR] No .jar files found in ${ADV_INST_SETUP_FILES}/app"
+    post_error_message "$BRANCH_NAME"
+    exit 1
+fi
+
+# Add each .jar file individually to avoid wildcard issues
+for JAR_FILE in $JAR_FILES; do
+    JAR_FILE_WIN_PATH=$(convert_path "$JAR_FILE")
+    log "[INFO] Adding $JAR_FILE_WIN_PATH to $ADV_INST_CONFIG..."
+
+    # Debug: Log the exact command
+    CMD="cmd.exe /c \"chcp 65001 > nul && \\\"${ADV_INST_WIN_PATH}\\\" /edit \\\"${CONFIG_WIN_PATH}\\\" /AddFile APPFOLDER \\\"${JAR_FILE_WIN_PATH}\\\"\""
+    log "[DEBUG] Executing: $CMD"
+
+    # Execute the command
+    cmd.exe /c "chcp 65001 > nul && \"${ADV_INST_WIN_PATH}\" /edit \"${CONFIG_WIN_PATH}\" /AddFile APPFOLDER \"${JAR_FILE_WIN_PATH}\"" 2>> "$ERROR_LOG_FILE"
+    if [ $? -eq 0 ]; then
+        log "[INFO] Successfully added $JAR_FILE_WIN_PATH"
+    else
+        log "[ERROR] Failed to add $JAR_FILE_WIN_PATH"
+        cat "$ERROR_LOG_FILE" | iconv -f CP1251 -t UTF-8
+        post_error_message "$BRANCH_NAME"
+        exit 1
+    fi
+done
+
+log "[INFO] All .jar files added to $ADV_INST_CONFIG"
 
 log "[INFO] Updating version, product code, and package file name in $ADV_INST_CONFIG..."
 ADV_INST_WIN_PATH=$(convert_path "$ADV_INST_PATH")
