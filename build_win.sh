@@ -183,7 +183,8 @@ NEW_GUID=$(powershell.exe "[guid]::NewGuid().ToString()" | tr -d '\r')
 [ -n "$NEW_GUID" ] || { log "[ERROR] Failed to generate ProductCode GUID"; post_error_message "$BRANCH_NAME"; exit 1; }
 
 log "[INFO] Setting ProductCode to $NEW_GUID..."
-cmd.exe /c "chcp 65001 > nul && \"${ADV_INST_WIN_PATH}\" /edit \"${CONFIG_WIN_PATH}\" /SetProductCode -langid 1033 -guid ${NEW_GUID}" 2>&1
+NEW_GUID=$(powershell.exe "[guid]::NewGuid().ToString()" | tr -d '\r\n ')
+cmd.exe /c "chcp 65001 > nul && \"C:\Program Files (x86)\Caphyon\Advanced Installer 21.0\bin\x86\AdvancedInstaller.com\" /edit \"C:\path\to\installer.aip\" /SetProductCode -langid 1033 -guid \"${NEW_GUID}\""
 if [ $? -eq 0 ]; then
     log "[INFO] ProductCode updated to ${NEW_GUID}"
 else
