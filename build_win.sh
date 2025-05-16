@@ -179,16 +179,19 @@ else
 fi
 
 log "[INFO] Generating new ProductCode GUID..."
-NEW_GUID=$(powershell.exe "[guid]::NewGuid().ToString()" | tr -d '\r')
-[ -n "$NEW_GUID" ] || { log "[ERROR] Failed to generate ProductCode GUID"; post_error_message "$BRANCH_NAME"; exit 1; }
+NEW_GUID=$(powershell.exe -Command "[guid]::NewGuid().ToString()" | tr -d '\r\n ')
+if [ -z "$NEW_GUID" ]; then
+    log "[ERROR] Failed to generate ProductCode GUID"
+    post_error_message "$BRANCH_NAME"
+    exit 1
+fi
 
-log "[INFO] Setting ProductCode to $NEW_GUID..."
-NEW_GUID=$(powershell.exe "[guid]::NewGuid().ToString()" | tr -d '\r\n ')
-cmd.exe /c "chcp 65001 > nul && \"${ADV_INST_WIN_PATH}\" /edit \"${CONFIG_WIN_PATH}\" /SetProductCode -langid 1033 -guid \"${NEW_GUID}\""
+log "[INFO] Setting ProductCode to {$NEW_GUID}..."
+cmd.exe /c "chcp 65001 > nul && \"${ADV_INST_WIN_PATH}\" /edit \"${CONFIG_WIN_PATH}\" /SetProductCode -langid 1033 -guid {$NEW_GUID}" 2>&1
 if [ $? -eq 0 ]; then
-    log "[INFO] ProductCode updated to ${NEW_GUID}"
+    log "[INFO] ProductCode updated to {$NEW_GUID}"
 else
-    log "[ERROR] Failed to set ProductCode"
+    log "[ERROR] Failed to update ProductCode"
     post_error_message "$BRANCH_NAME"
     exit 1
 fi
