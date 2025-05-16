@@ -157,12 +157,16 @@ if [ ! -d "$EXTRACT_DIR/app" ]; then
     exit 1
 fi
 
+log "[INFO] Removing old files from ADV_INST_SETUP_FILES..."
+[ -d "${ADV_INST_SETUP_FILES}/app" ] && rm -rf "${ADV_INST_SETUP_FILES}/app" && log "[INFO] Old app folder removed" || log "[INFO] No old app folder to remove"
+[ -f "${ADV_INST_SETUP_FILES}/Neuro Desktop.exe" ] && rm -f "${ADV_INST_SETUP_FILES}/Neuro Desktop.exe" && log "[INFO] Old Neuro Desktop.exe removed" || log "[INFO] No old Neuro Desktop.exe to remove"
+
 log "[INFO] Copying new app folder and Neuro Desktop.exe..."
 cp -rf "${EXTRACT_DIR}/app" "${ADV_INST_SETUP_FILES}/app" || { log "[ERROR] Failed to copy app folder"; post_error_message "$BRANCH_NAME"; exit 1; }
-[ -d "${ADV_INST_SETUP_FILES}/app" ] && log "[INFO] App folder copied" || { log "[ERROR] App folder not found after copy"; post_error_message "$BRANCH_NAME"; exit 1; }
+[ -d "${ADV_INST_SETUP_FILES}/app" ] && log "[INFO] App folder copied successfully" || { log "[ERROR] App folder not found after copy"; post_error_message "$BRANCH_NAME"; exit 1; }
 
 cp -f "${EXTRACT_DIR}/Neuro Desktop.exe" "${ADV_INST_SETUP_FILES}/Neuro Desktop.exe" || { log "[ERROR] Failed to copy Neuro Desktop.exe"; post_error_message "$BRANCH_NAME"; exit 1; }
-[ -f "${ADV_INST_SETUP_FILES}/Neuro Desktop.exe" ] && log "[INFO] Neuro Desktop.exe copied" || { log "[ERROR] Neuro Desktop.exe not found after copy"; post_error_message "$BRANCH_NAME"; exit 1; }
+[ -f "${ADV_INST_SETUP_FILES}/Neuro Desktop.exe" ] && log "[INFO] Neuro Desktop.exe copied successfully" || { log "[ERROR] Neuro Desktop.exe not found after copy"; post_error_message "$BRANCH_NAME"; exit 1; }
 
 log "[INFO] Updating version, product code, and package file name in $ADV_INST_CONFIG..."
 ADV_INST_WIN_PATH=$(convert_path "$ADV_INST_PATH")
