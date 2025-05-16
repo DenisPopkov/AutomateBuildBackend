@@ -17,7 +17,6 @@ ADV_INST_SETUP_FILES="/c/Users/BlackBricks/Applications/Neuro installer"
 ADVANCED_INSTALLER_MSI_FILES="/c/Users/BlackBricks/Applications/Neuro installer/installer_win/Neuro Desktop-SetupFiles"
 LESSMSI="/c/ProgramData/chocolatey/bin/lessmsi.exe"
 ADV_INST_PATH="C:/Program Files (x86)/Caphyon/Advanced Installer 22.6/bin/x86/AdvancedInstaller.com"
-LOG_FILE="/c/Users/BlackBricks/AppData/Local/Temp/build_win_log.txt"
 
 convert_path() {
     local path="$1"
@@ -30,14 +29,14 @@ convert_path() {
 
 check_error_log() {
     if [ -s "$ERROR_LOG_FILE" ]; then
-        log "[ERROR] Errors found in $ERROR_LOG_FILE:"
-        cat "$ERROR_LOG_FILE" | iconv -f CP1251 -t UTF-8 | tee -a "$LOG_FILE"
+        echo "[ERROR] Errors found in $ERROR_LOG_FILE:"
+        cat "$ERROR_LOG_FILE" | iconv -f CP1251 -t UTF-8
         exit 1
     fi
 }
 
 log() {
-    echo "$1" | tee -a "$LOG_FILE"
+    echo "$1"
 }
 
 post_error_message() {
@@ -118,8 +117,9 @@ fi
 log "[INFO] Running gradlew packageReleaseMsi..."
 ./gradlew packageReleaseMsi || { log "[ERROR] Failed to run gradlew packageReleaseMsi"; post_error_message "$BRANCH_NAME"; exit 1; }
 
-DESKTOP_BUILD_PATH="$PROJECT_DIR/desktopApp/business/binaries/main-release/msi"
+DESKTOP_BUILD_PATH="$PROJECT_DIR/desktopApp/build/compose/binaries/main-release/msi"
 MSI_FILE=$(find "$DESKTOP_BUILD_PATH" -name "Neuro*.msi" | head -n 1)
+log "[INFO] MSI_FILE: $MSI_FILE"
 if [ -z "$MSI_FILE" ]; then
     log "[ERROR] MSI file not found in $DESKTOP_BUILD_PATH"
     post_error_message "$BRANCH_NAME"
@@ -139,7 +139,7 @@ if [ ! -f "$LESSMSI" ]; then
     post_error_message "$BRANCH_NAME"
     exit 1
 fi
-"$LESSMSI" x "$MSI_WIN_PATH" 2>> "$ERROR_LOG_FILE" || { log "[ERROR] Failed to extract MSI"; cat "$ERROR_LOG_FILE" | iconv -f CP1251 -t UTF-8 | tee -a "$LOG_FILE"; post_error_message "$BRANCH_NAME"; exit 1; }
+"$LESSMSI" x "$MSI_WIN_PATH" 2>> "$ERROR_LOG_FILE" || { log "[ERROR] Failed to extract MSI"; cat "$ERROR_LOG_FILE" | iconv -f CP1251 -t UTF-8; post_error_message "$BRANCH_NAME"; exit 1; }
 check_error_log
 
 if [ -d "$EXTRACT_DIR" ]; then
@@ -168,38 +168,50 @@ log "[INFO] Updating version, product code, and package file name in $ADV_INST_C
 ADV_INST_WIN_PATH=$(convert_path "$ADV_INST_PATH")
 CONFIG_WIN_PATH=$(convert_path "$ADV_INST_CONFIG")
 
-# Set ProductVersion
-cmd.exe /c "chcp 65001 > nul && \"${ADV_INST_WIN_PATH}\" /edit \"${CONFIG_WIN_PATH}\" /SetVersion ${VERSION_NAME}" 2>> "$ERROR_LOG_FILE" || {
-    log "[ERROR] Failed to update ProductVersion";
-    cat "$ERROR_LOG_FILE" | iconv -f CP1251 -t UTF-8 | tee -a "$LOG_FILE";
-    post_error_message "$BRANCH_NAME";
-    exit 1;
-}
+log "[INFO] Setting ProductVersion to $VERSION_NAME..."
+cmd.exe /c "chcp 65001 > nul && \"${ADV_INST_WIN_PATH}\" /edit \"${CONFIG_WIN_PATH}\" /SetVersion ${VERSION_NAME}" 2>&1
+if [ $? -eq 0 ]; then
+    log "[INFO] ProductVersion updated to ${VERSION_NAME}"
+else
+    log "[ERROR] Failed to update ProductVersion"
+    post_error_message "$BRANCH_NAME"
+    exit 1
+fi
 
-# Generate new ProductCode GUID
+log "[INFO] Generating new ProductCode GUID..."
 NEW_GUID=$(powershell.exe "[guid]::NewGuid().ToString()" | tr -d '\r')
 [ -n "$NEW_GUID" ] || { log "[ERROR] Failed to generate ProductCode GUID"; post_error_message "$BRANCH_NAME"; exit 1; }
 
-# Set ProductCode
-cmd.exe /c "chcp 65001 > nul && \"${ADV_INST_WIN_PATH}\" /edit \"${CONFIG_WIN_PATH}\" /SetProductCode ${NEW_GUID}" 2>> "$ERROR_LOG_FILE" || {
-    log "[ERROR] Failed to set ProductCode";
-    cat "$ERROR_LOG_FILE" | iconv -f CP1251 -t UTF-8 | tee -a "$LOG_FILE";
-    post_error_message "$BRANCH_NAME";
-    exit 1;
-}
+log "[INFO] Setting ProductCode to $NEW_GUID..."
+cmd.exe /c "chcp 65001 > nul && \"${ADV_INST_WIN_PATH}\" /edit \"${CONFIG_WIN_PATH}\" /SetProductCode ${NEW_GUID}" 2>&1
+if [ $? -eq 0 ]; then
+    log "[INFO] ProductCode updated to ${NEW_GUID}"
+else
+    log "[ERROR] Failed to set ProductCode"
+    post_error_message "$BRANCH_NAME"
+    exit 1
+fi
 
-# Set PackageFileName
-cmd.exe /c "chcp 65001 > nul && \"${ADV_INST_WIN_PATH}\" /edit \"${CONFIG_WIN_PATH}\" /SetProperty PackageFileName=Neuro_Desktop-${VERSION_NAME}-${VERSION_CODE}" 2>> "$ERROR_LOG_FILE" || {
-    log "[ERROR] Failed to update PackageFileName";
-    cat "$ERROR_LOG_FILE" | iconv -f CP1251 -t UTF-8 | tee -a "$LOG_FILE";
-    post_error_message "$BRANCH_NAME";
-    exit 1;
-}
-check_error_log
+log "[INFO] Setting PackageFileName to Neuro_Desktop-${VERSION_NAME}-${VERSION_CODE}..."
+cmd.exe /c "chcp 65001 > nul && \"${ADV_INST_WIN_PATH}\" /edit \"${CONFIG_WIN_PATH}\" /SetProperty PackageFileName=Neuro_Desktop-${VERSION_NAME}-${VERSION_CODE}" 2>&1
+if [ $? -eq 0 ]; then
+    log "[INFO] PackageFileName updated"
+else
+    log "[ERROR] Failed to update PackageFileName"
+    post_error_message "$BRANCH_NAME"
+    exit 1
+fi
 
 log "[INFO] Building MSI with Advanced Installer..."
-cmd.exe /c "chcp 65001 > nul && \"${ADV_INST_WIN_PATH}\" /build \"${CONFIG_WIN_PATH}\"" 2>> "$ERROR_LOG_FILE" || { log "[ERROR] Failed to build MSI"; cat "$ERROR_LOG_FILE" | iconv -f CP1251 -t UTF-8 | tee -a "$LOG_FILE"; post_error_message "$BRANCH_NAME"; exit 1; }
-check_error_log
+BUILD_OUTPUT=$(cmd.exe /c "chcp 65001 > nul && \"${ADV_INST_WIN_PATH}\" /build \"${CONFIG_WIN_PATH}\"" 2>&1)
+if [ $? -eq 0 ]; then
+    log "[INFO] MSI built successfully"
+else
+    log "[ERROR] Failed to build MSI"
+    log "$BUILD_OUTPUT"
+    post_error_message "$BRANCH_NAME"
+    exit 1
+fi
 
 log "[INFO] Preparing to upload MSI to Slack..."
 SIGNED_MSI_PATH="$ADVANCED_INSTALLER_MSI_FILES/Neuro_Desktop-${VERSION_NAME}-${VERSION_CODE}.msi"
@@ -211,6 +223,9 @@ if [ ! -f "$SIGNED_MSI_PATH" ]; then
     post_error_message "$BRANCH_NAME"
     exit 1
 fi
+
+log "[INFO] Cleaning up temporary files..."
+rm -rf "$EXTRACT_DIR" && log "[INFO] Temporary extract directory removed" || log "[WARNING] Failed to remove temporary extract directory"
 
 #log "[INFO] Signing MSI: $SIGNED_MSI_WIN_PATH"
 #SIGNTOOL_PATH="C:\\Program Files (x86)\\Windows Kits\\10\\bin\\10.0.20348.0\\x86\\signtool.exe"
