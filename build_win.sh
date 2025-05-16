@@ -161,12 +161,38 @@ log "[INFO] Removing old files from ADV_INST_SETUP_FILES..."
 [ -d "${ADV_INST_SETUP_FILES}/app" ] && rm -rf "${ADV_INST_SETUP_FILES}/app" && log "[INFO] Old app folder removed" || log "[INFO] No old app folder to remove"
 [ -f "${ADV_INST_SETUP_FILES}/Neuro Desktop.exe" ] && rm -f "${ADV_INST_SETUP_FILES}/Neuro Desktop.exe" && log "[INFO] Old Neuro Desktop.exe removed" || log "[INFO] No old Neuro Desktop.exe to remove"
 
+# New logic to clean .jar references
+log "[INFO] Cleaning old .jar file references in $ADV_INST_CONFIG..."
+cp "$ADV_INST_CONFIG" "${ADV_INST_CONFIG}.backup" || {
+    log "[ERROR] Failed to backup $ADV_INST_CONFIG";
+    post_error_message "$BRANCH_NAME";
+    exit 1;
+}
+sed -i '/<FILE.*app\\.*\.jar.*<\/FILE>/d' "$ADV_INST_CONFIG" || {
+    log "[ERROR] Failed to remove old .jar references from $ADV_INST_CONFIG";
+    post_error_message "$BRANCH_NAME";
+    exit 1;
+}
+log "[INFO] Old .jar file references removed from $ADV_INST_CONFIG"
+
 log "[INFO] Copying new app folder and Neuro Desktop.exe..."
 cp -rf "${EXTRACT_DIR}/app" "${ADV_INST_SETUP_FILES}/app" || { log "[ERROR] Failed to copy app folder"; post_error_message "$BRANCH_NAME"; exit 1; }
 [ -d "${ADV_INST_SETUP_FILES}/app" ] && log "[INFO] App folder copied successfully" || { log "[ERROR] App folder not found after copy"; post_error_message "$BRANCH_NAME"; exit 1; }
 
 cp -f "${EXTRACT_DIR}/Neuro Desktop.exe" "${ADV_INST_SETUP_FILES}/Neuro Desktop.exe" || { log "[ERROR] Failed to copy Neuro Desktop.exe"; post_error_message "$BRANCH_NAME"; exit 1; }
 [ -f "${ADV_INST_SETUP_FILES}/Neuro Desktop.exe" ] && log "[INFO] Neuro Desktop.exe copied successfully" || { log "[ERROR] Neuro Desktop.exe not found after copy"; post_error_message "$BRANCH_NAME"; exit 1; }
+
+# Add new .jar files to .aip
+log "[INFO] Adding new .jar files to $ADV_INST_CONFIG..."
+APP_FOLDER_WIN_PATH=$(convert_path "${ADV_INST_SETUP_FILES}/app")
+cmd.exe /c "chcp 65001 > nul && \"${ADV_INST_WIN_PATH}\" /edit \"${CONFIG_WIN_PATH}\" /AddFile APPFOLDER \"${APP_FOLDER_WIN_PATH}\*.jar\"" 2>&1
+if [ $? -eq 0 ]; then
+    log "[INFO] New .jar files added to $ADV_INST_CONFIG"
+else
+    log "[ERROR] Failed to add new .jar files to $ADV_INST_CONFIG"
+    post_error_message "$BRANCH_NAME"
+    exit 1
+fi
 
 log "[INFO] Updating version, product code, and package file name in $ADV_INST_CONFIG..."
 ADV_INST_WIN_PATH=$(convert_path "$ADV_INST_PATH")
