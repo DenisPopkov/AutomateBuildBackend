@@ -157,23 +157,43 @@ if [ ! -d "$EXTRACT_DIR/app" ]; then
     exit 1
 fi
 
-log "[INFO] Copying new app and runtime folders..."
+log "[INFO] Copying new app folder and Neuro Desktop.exe..."
 cp -rf "${EXTRACT_DIR}/app" "${ADV_INST_SETUP_FILES}/app" || { log "[ERROR] Failed to copy app folder"; post_error_message "$BRANCH_NAME"; exit 1; }
 [ -d "${ADV_INST_SETUP_FILES}/app" ] && log "[INFO] App folder copied" || { log "[ERROR] App folder not found after copy"; post_error_message "$BRANCH_NAME"; exit 1; }
 
-cp -rf "${EXTRACT_DIR}/runtime" "${ADV_INST_SETUP_FILES}/runtime" || { log "[ERROR] Failed to copy runtime folder"; post_error_message "$BRANCH_NAME"; exit 1; }
-[ -d "${ADV_INST_SETUP_FILES}/runtime" ] && log "[INFO] Runtime folder copied" || { log "[ERROR] Runtime folder not found after copy"; post_error_message "$BRANCH_NAME"; exit 1; }
+cp -f "${EXTRACT_DIR}/Neuro Desktop.exe" "${ADV_INST_SETUP_FILES}/Neuro Desktop.exe" || { log "[ERROR] Failed to copy Neuro Desktop.exe"; post_error_message "$BRANCH_NAME"; exit 1; }
+[ -f "${ADV_INST_SETUP_FILES}/Neuro Desktop.exe" ] && log "[INFO] Neuro Desktop.exe copied" || { log "[ERROR] Neuro Desktop.exe not found after copy"; post_error_message "$BRANCH_NAME"; exit 1; }
 
-log "[INFO] Updating version and product code in $ADV_INST_CONFIG..."
-sed -i.bak "s/\(Property=\"ProductVersion\" Value=\"\)[^\"]*\(\".*\)/\1${VERSION_NAME}\2/" "$ADV_INST_CONFIG" || { log "[ERROR] Failed to update ProductVersion"; post_error_message "$BRANCH_NAME"; exit 1; }
-NEW_GUID=$(powershell.exe "[guid]::NewGuid().ToString()" | tr -d '\r')
-[ -n "$NEW_GUID" ] || { log "[ERROR] Failed to generate ProductCode"; post_error_message "$BRANCH_NAME"; exit 1; }
-sed -i.bak "s/\(Property=\"ProductCode\" Value=\"\)[^\"]*\(\".*\)/\1${NEW_GUID}\2/" "$ADV_INST_CONFIG" || { log "[ERROR] Failed to update ProductCode"; post_error_message "$BRANCH_NAME"; exit 1; }
-sed -i.bak "s/\(PackageFileName=\"Neuro_Desktop-\)[^\"]*\(\".*\)/\1${VERSION_NAME}-${VERSION_CODE}\2/" "$ADV_INST_CONFIG" || { log "[ERROR] Failed to update PackageFileName"; post_error_message "$BRANCH_NAME"; exit 1; }
-
-log "[INFO] Building MSI with Advanced Installer..."
+log "[INFO] Updating version, product code, and package file name in $ADV_INST_CONFIG..."
 ADV_INST_WIN_PATH=$(convert_path "$ADV_INST_PATH")
 CONFIG_WIN_PATH=$(convert_path "$ADV_INST_CONFIG")
+
+# Set ProductVersion
+cmd.exe /c "chcp 65001 > nul && \"${ADV_INST_WIN_PATH}\" /edit \"${CONFIG_WIN_PATH}\" /SetVersion ${VERSION_NAME}" 2>> "$ERROR_LOG_FILE" || {
+    log "[ERROR] Failed to update ProductVersion";
+    cat "$ERROR_LOG_FILE" | iconv -f CP1251 -t UTF-8 | tee -a "$LOG_FILE";
+    post_error_message "$BRANCH_NAME";
+    exit 1;
+}
+
+# Generate new ProductCode
+cmd.exe /c "chcp 65001 > nul && \"${ADV_INST_WIN_PATH}\" /edit \"${CONFIG_WIN_PATH}\" /NewProductCode" 2>> "$ERROR_LOG_FILE" || {
+    log "[ERROR] Failed to generate new ProductCode";
+    cat "$ERROR_LOG_FILE" | iconv -f CP1251 -t UTF-8 | tee -a "$LOG_FILE";
+    post_error_message "$BRANCH_NAME";
+    exit 1;
+}
+
+# Set PackageFileName
+cmd.exe /c "chcp 65001 > nul && \"${ADV_INST_WIN_PATH}\" /edit \"${CONFIG_WIN_PATH}\" /SetProperty PackageFileName=Neuro_Desktop-${VERSION_NAME}-${VERSION_CODE}" 2>> "$ERROR_LOG_FILE" || {
+    log "[ERROR] Failed to update PackageFileName";
+    cat "$ERROR_LOG_FILE" | iconv -f CP1251 -t UTF-8 | tee -a "$LOG_FILE";
+    post_error_message "$BRANCH_NAME";
+    exit 1;
+}
+check_error_log
+
+log "[INFO] Building MSI with Advanced Installer..."
 cmd.exe /c "chcp 65001 > nul && \"${ADV_INST_WIN_PATH}\" /build \"${CONFIG_WIN_PATH}\"" 2>> "$ERROR_LOG_FILE" || { log "[ERROR] Failed to build MSI"; cat "$ERROR_LOG_FILE" | iconv -f CP1251 -t UTF-8 | tee -a "$LOG_FILE"; post_error_message "$BRANCH_NAME"; exit 1; }
 check_error_log
 
