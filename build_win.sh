@@ -35,6 +35,38 @@ check_error_log() {
     fi
 }
 
+update_aip_jar_references() {
+    local aip_file="$1"
+    local app_dir="$2"
+
+    log "[INFO] Updating .jar file references in $aip_file from $app_dir"
+
+    for jar in "$app_dir"/*.jar; do
+        local base_name
+        base_name=$(basename "$jar")
+
+        local prefix
+        prefix=$(echo "$base_name" | sed -E 's/-[0-9a-f]{32}\.jar$//')
+
+        if [[ "$prefix" == "$base_name" ]]; then
+            log "[WARNING] $base_name does not match expected naming pattern, skipping"
+            continue
+        fi
+
+        log "[INFO] Updating references for $prefix"
+
+        sed -i "/<ROW File=\"${prefix//./\\.}.*\.jar\" .*SourcePath=\"..\\\\app\\\\${prefix//./\\.}.*\.jar\"/d" "$aip_file"
+        local new_row="<ROW File=\"${base_name//./}0\" Component_=\"maincomponent\" FileName=\"${base_name^^}\" Attributes=\"0\" SourcePath=\"..\\\\app\\\\$base_name\" SelfReg=\"false\"/>"
+
+        sed -i "0,/<ROW /s//${new_row}\n&/" "$aip_file"
+    done
+
+    log "[INFO] All .jar references updated"
+}
+
+update_aip_jar_references "$ADV_INST_CONFIG" "${ADV_INST_SETUP_FILES}/app"
+
+
 log() {
     echo "$1"
 }
@@ -179,72 +211,10 @@ log "[INFO] Copying new app folder and Neuro Desktop.exe..."
 cp -rf "${EXTRACT_DIR}/app" "${ADV_INST_SETUP_FILES}/app" || { log "[ERROR] Failed to copy app folder"; post_error_message "$BRANCH_NAME"; exit 1; }
 [ -d "${ADV_INST_SETUP_FILES}/app" ] && log "[INFO] App folder copied successfully" || { log "[ERROR] App folder not found after copy"; post_error_message "$BRANCH_NAME"; exit 1; }
 
+update_aip_jar_references "$ADV_INST_CONFIG" "${ADV_INST_SETUP_FILES}/app"
+
 cp -f "${EXTRACT_DIR}/Neuro Desktop.exe" "${ADV_INST_SETUP_FILES}/Neuro Desktop.exe" || { log "[ERROR] Failed to copy Neuro Desktop.exe"; post_error_message "$BRANCH_NAME"; exit 1; }
 [ -f "${ADV_INST_SETUP_FILES}/Neuro Desktop.exe" ] && log "[INFO] Neuro Desktop.exe copied successfully" || { log "[ERROR] Neuro Desktop.exe not found after copy"; post_error_message "$BRANCH_NAME"; exit 1; }
-
-# Add new .jar files to .aip
-log "[INFO] Adding new .jar files to $ADV_INST_CONFIG..."
-
-# Verify Advanced Installer executable exists
-if [ ! -f "$ADV_INST_PATH" ]; then
-    log "[ERROR] Advanced Installer not found at $ADV_INST_PATH"
-    post_error_message "$BRANCH_NAME"
-    exit 1
-fi
-
-# Convert paths for Windows
-APP_FOLDER_WIN_PATH=$(convert_path "${ADV_INST_SETUP_FILES}/app")
-CONFIG_WIN_PATH=$(convert_path "$ADV_INST_CONFIG")
-ADV_INST_WIN_PATH=$(convert_path "$ADV_INST_PATH")
-
-# Debug: Log the paths
-log "[INFO] ADV_INST_PATH: $ADV_INST_PATH"
-log "[INFO] ADV_INST_WIN_PATH: $ADV_INST_WIN_PATH"
-log "[INFO] APP_FOLDER_WIN_PATH: $APP_FOLDER_WIN_PATH"
-log "[INFO] CONFIG_WIN_PATH: $CONFIG_WIN_PATH"
-
-# Verify Advanced Installer executable after path conversion
-if [ ! -f "$(cygpath -u "$ADV_INST_WIN_PATH" 2>/dev/null || echo "$ADV_INST_WIN_PATH")" ]; then
-    log "[ERROR] Converted Advanced Installer path not found: $ADV_INST_WIN_PATH"
-    post_error_message "$BRANCH_NAME"
-    exit 1
-fi
-
-# Find all .jar files in the app folder
-JAR_FILES=$(find "${ADV_INST_SETUP_FILES}/app" -maxdepth 1 -name "*.jar" -type f)
-if [ -z "$JAR_FILES" ]; then
-    log "[ERROR] No .jar files found in ${ADV_INST_SETUP_FILES}/app"
-    ls -l "${ADV_INST_SETUP_FILES}/app" 2>> "$ERROR_LOG_FILE"
-    post_error_message "$BRANCH_NAME"
-    exit 1
-fi
-
-# Debug: Log all .jar files found
-log "[INFO] Found .jar files:"
-echo "$JAR_FILES" | while read -r jar; do log "[INFO] - $jar"; done
-
-# Add each .jar file individually
-for JAR_FILE in $JAR_FILES; do
-    JAR_FILE_WIN_PATH=$(convert_path "$JAR_FILE")
-    log "[INFO] Adding $JAR_FILE_WIN_PATH to $ADV_INST_CONFIG..."
-
-    # Debug: Log the exact command
-    CMD="cmd.exe /c \"chcp 65001 > nul && \\\"${ADV_INST_WIN_PATH}\\\" /edit \\\"${CONFIG_WIN_PATH}\\\" /AddFile APPFOLDER \\\"${JAR_FILE_WIN_PATH}\\\"\""
-    log "[DEBUG] Executing: $CMD"
-
-    # Execute the command
-    cmd.exe /c "chcp 65001 > nul && \"${ADV_INST_WIN_PATH}\" /edit \"${CONFIG_WIN_PATH}\" /AddFile APPFOLDER \"${JAR_FILE_WIN_PATH}\"" 2>> "$ERROR_LOG_FILE"
-    if [ $? -eq 0 ]; then
-        log "[INFO] Successfully added $JAR_FILE_WIN_PATH"
-    else
-        log "[ERROR] Failed to add $JAR_FILE_WIN_PATH"
-        cat "$ERROR_LOG_FILE" | iconv -f CP1251 -t UTF-8
-        post_error_message "$BRANCH_NAME"
-        exit 1
-    fi
-done
-
-log "[INFO] All .jar files added to $ADV_INST_CONFIG"
 
 log "[INFO] Updating version, product code, and package file name in $ADV_INST_CONFIG..."
 ADV_INST_WIN_PATH=$(convert_path "$ADV_INST_PATH")
