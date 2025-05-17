@@ -43,8 +43,10 @@ function Update-AipJarReferences {
         foreach ($row in $rows.Clone()) {
             $sourcePath = $row.SourcePath
             if ($sourcePath -match $regex) {
-                $row.ParentNode.RemoveChild($row) | Out-Null
-                Write-Host "[INFO] Removed old reference: $sourcePath" -ForegroundColor DarkGray
+                if ($null -ne $row.ParentNode) {
+                    $row.ParentNode.RemoveChild($row) | Out-Null
+                    Write-Host "[INFO] Removed old reference: $sourcePath" -ForegroundColor DarkGray
+                }
             }
         }
     }
