@@ -46,9 +46,16 @@ function Update-AipJarReferences {
                 $newJar = $JarMap[$pattern]
                 $oldSourcePath = $row.SourcePath
                 $row.SetAttribute("SourcePath", "..\\app\\$newJar")
-                $row.SetAttribute("File", $newJar)
-                $row.SetAttribute("FileName", "OUTPUT~1.JAR|$newJar")
+                $originalFileName = $row.FileName
+                if ($originalFileName -match '^(.*)\|(.*)$') {
+                    $shortName = $matches[1]
+                    $row.SetAttribute("FileName", "$shortName|$newJar")
+                } else {
+                    Write-Warning "Invalid FileName format: $originalFileName"
+                    $row.SetAttribute("FileName", "DEFAULT~1.JAR|$newJar")
+                }
                 Write-Host "[DEBUG] Replaced SourcePath '$oldSourcePath' → '..\\app\\$newJar'" -ForegroundColor Yellow
+                Write-Host "[DEBUG] Updated FileName to '$($row.FileName)'" -ForegroundColor Yellow
                 $replacementCount++
                 break
             }
