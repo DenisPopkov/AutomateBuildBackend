@@ -193,7 +193,7 @@ for pattern in "${JAR_PATTERNS[@]}"; do
     JAR_NAME=$(basename "$JAR_FILE")
     log "[INFO] Found jar file for pattern '$pattern': $JAR_NAME"
 
-    if ! powershell -File "C:/Users/BlackBricks/PycharmProjects/AutomateBuildBackend/parser.ps1" \
+    if ! powershell -ExecutionPolicy Bypass -File "C:/Users/BlackBricks/PycharmProjects/AutomateBuildBackend/parser.ps1" \
         -AipFile "$ADV_INST_CONFIG" \
         -AppDir "$APP_JAR_DIR" \
         -NewJarName "$JAR_NAME"; then
