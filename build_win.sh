@@ -35,38 +35,6 @@ check_error_log() {
     fi
 }
 
-update_aip_jar_references() {
-    local aip_file="$1"
-    local app_dir="$2"
-
-    log "[INFO] Updating .jar file references in $aip_file from $app_dir"
-
-    for jar in "$app_dir"/*.jar; do
-        local base_name
-        base_name=$(basename "$jar")
-
-        local prefix
-        prefix=$(echo "$base_name" | sed -E 's/-[0-9a-f]{32}\.jar$//')
-
-        if [[ "$prefix" == "$base_name" ]]; then
-            log "[WARNING] $base_name does not match expected naming pattern, skipping"
-            continue
-        fi
-
-        log "[INFO] Updating references for $prefix"
-
-        sed -i "/<ROW File=\"${prefix//./\\.}.*\.jar\" .*SourcePath=\"..\\\\app\\\\${prefix//./\\.}.*\.jar\"/d" "$aip_file"
-        local new_row="<ROW File=\"${base_name//./}0\" Component_=\"maincomponent\" FileName=\"${base_name^^}\" Attributes=\"0\" SourcePath=\"..\\\\app\\\\$base_name\" SelfReg=\"false\"/>"
-
-        sed -i "0,/<ROW /s//${new_row}\n&/" "$aip_file"
-    done
-
-    log "[INFO] All .jar references updated"
-}
-
-update_aip_jar_references "$ADV_INST_CONFIG" "${ADV_INST_SETUP_FILES}/app"
-
-
 log() {
     echo "$1"
 }
@@ -211,7 +179,31 @@ log "[INFO] Copying new app folder and Neuro Desktop.exe..."
 cp -rf "${EXTRACT_DIR}/app" "${ADV_INST_SETUP_FILES}/app" || { log "[ERROR] Failed to copy app folder"; post_error_message "$BRANCH_NAME"; exit 1; }
 [ -d "${ADV_INST_SETUP_FILES}/app" ] && log "[INFO] App folder copied successfully" || { log "[ERROR] App folder not found after copy"; post_error_message "$BRANCH_NAME"; exit 1; }
 
-update_aip_jar_references "$ADV_INST_CONFIG" "${ADV_INST_SETUP_FILES}/app"
+APP_JAR_DIR="${ADV_INST_SETUP_FILES}/app"
+
+declare -a JAR_PATTERNS=("output-*.jar" "shared-jvm-*.jar" "skiko-awt-runtime-windows-x64-*.jar")
+
+for pattern in "${JAR_PATTERNS[@]}"; do
+    JAR_FILE=$(find "$APP_JAR_DIR" -maxdepth 1 -type f -name "$pattern" | head -n 1)
+    if [ -z "$JAR_FILE" ]; then
+        log "[ERROR] .jar file matching pattern '$pattern' not found in $APP_JAR_DIR"
+        post_error_message "$BRANCH_NAME"
+        exit 1
+    fi
+    JAR_NAME=$(basename "$JAR_FILE")
+    log "[INFO] Found jar file for pattern '$pattern': $JAR_NAME"
+
+    if ! pwsh -File "C:/Users/BlackBricks/PycharmProjects/AutomateBuildBackend/parser.ps1" \
+        -AipFile "$ADV_INST_CONFIG" \
+        -AppDir "$APP_JAR_DIR" \
+        -NewJarName "$JAR_NAME"; then
+        log "[ERROR] PowerShell script failed for $JAR_NAME"
+        post_error_message "$BRANCH_NAME"
+        exit 1
+    fi
+done
+
+log "[SUCCESS] All .jar references updated successfully."
 
 cp -f "${EXTRACT_DIR}/Neuro Desktop.exe" "${ADV_INST_SETUP_FILES}/Neuro Desktop.exe" || { log "[ERROR] Failed to copy Neuro Desktop.exe"; post_error_message "$BRANCH_NAME"; exit 1; }
 [ -f "${ADV_INST_SETUP_FILES}/Neuro Desktop.exe" ] && log "[INFO] Neuro Desktop.exe copied successfully" || { log "[ERROR] Neuro Desktop.exe not found after copy"; post_error_message "$BRANCH_NAME"; exit 1; }
