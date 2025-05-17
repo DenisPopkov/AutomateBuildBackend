@@ -7,7 +7,7 @@ if (-not (Test-Path -Path $aipFile -PathType Leaf)) {
     exit 1
 }
 
-if (-not (Test-Path -Path $appDir -PathType Container)) {
+if (-not (Test-Path -Path $AppDir -PathType Container)) {
     Write-Error "[ERROR] App directory not found: $appDir"
     exit 1
 }
@@ -40,19 +40,25 @@ function Update-AipJarReferences {
 
         Write-Host "[INFO] Updating references for $prefix"
 
-        # Убираем старые ссылки, экранируем точки для regex
+        # Экранируем точки для regex
         $escapedPrefix = [regex]::Escape($prefix)
-        # Паттерн для строки, которая будет удалена
-        $pattern = "<ROW File=`"$escapedPrefix.*\.jar`" .*SourcePath=`"..\\\\app\\\\$escapedPrefix.*\.jar`""
+        # Паттерн для поиска старой строки
+        $pattern = "<ROW File=`"$escapedPrefix-[0-9a-f]{32}\.jar`" Component_=`"(.*?)\`" FileName=`"(.*?)\`" Attributes=`"(.*?)\`" SourcePath=`"\.\.\\app\\$escapedPrefix-[0-9a-f]{32}\.jar`" SelfReg=`"(.*?)\`"/>"
 
-        # Удаляем все такие строки из контента
-        $content = $content -replace "$pattern.*`r?`n", ""
+        # Создаем новую строку с сохранением атрибутов
+        $newRow = $content -replace $pattern, {
+            param($match)
+            $component = $match.Groups[1].Value
+            $fileName = $match.Groups[2].Value
+            $attributes = $match.Groups[3].Value
+            $selfReg = $match.Groups[4].Value
+            "<ROW File=`"$baseName`" Component_=`"$component`" FileName=`"$fileName`" Attributes=`"$attributes`" SourcePath=`"..\\app\\$baseName`" SelfReg=`"$selfReg`"/>"
+        }
 
-        # Создаем новую строку (пример)
-        $newRow = "<ROW File=""$($baseName -replace '\.','')0"" Component_=""maincomponent"" FileName=""$($baseName.ToUpper())"" Attributes=""0"" SourcePath=""..\\app\\$baseName"" SelfReg=""false""/>"
-
-        # Вставляем новую строку перед первым <ROW
-        $content = $content -replace "(<ROW )", "$newRow`n$1", 1
+        # Если замена произошла, обновляем контент
+        if ($newRow -ne $content) {
+            $content = $newRow
+        }
     }
 
     # Записываем обратно в файл
