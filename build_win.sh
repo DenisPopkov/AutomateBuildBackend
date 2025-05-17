@@ -298,7 +298,7 @@ else
     exit 1
 fi
 
-sleep 60
+sleep 20
 
 log "[INFO] Renaming MSI file in ADVANCED_INSTALLER_MSI_FILES..."
 ADVANCED_MSI_FILE=$(find "$ADVANCED_INSTALLER_MSI_FILES" -name "Neuro*.msi" -type f -printf "%T@ %p\n" | sort -nr | head -n 1 | cut -d' ' -f2-)
