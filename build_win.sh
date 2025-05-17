@@ -289,6 +289,8 @@ log "[INFO] Building MSI with Advanced Installer..."
 BUILD_OUTPUT=$(cmd.exe /c "chcp 65001 > nul && \"${ADV_INST_WIN_PATH}\" /build \"${CONFIG_WIN_PATH}\"" 2>&1)
 if [ $? -eq 0 ]; then
     log "[INFO] MSI built successfully"
+    log "[DEBUG] Contents of $ADVANCED_INSTALLER_MSI_FILES:"
+    ls -la "$ADVANCED_INSTALLER_MSI_FILES"
 else
     log "[ERROR] Failed to build MSI"
     log "$BUILD_OUTPUT"
@@ -298,6 +300,7 @@ fi
 
 log "[INFO] Renaming MSI file in ADVANCED_INSTALLER_MSI_FILES..."
 ADVANCED_MSI_FILE=$(find "$ADVANCED_INSTALLER_MSI_FILES" -name "Neuro*.msi" | head -n 1)
+log "[DEBUG] ADVANCED_MSI_FILE is: $ADVANCED_MSI_FILE"
 if [ -z "$ADVANCED_MSI_FILE" ]; then
     log "[ERROR] MSI file not found in $ADVANCED_INSTALLER_MSI_FILES"
     post_error_message "$BRANCH_NAME"
