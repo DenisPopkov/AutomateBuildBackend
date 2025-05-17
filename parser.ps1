@@ -1,11 +1,14 @@
 param (
-    [string]$AipFile = "C:\Users\BlackBricks\Applications\Neuro installer\installer_win\Neuro Desktop 2.aip",
-    [hashtable]$JarMap = @{
-        "output-*.jar" = "output-1.0.0-a6ee8738a338e7399f71acc454becf.jar";
-        "shared-jvm-*.jar" = "shared-jvm-1.0.0-5df8204ba5ccd6b335aa24fa32fbf4fa.jar";
-        "skiko-awt-runtime-windows-x64-*.jar" = "skiko-awt-runtime-windows-x64-0.8.4-be7bb93d693279a57df682b756f865.jar"
-    }
+    [string]$AipFile,
+    [string]$JarMapFile
 )
+
+if (-not (Test-Path $JarMapFile)) {
+    Write-Error "JarMapFile not found: $JarMapFile"
+    exit 1
+}
+
+$JarMap = Import-PowerShellDataFile -Path $JarMapFile
 
 function Update-AipJarReferences {
     param (
@@ -35,10 +38,21 @@ function Update-AipJarReferences {
     $rows = $xml.SelectNodes("//ROW")
     $replacementCount = 0
 
+    foreach ($pattern in $JarMap.Keys) {
+        $regex = $pattern -replace "\*", ".*"
+        foreach ($row in $rows.Clone()) {
+            $sourcePath = $row.SourcePath
+            if ($sourcePath -match $regex) {
+                $row.ParentNode.RemoveChild($row) | Out-Null
+                Write-Host "[INFO] Removed old reference: $sourcePath" -ForegroundColor DarkGray
+            }
+        }
+    }
+
     foreach ($row in $rows) {
         $sourcePath = $row.SourcePath
         foreach ($pattern in $JarMap.Keys) {
-            $regex = ($pattern -replace "\*", ".*")  # Преобразуем glob в regex
+            $regex = $pattern -replace "\*", ".*"
             if ($sourcePath -match $regex) {
                 $newJar = $JarMap[$pattern]
                 $oldSourcePath = $row.SourcePath
@@ -47,7 +61,7 @@ function Update-AipJarReferences {
                 $row.SetAttribute("FileName", "OUTPUT~1.JAR|$newJar")
                 Write-Host "[DEBUG] Replaced SourcePath '$oldSourcePath' → '..\\app\\$newJar'" -ForegroundColor Yellow
                 $replacementCount++
-                break  # не проверяем другие паттерны для этой строки
+                break
             }
         }
     }

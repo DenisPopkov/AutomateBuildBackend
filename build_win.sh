@@ -207,12 +207,9 @@ done
 echo "}" >> "$JAR_MAP_FILE"
 
 # Запускаем PowerShell скрипт один раз с полной картой
-if ! powershell -ExecutionPolicy Bypass -Command "& {
-    \$JarMap = Import-PowerShellDataFile -Path '$JAR_MAP_FILE'
-    . 'C:/Users/BlackBricks/PycharmProjects/AutomateBuildBackend/parser.ps1' `
-        -AipFile '$TEMP_AIP' `
-        -JarMap \$JarMap
-}"; then
+if ! powershell -ExecutionPolicy Bypass -File "C:/Users/BlackBricks/PycharmProjects/AutomateBuildBackend/parser.ps1" \
+  -AipFile "$TEMP_AIP" \
+  -JarMapFile "$JAR_MAP_FILE"; then
     echo "[ERROR] PowerShell script failed"
     exit 1
 fi
