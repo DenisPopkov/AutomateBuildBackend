@@ -183,25 +183,31 @@ APP_JAR_DIR="${ADV_INST_SETUP_FILES}/app"
 
 declare -a JAR_PATTERNS=("output-*.jar" "shared-jvm-*.jar" "skiko-awt-runtime-windows-x64-*.jar")
 
-for pattern in "${JAR_PATTERNS[@]}"; do
-    JAR_FILE=$(find "$APP_JAR_DIR" -maxdepth 1 -type f -name "$pattern" | head -n 1)
-    if [ -z "$JAR_FILE" ]; then
-        log "[ERROR] .jar file matching pattern '$pattern' not found in $APP_JAR_DIR"
-        post_error_message "$BRANCH_NAME"
-        exit 1
-    fi
-    JAR_NAME=$(basename "$JAR_FILE")
-    log "[INFO] Found jar file for pattern '$pattern': $JAR_NAME"
+# Создаем временную копию оригинального aip файла
+TEMP_AIP="${ADV_INST_CONFIG}.tmp"
+cp "$ADV_INST_CONFIG" "$TEMP_AIP"
 
+for pattern in "${JAR_PATTERNS[@]}"; do
+    # Получаем имя jar для текущего паттерна
+    JAR_NAME=$(find "$APP_JAR_DIR" -name "$pattern" -print -quit)
+    if [ -z "$JAR_NAME" ]; then
+        echo "[WARNING] Jar not found for pattern: $pattern"
+        continue
+    fi
+    echo "[INFO] Replacing jar for pattern $pattern with $JAR_NAME"
+
+    # Запускаем powershell скрипт с временным aip файлом и перезаписываем его
     if ! powershell -ExecutionPolicy Bypass -File "C:/Users/BlackBricks/PycharmProjects/AutomateBuildBackend/parser.ps1" \
-        -AipFile "$ADV_INST_CONFIG" \
+        -AipFile "$TEMP_AIP" \
         -AppDir "$APP_JAR_DIR" \
-        -NewJarName "$JAR_NAME"; then
-        log "[ERROR] PowerShell script failed for $JAR_NAME"
-        post_error_message "$BRANCH_NAME"
+        -NewJarName "$JAR_NAME" ; then
+        echo "[ERROR] PowerShell script failed for $pattern"
         exit 1
     fi
 done
+
+# После всех замен перезаписываем оригинальный aip файлом с обновленным контентом
+mv "$TEMP_AIP" "$ADV_INST_CONFIG"
 
 log "[SUCCESS] All .jar references updated successfully."
 
