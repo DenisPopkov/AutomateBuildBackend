@@ -303,27 +303,54 @@ sleep 60
 log "[INFO] Renaming MSI file in ADVANCED_INSTALLER_MSI_FILES..."
 ADVANCED_MSI_FILE=$(find "$ADVANCED_INSTALLER_MSI_FILES" -name "Neuro*.msi" -type f -printf "%T@ %p\n" | sort -nr | head -n 1 | cut -d' ' -f2-)
 log "[DEBUG] ADVANCED_MSI_FILE is: $ADVANCED_MSI_FILE"
+
 if [ -z "$ADVANCED_MSI_FILE" ]; then
     log "[ERROR] MSI file not found in $ADVANCED_INSTALLER_MSI_FILES"
     post_error_message "$BRANCH_NAME"
     exit 1
 fi
 
+if [ ! -f "$ADVANCED_MSI_FILE" ]; then
+    log "[ERROR] MSI file does not exist at $ADVANCED_MSI_FILE"
+    post_error_message "$BRANCH_NAME"
+    exit 1
+fi
+
+if [ ! -r "$ADVANCED_MSI_FILE" ] || [ ! -w "$ADVANCED_MSI_FILE" ]; then
+    log "[ERROR] Insufficient permissions for $ADVANCED_MSI_FILE"
+    post_error_message "$BRANCH_NAME"
+    exit 1
+fi
+
+# Wait to ensure the file is not locked
+sleep 120
+
+if lsof "$ADVANCED_MSI_FILE" >/dev/null 2>&1; then
+    log "[ERROR] File $ADVANCED_MSI_FILE is in use"
+    post_error_message "$BRANCH_NAME"
+    exit 1
+fi
+
 NEW_ADVANCED_MSI_PATH="$ADVANCED_INSTALLER_MSI_FILES/Neuro_Desktop-${VERSION_NAME}-${VERSION_CODE}.msi"
-if [ -f "$NEW_ADVANCED_MSI_PATH" ]; then
-    rm -f "$NEW_ADVANCED_MSI_PATH" || {
-        log "[ERROR] Failed to remove existing MSI at $NEW_ADVANCED_MSI_PATH"
+log "[DEBUG] NEW_ADVANCED_MSI_PATH is: $NEW_ADVANCED_MSI_PATH"
+
+if [ "$ADVANCED_MSI_FILE" = "$NEW_ADVANCED_MSI_PATH" ]; then
+    log "[INFO] MSI file is already correctly named: $NEW_ADVANCED_MSI_PATH"
+else
+    if [ -f "$NEW_ADVANCED_MSI_PATH" ]; then
+        rm -f "$NEW_ADVANCED_MSI_PATH" || {
+            log "[ERROR] Failed to remove existing MSI at $NEW_ADVANCED_MSI_PATH"
+            post_error_message "$BRANCH_NAME"
+            exit 1
+        }
+    fi
+    mv "$ADVANCED_MSI_FILE" "$NEW_ADVANCED_MSI_PATH" || {
+        log "[ERROR] Failed to rename MSI in ADVANCED_INSTALLER_MSI_FILES"
         post_error_message "$BRANCH_NAME"
         exit 1
     }
+    log "[INFO] Renamed MSI to: $NEW_ADVANCED_MSI_PATH"
 fi
-
-mv "$ADVANCED_MSI_FILE" "$NEW_ADVANCED_MSI_PATH" || {
-    log "[ERROR] Failed to rename MSI in ADVANCED_INSTALLER_MSI_FILES"
-    post_error_message "$BRANCH_NAME"
-    exit 1
-}
-log "[INFO] Renamed MSI to: $NEW_ADVANCED_MSI_PATH"
 
 #log "[INFO] Preparing to upload MSI to Slack..."
 #SIGNED_MSI_WIN_PATH=$(convert_path "$NEW_ADVANCED_MSI_PATH")
