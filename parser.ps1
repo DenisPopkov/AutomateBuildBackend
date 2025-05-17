@@ -20,7 +20,7 @@ function Update-AipJarReferences {
 
     if (-not (Test-Path $AipFile)) {
         Write-Error "AIP file not found: $AipFile"
-        return
+        exit 1
     }
 
     $backupFile = "$AipFile.bak"
@@ -30,26 +30,13 @@ function Update-AipJarReferences {
     [xml]$xml = Get-Content $AipFile -Raw
     if (-not $xml) {
         Write-Error "Failed to parse AIP XML."
-        return
+        exit 1
     }
 
     Write-Host "[INFO] Original XML content is valid" -ForegroundColor Green
 
     $rows = $xml.SelectNodes("//ROW")
     $replacementCount = 0
-
-    foreach ($pattern in $JarMap.Keys) {
-        $regex = $pattern -replace "\*", ".*"
-        foreach ($row in $rows.Clone()) {
-            $sourcePath = $row.SourcePath
-            if ($sourcePath -match $regex) {
-                if ($null -ne $row.ParentNode) {
-                    $row.ParentNode.RemoveChild($row) | Out-Null
-                    Write-Host "[INFO] Removed old reference: $sourcePath" -ForegroundColor DarkGray
-                }
-            }
-        }
-    }
 
     foreach ($row in $rows) {
         $sourcePath = $row.SourcePath
@@ -69,7 +56,7 @@ function Update-AipJarReferences {
     }
 
     if ($replacementCount -eq 0) {
-        Write-Host "[INFO] No .jar entries matched provided patterns." -ForegroundColor DarkGray
+        Write-Host "[WARNING] No .jar entries matched provided patterns." -ForegroundColor DarkGray
     } else {
         Write-Host "[SUCCESS] Updated $replacementCount .jar references." -ForegroundColor Green
     }
