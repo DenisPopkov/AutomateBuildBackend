@@ -180,36 +180,50 @@ cp -rf "${EXTRACT_DIR}/app" "${ADV_INST_SETUP_FILES}/app" || { log "[ERROR] Fail
 [ -d "${ADV_INST_SETUP_FILES}/app" ] && log "[INFO] App folder copied successfully" || { log "[ERROR] App folder not found after copy"; post_error_message "$BRANCH_NAME"; exit 1; }
 
 APP_JAR_DIR="${ADV_INST_SETUP_FILES}/app"
-
 declare -a JAR_PATTERNS=("output-*.jar" "shared-jvm-*.jar" "skiko-awt-runtime-windows-x64-*.jar")
 
 # Создаем временную копию оригинального aip файла
 TEMP_AIP="${ADV_INST_CONFIG}.tmp"
 cp "$ADV_INST_CONFIG" "$TEMP_AIP"
 
+# Временный файл для PowerShell hash map
+JAR_MAP_FILE=$(mktemp --suffix=.psd1)
+
+echo "@{" > "$JAR_MAP_FILE"
 for pattern in "${JAR_PATTERNS[@]}"; do
-    # Получаем имя jar для текущего паттерна
-    JAR_NAME=$(find "$APP_JAR_DIR" -name "$pattern" -print -quit)
-    if [ -z "$JAR_NAME" ]; then
+    jar_path=$(find "$APP_JAR_DIR" -name "$pattern" -print -quit)
+    jar_name=$(basename "$jar_path")
+
+    if [ -z "$jar_name" ]; then
         echo "[WARNING] Jar not found for pattern: $pattern"
         continue
     fi
-    echo "[INFO] Replacing jar for pattern $pattern with $JAR_NAME"
 
-    # Запускаем powershell скрипт с временным aip файлом и перезаписываем его
-    if ! powershell -ExecutionPolicy Bypass -File "C:/Users/BlackBricks/PycharmProjects/AutomateBuildBackend/parser.ps1" \
-        -AipFile "$TEMP_AIP" \
-        -AppDir "$APP_JAR_DIR" \
-        -NewJarName "$JAR_NAME" ; then
-        echo "[ERROR] PowerShell script failed for $pattern"
-        exit 1
-    fi
+    echo "[INFO] Found jar for pattern $pattern: $jar_name"
+    # Экранируем обратные слэши и кавычки
+    escaped_pattern=$(printf "%q" "$pattern")
+    echo "    \"$pattern\" = \"$jar_name\";" >> "$JAR_MAP_FILE"
 done
+echo "}" >> "$JAR_MAP_FILE"
 
-# После всех замен перезаписываем оригинальный aip файлом с обновленным контентом
+# Запускаем PowerShell скрипт один раз с полной картой
+if ! powershell -ExecutionPolicy Bypass -Command "& {
+    \$JarMap = Import-PowerShellDataFile -Path '$JAR_MAP_FILE'
+    . 'C:/Users/BlackBricks/PycharmProjects/AutomateBuildBackend/parser.ps1' `
+        -AipFile '$TEMP_AIP' `
+        -JarMap \$JarMap
+}"; then
+    echo "[ERROR] PowerShell script failed"
+    exit 1
+fi
+
+# После всех замен перезаписываем оригинальный .aip файлом с обновленным содержимым
 mv "$TEMP_AIP" "$ADV_INST_CONFIG"
 
 log "[SUCCESS] All .jar references updated successfully."
+
+# Удаляем временный файл
+rm "$JAR_MAP_FILE"
 
 cp -f "${EXTRACT_DIR}/Neuro Desktop.exe" "${ADV_INST_SETUP_FILES}/Neuro Desktop.exe" || { log "[ERROR] Failed to copy Neuro Desktop.exe"; post_error_message "$BRANCH_NAME"; exit 1; }
 [ -f "${ADV_INST_SETUP_FILES}/Neuro Desktop.exe" ] && log "[INFO] Neuro Desktop.exe copied successfully" || { log "[ERROR] Neuro Desktop.exe not found after copy"; post_error_message "$BRANCH_NAME"; exit 1; }
