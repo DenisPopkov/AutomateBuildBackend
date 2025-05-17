@@ -298,7 +298,7 @@ else
     exit 1
 fi
 
-sleep 40
+sleep 200
 
 log "[INFO] Renaming MSI file in ADVANCED_INSTALLER_MSI_FILES..."
 ADVANCED_MSI_FILE=$(find "$ADVANCED_INSTALLER_MSI_FILES" -name "Neuro*.msi" -type f -printf "%T@ %p\n" | sort -nr | head -n 1 | cut -d' ' -f2-)
@@ -311,8 +311,6 @@ fi
 
 NEW_ADVANCED_MSI_PATH="$ADVANCED_INSTALLER_MSI_FILES/Neuro_Desktop-${VERSION_NAME}-${VERSION_CODE}.msi"
 [ -f "$NEW_ADVANCED_MSI_PATH" ] && rm -f "$NEW_ADVANCED_MSI_PATH"
-CONVERTED_MSI=$(convert_path "$ADVANCED_MSI_FILE")
-CONVERTED_NEW=$(convert_path "$NEW_ADVANCED_MSI_PATH")
 mv "$CONVERTED_MSI" "$CONVERTED_NEW" || {
     log "[ERROR] Failed to rename MSI in ADVANCED_INSTALLER_MSI_FILES"
     post_error_message "$BRANCH_NAME"
