@@ -85,13 +85,13 @@ if [ -z "$VERSION_CODE" ] || [ -z "$VERSION_NAME" ]; then
 fi
 log "[INFO] Version: $VERSION_NAME, Build: $VERSION_CODE"
 
-#log "[INFO] Bumping version..."
-#VERSION_CODE=$((VERSION_CODE + 1))
-#sed -i "s/^desktop\.build\.number\s*=\s*[0-9]*$/desktop.build.number=$VERSION_CODE/" gradle.properties || { log "[ERROR] Failed to update desktop.build.number"; post_error_message "$BRANCH_NAME"; exit 1; }
-#git add gradle.properties || { log "[ERROR] Failed to stage gradle.properties"; post_error_message "$BRANCH_NAME"; exit 1; }
-#git commit -m "Windows version bump to $VERSION_CODE" || { log "[ERROR] Failed to commit version bump"; post_error_message "$BRANCH_NAME"; exit 1; }
-#git push origin "$BRANCH_NAME" || { log "[ERROR] Failed to push version bump"; post_error_message "$BRANCH_NAME"; exit 1; }
-#log "[INFO] Version bumped to $VERSION_CODE and pushed"
+log "[INFO] Bumping version..."
+VERSION_CODE=$((VERSION_CODE + 1))
+sed -i "s/^desktop\.build\.number\s*=\s*[0-9]*$/desktop.build.number=$VERSION_CODE/" gradle.properties || { log "[ERROR] Failed to update desktop.build.number"; post_error_message "$BRANCH_NAME"; exit 1; }
+git add gradle.properties || { log "[ERROR] Failed to stage gradle.properties"; post_error_message "$BRANCH_NAME"; exit 1; }
+git commit -m "Windows version bump to $VERSION_CODE" || { log "[ERROR] Failed to commit version bump"; post_error_message "$BRANCH_NAME"; exit 1; }
+git push origin "$BRANCH_NAME" || { log "[ERROR] Failed to push version bump"; post_error_message "$BRANCH_NAME"; exit 1; }
+log "[INFO] Version bumped to $VERSION_CODE and pushed"
 
 log "[INFO] Removing old extract directory..."
 EXTRACT_DIR="/c/Users/BlackBricks/StudioProjects/SA_Neuro_Multiplatform/Neuro_Desktop-${VERSION_NAME}-${VERSION_CODE}/SourceDir/Neuro Desktop"
@@ -101,10 +101,10 @@ analyticsMessage="prod"
 [ "$isUseDevAnalytics" == "true" ] && analyticsMessage="dev"
 log "[INFO] Analytics mode: $analyticsMessage"
 
-#end_time=$(date -d "+15 minutes" +"%H:%M")
-#message=":hammer_and_wrench: Windows build started on \`$BRANCH_NAME\` with $analyticsMessage analytics. It will be ready approximately at $end_time"
-#first_ts=$(post_message "$SLACK_BOT_TOKEN" "$SLACK_CHANNEL" "$message")
-#log "[INFO] Slack message posted with timestamp: $first_ts"
+end_time=$(date -d "+15 minutes" +"%H:%M")
+message=":hammer_and_wrench: Windows build started on \`$BRANCH_NAME\` with $analyticsMessage analytics. It will be ready approximately at $end_time"
+first_ts=$(post_message "$SLACK_BOT_TOKEN" "$SLACK_CHANNEL" "$message")
+log "[INFO] Slack message posted with timestamp: $first_ts"
 
 if [ "$isUseDevAnalytics" == "false" ]; then
     log "[INFO] Enabling production keys..."
@@ -352,31 +352,31 @@ else
     log "[INFO] Renamed MSI to: $NEW_ADVANCED_MSI_PATH"
 fi
 
-#log "[INFO] Preparing to upload MSI to Slack..."
-#SIGNED_MSI_WIN_PATH=$(convert_path "$NEW_ADVANCED_MSI_PATH")
-#log "[INFO] Expected MSI path: $SIGNED_MSI_WIN_PATH"
-#
-#if [ ! -f "$NEW_ADVANCED_MSI_PATH" ]; then
-#    log "[ERROR] MSI file not found at $NEW_ADVANCED_MSI_PATH"
-#    post_error_message "$BRANCH_NAME"
-#    exit 1
-#fi
+log "[INFO] Preparing to upload MSI to Slack..."
+SIGNED_MSI_WIN_PATH=$(convert_path "$NEW_ADVANCED_MSI_PATH")
+log "[INFO] Expected MSI path: $SIGNED_MSI_WIN_PATH"
+
+if [ ! -f "$NEW_ADVANCED_MSI_PATH" ]; then
+    log "[ERROR] MSI file not found at $NEW_ADVANCED_MSI_PATH"
+    post_error_message "$BRANCH_NAME"
+    exit 1
+fi
 
 log "[INFO] Cleaning up temporary files..."
 rm -rf "$EXTRACT_DIR" && log "[INFO] Temporary extract directory removed" || log "[WARNING] Failed to remove temporary extract directory"
 
-#log "[INFO] Signing MSI: $SIGNED_MSI_WIN_PATH"
-#SIGNTOOL_PATH="C:\\Program Files (x86)\\Windows Kits\\10\\bin\\10.0.20348.0\\x86\\signtool.exe"
-#"$SIGNTOOL_PATH" sign /fd sha256 /tr http://ts.ssl.com /td sha256 /sha1 20fbd34014857033bcc6dabfae390411b22b0b1e "$SIGNED_MSI_WIN_PATH" || {
-#    log "[ERROR] Failed to sign MSI"
-#    post_error_message "$BRANCH_NAME"
-#    exit 1
-#}
-#
-#log "[INFO] Uploading MSI to Slack: $SIGNED_MSI_WIN_PATH"
-#execute_file_upload "$SLACK_BOT_TOKEN" "$SLACK_CHANNEL" ":white_check_mark: Windows build for \`$BRANCH_NAME\`" "upload" "$SIGNED_MSI_WIN_PATH" || {
-#    log "[WARNING] Failed to upload MSI to Slack"
-#}
-#delete_message "$SLACK_BOT_TOKEN" "$SLACK_CHANNEL" "$first_ts" || {
-#    log "[WARNING] Failed to delete Slack message"
-#}
+log "[INFO] Signing MSI: $SIGNED_MSI_WIN_PATH"
+SIGNTOOL_PATH="C:\\Program Files (x86)\\Windows Kits\\10\\bin\\10.0.20348.0\\x86\\signtool.exe"
+"$SIGNTOOL_PATH" sign /fd sha256 /tr http://ts.ssl.com /td sha256 /sha1 20fbd34014857033bcc6dabfae390411b22b0b1e "$SIGNED_MSI_WIN_PATH" || {
+    log "[ERROR] Failed to sign MSI"
+    post_error_message "$BRANCH_NAME"
+    exit 1
+}
+
+log "[INFO] Uploading MSI to Slack: $SIGNED_MSI_WIN_PATH"
+execute_file_upload "$SLACK_BOT_TOKEN" "$SLACK_CHANNEL" ":white_check_mark: Windows build for \`$BRANCH_NAME\`" "upload" "$SIGNED_MSI_WIN_PATH" || {
+    log "[WARNING] Failed to upload MSI to Slack"
+}
+delete_message "$SLACK_BOT_TOKEN" "$SLACK_CHANNEL" "$first_ts" || {
+    log "[WARNING] Failed to delete Slack message"
+}
