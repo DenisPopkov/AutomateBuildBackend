@@ -373,8 +373,8 @@ cmd.exe /C "\"\"$SIGNTOOL_PATH\" sign /fd sha256 /tr http://ts.ssl.com /td sha25
     exit 1
 }
 
-log "[INFO] Uploading MSI to Slack: $SIGNED_MSI_WIN_PATH"
-execute_file_upload "$SLACK_BOT_TOKEN" "$SLACK_CHANNEL" ":white_check_mark: Windows build for \`$BRANCH_NAME\`" "upload" "$SIGNED_MSI_WIN_PATH" || {
+log "[INFO] Uploading MSI to Slack: $NEW_ADVANCED_MSI_PATH"
+execute_file_upload "$SLACK_BOT_TOKEN" "$SLACK_CHANNEL" ":white_check_mark: Windows build for \`$BRANCH_NAME\`" "upload" "$NEW_ADVANCED_MSI_PATH" || {
     log "[WARNING] Failed to upload MSI to Slack"
 }
 delete_message "$SLACK_BOT_TOKEN" "$SLACK_CHANNEL" "$first_ts" || {
