@@ -6,7 +6,7 @@ function execute_file_upload() {
     local initial_comment=$3
     local action=$4
     shift 4
-    local files=$@
+    local files=("$@")
 
     if [ -z "${slack_token}" ]; then
         echo "slack_token is required"
@@ -19,7 +19,10 @@ function execute_file_upload() {
     fi
 
     if [ "${action}" == "upload" ]; then
-        for file in ${files}; do
+        local filelist=""
+        local comma=""
+
+        for file in "${files[@]}"; do
             if [ ! -f "${file}" ]; then
                 echo "File not found: ${file}"
                 exit 1
@@ -51,8 +54,8 @@ function execute_file_upload() {
         echo "${complete_result}"
 
         echo "File upload completed"
+
     elif [ "${action}" == "message" ]; then
-        # Post a simple message without file upload
         post_message "${slack_token}" "${channel_id}" "${initial_comment}"
     else
         echo "Invalid action specified. Use 'upload' to upload files or 'message' to post a message."

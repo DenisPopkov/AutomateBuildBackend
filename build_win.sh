@@ -374,9 +374,18 @@ cmd.exe /C "\"\"$SIGNTOOL_PATH\" sign /fd sha256 /tr http://ts.ssl.com /td sha25
 }
 
 log "[INFO] Uploading MSI to Slack: $NEW_ADVANCED_MSI_PATH"
+log "[DEBUG] Uploading file from path: '$NEW_ADVANCED_MSI_PATH'"
+
+if [ ! -f "$NEW_ADVANCED_MSI_PATH" ]; then
+    log "[ERROR] MSI file not found at $NEW_ADVANCED_MSI_PATH"
+    post_error_message "$BRANCH_NAME"
+    exit 1
+fi
+
 execute_file_upload "$SLACK_BOT_TOKEN" "$SLACK_CHANNEL" ":white_check_mark: Windows build for \`$BRANCH_NAME\`" "upload" "$NEW_ADVANCED_MSI_PATH" || {
     log "[WARNING] Failed to upload MSI to Slack"
 }
+
 delete_message "$SLACK_BOT_TOKEN" "$SLACK_CHANNEL" "$first_ts" || {
     log "[WARNING] Failed to delete Slack message"
 }
