@@ -382,7 +382,7 @@ if [ ! -f "$NEW_ADVANCED_MSI_PATH" ]; then
     exit 1
 fi
 
-execute_file_upload "$SLACK_BOT_TOKEN" "$SLACK_CHANNEL" ":white_check_mark: Windows build for \`$BRANCH_NAME\`" "upload" "$NEW_ADVANCED_MSI_PATH" || {
+execute_file_upload "$SLACK_BOT_TOKEN" "$SLACK_CHANNEL" ":white_check_mark: Windows build for \`$BRANCH_NAME\` with ($analyticsMessage) analytics" "upload" "$NEW_ADVANCED_MSI_PATH" || {
     log "[WARNING] Failed to upload MSI to Slack"
 }
 
