@@ -365,13 +365,13 @@ fi
 log "[INFO] Cleaning up temporary files..."
 rm -rf "$EXTRACT_DIR" && log "[INFO] Temporary extract directory removed" || log "[WARNING] Failed to remove temporary extract directory"
 
-log "[INFO] Signing MSI: $SIGNED_MSI_WIN_PATH"
-SIGNTOOL_PATH="C:\\Program Files (x86)\\Windows Kits\\10\\bin\\10.0.20348.0\\x86\\signtool.exe"
-cmd.exe /C "\"\"$SIGNTOOL_PATH\" sign /fd sha256 /tr http://ts.ssl.com /td sha256 /sha1 20fbd34014857033bcc6dabfae390411b22b0b1e \"$SIGNED_MSI_WIN_PATH\"\"" || {
-    log "[ERROR] Failed to sign MSI"
-    post_error_message "$BRANCH_NAME"
-    exit 1
-}
+#log "[INFO] Signing MSI: $SIGNED_MSI_WIN_PATH"
+#SIGNTOOL_PATH="C:\\Program Files (x86)\\Windows Kits\\10\\bin\\10.0.20348.0\\x86\\signtool.exe"
+#cmd.exe /C "\"\"$SIGNTOOL_PATH\" sign /fd sha256 /tr http://ts.ssl.com /td sha256 /sha1 20fbd34014857033bcc6dabfae390411b22b0b1e \"$SIGNED_MSI_WIN_PATH\"\"" || {
+#    log "[ERROR] Failed to sign MSI"
+#    post_error_message "$BRANCH_NAME"
+#    exit 1
+#}
 
 log "[INFO] Uploading MSI to Slack: $NEW_ADVANCED_MSI_PATH"
 log "[DEBUG] Uploading file from path: '$NEW_ADVANCED_MSI_PATH'"
