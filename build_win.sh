@@ -12,10 +12,10 @@ isUseDevAnalytics=$2
 SECRET_FILE="/c/Users/BlackBricks/Desktop/secret.txt"
 ERROR_LOG_FILE="/tmp/build_error_log.txt"
 PROJECT_DIR="/c/Users/BlackBricks/StudioProjects/SA_Neuro_Multiplatform"
-ADV_INST_CONFIG="/c/Users/BlackBricks/Applications/Neuro installer/installer_win/Neuro Desktop 2.aip"
+ADV_INST_CONFIG="/c/Users/BlackBricks/Applications/Neuro installer/installer_win/Neuro Desktop 3.aip"
 ADV_INST_SETUP_FILES="/c/Users/BlackBricks/Applications/Neuro installer"
 ADVANCED_INSTALLER_MSI_FILES="/c/Users/BlackBricks/Applications/Neuro installer/installer_win/Neuro Desktop-SetupFiles"
-LESSMSI="/c/ProgramData/chocolatey/bin/lessmsi.exe"
+LAUNCHER="/c/Users/BlackBricks/StudioProjects/SA_Neuro_Multiplatform/Launcher/win/Neuro Desktop/x64/Debug"
 ADV_INST_PATH="C:/Program Files (x86)/Caphyon/Advanced Installer 22.6/bin/x86/AdvancedInstaller.com"
 
 convert_path() {
@@ -93,10 +93,6 @@ git commit -m "Windows version bump to $VERSION_CODE" || { log "[ERROR] Failed t
 git push origin "$BRANCH_NAME" || { log "[ERROR] Failed to push version bump"; post_error_message "$BRANCH_NAME"; exit 1; }
 log "[INFO] Version bumped to $VERSION_CODE and pushed"
 
-log "[INFO] Removing old extract directory..."
-EXTRACT_DIR="/c/Users/BlackBricks/StudioProjects/SA_Neuro_Multiplatform/Neuro_Desktop-${VERSION_NAME}-${VERSION_CODE}/SourceDir/Neuro Desktop"
-[ -d "$EXTRACT_DIR" ] && rm -rf "$EXTRACT_DIR" && log "[INFO] Old extract directory removed" || log "[INFO] Extract directory does not exist"
-
 analyticsMessage="prod"
 [ "$isUseDevAnalytics" == "true" ] && analyticsMessage="dev"
 log "[INFO] Analytics mode: $analyticsMessage"
@@ -114,109 +110,21 @@ if [ "$isUseDevAnalytics" == "false" ]; then
     sleep-protector 50 || { log "[ERROR] Failed in sleep-protector"; post_error_message "$BRANCH_NAME"; exit 1; }
 fi
 
-log "[INFO] Running gradlew packageReleaseMsi..."
-./gradlew packageReleaseMsi || { log "[ERROR] Failed to run gradlew packageReleaseMsi"; post_error_message "$BRANCH_NAME"; exit 1; }
-
-DESKTOP_BUILD_PATH="$PROJECT_DIR/desktopApp/build/compose/binaries/main-release/msi"
-MSI_FILE=$(find "$DESKTOP_BUILD_PATH" -name "Neuro*.msi" | head -n 1)
-log "[INFO] MSI_FILE: $MSI_FILE"
-if [ -z "$MSI_FILE" ]; then
-    log "[ERROR] MSI file not found in $DESKTOP_BUILD_PATH"
-    post_error_message "$BRANCH_NAME"
-    exit 1
-fi
-log "[INFO] Found MSI: $MSI_FILE"
-
-NEW_MSI_PATH="$DESKTOP_BUILD_PATH/Neuro_Desktop-${VERSION_NAME}-${VERSION_CODE}.msi"
-[ -f "$NEW_MSI_PATH" ] && rm -f "$NEW_MSI_PATH"
-mv "$MSI_FILE" "$NEW_MSI_PATH" || { log "[ERROR] Failed to rename MSI"; post_error_message "$BRANCH_NAME"; exit 1; }
-log "[INFO] Renamed MSI to: $NEW_MSI_PATH"
-
-MSI_WIN_PATH=$(convert_path "$NEW_MSI_PATH")
-log "[INFO] Extracting MSI: $MSI_WIN_PATH"
-if [ ! -f "$LESSMSI" ]; then
-    log "[ERROR] lessmsi.exe not found at $LESSMSI"
-    post_error_message "$BRANCH_NAME"
-    exit 1
-fi
-"$LESSMSI" x "$MSI_WIN_PATH" 2>> "$ERROR_LOG_FILE" || { log "[ERROR] Failed to extract MSI"; cat "$ERROR_LOG_FILE" | iconv -f CP1251 -t UTF-8; post_error_message "$BRANCH_NAME"; exit 1; }
-check_error_log
-
-if [ -d "$EXTRACT_DIR" ]; then
-    log "[INFO] MSI extracted to: $EXTRACT_DIR"
-else
-    log "[ERROR] Extracted directory not found: $EXTRACT_DIR"
-    post_error_message "$BRANCH_NAME"
-    exit 1
-fi
-
-log "[INFO] Updating .aip with new .jar files..."
-if [ ! -d "$EXTRACT_DIR/app" ]; then
-    log "[ERROR] Directory $EXTRACT_DIR/app does not exist"
-    post_error_message "$BRANCH_NAME"
-    exit 1
-fi
+log "[INFO] Running gradlew buildLauncher..."
+./gradlew buildLauncher || { log "[ERROR] Failed to run gradlew buildLauncher"; post_error_message "$BRANCH_NAME"; exit 1; }
 
 log "[INFO] Removing old files from ADV_INST_SETUP_FILES..."
-[ -d "${ADV_INST_SETUP_FILES}/app" ] && rm -rf "${ADV_INST_SETUP_FILES}/app" && log "[INFO] Old app folder removed" || log "[INFO] No old app folder to remove"
 [ -f "${ADV_INST_SETUP_FILES}/Neuro Desktop.exe" ] && rm -f "${ADV_INST_SETUP_FILES}/Neuro Desktop.exe" && log "[INFO] Old Neuro Desktop.exe removed" || log "[INFO] No old Neuro Desktop.exe to remove"
 
-# New logic to clean .jar references
-log "[INFO] Cleaning old .jar file references in $ADV_INST_CONFIG..."
-cp "$ADV_INST_CONFIG" "${ADV_INST_CONFIG}.backup" || {
-    log "[ERROR] Failed to backup $ADV_INST_CONFIG";
-    post_error_message "$BRANCH_NAME";
-    exit 1;
-}
-sed -i '/<FILE.*app\\.*\.jar.*<\/FILE>/d' "$ADV_INST_CONFIG" || {
-    log "[ERROR] Failed to remove old .jar references from $ADV_INST_CONFIG";
-    post_error_message "$BRANCH_NAME";
-    exit 1;
-}
-log "[INFO] Old .jar file references removed from $ADV_INST_CONFIG"
-
-log "[INFO] Copying new app folder and Neuro Desktop.exe..."
-cp -rf "${EXTRACT_DIR}/app" "${ADV_INST_SETUP_FILES}/app" || { log "[ERROR] Failed to copy app folder"; post_error_message "$BRANCH_NAME"; exit 1; }
-[ -d "${ADV_INST_SETUP_FILES}/app" ] && log "[INFO] App folder copied successfully" || { log "[ERROR] App folder not found after copy"; post_error_message "$BRANCH_NAME"; exit 1; }
-
-APP_JAR_DIR="${ADV_INST_SETUP_FILES}/app"
-declare -a JAR_PATTERNS=("output-*.jar" "shared-jvm-*.jar" "skiko-awt-runtime-windows-x64-*.jar")
-
-TEMP_AIP="${ADV_INST_CONFIG}.tmp"
-cp "$ADV_INST_CONFIG" "$TEMP_AIP"
-
-JAR_MAP_FILE=$(mktemp --suffix=.psd1)
-
-echo "@{" > "$JAR_MAP_FILE"
-for pattern in "${JAR_PATTERNS[@]}"; do
-    jar_path=$(find "$APP_JAR_DIR" -name "$pattern" -print -quit)
-    jar_name=$(basename "$jar_path")
-
-    if [ -z "$jar_name" ]; then
-        log "[WARNING] Jar not found for pattern: $pattern"
-        continue
-    fi
-
-    log "[INFO] Found jar for pattern $pattern: $jar_name"
-    echo "    \"$pattern\" = \"$jar_name\";" >> "$JAR_MAP_FILE"
-done
-echo "}" >> "$JAR_MAP_FILE"
-
-if ! powershell -ExecutionPolicy Bypass -File "C:/Users/BlackBricks/PycharmProjects/AutomateBuildBackend/parser.ps1" \
-  -AipFile "$TEMP_AIP" \
-  -JarMapFile "$JAR_MAP_FILE"; then
-    log "[ERROR] PowerShell script failed"
+log "[INFO] Copying new Neuro Desktop.exe from Launcher..."
+LAUNCHER_EXE="${LAUNCHER}/Neuro Desktop.exe"
+if [ ! -f "$LAUNCHER_EXE" ]; then
+    log "[ERROR] Launcher executable not found at $LAUNCHER_EXE"
     post_error_message "$BRANCH_NAME"
-    rm -f "$JAR_MAP_FILE" "$TEMP_AIP"
     exit 1
 fi
 
-mv "$TEMP_AIP" "$ADV_INST_CONFIG"
-log "[SUCCESS] All .jar references updated successfully."
-
-rm -f "$JAR_MAP_FILE"
-
-cp -f "${EXTRACT_DIR}/Neuro Desktop.exe" "${ADV_INST_SETUP_FILES}/Neuro Desktop.exe" || {
+cp -f "$LAUNCHER_EXE" "${ADV_INST_SETUP_FILES}/Neuro Desktop.exe" || {
     log "[ERROR] Failed to copy Neuro Desktop.exe"
     post_error_message "$BRANCH_NAME"
     exit 1
