@@ -54,16 +54,18 @@ def rebuild_dsp():
     try:
         data = request.json
         branch_name = data.get('branchName')
+        use_dev_analytics = data.get('isUseDevAnalytics', True)
 
         script_path = "./rebuild_dsp.sh"
         log_file = "/tmp/build_error_log.txt"
+        use_dev_analytics_flag = "true" if use_dev_analytics else "false"
 
         with open(log_file, "w"):
             pass
 
         with open(log_file, "w") as log:
             process = subprocess.Popen(
-                ["sh", script_path, branch_name],
+                ["sh", script_path, branch_name, use_dev_analytics_flag],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
                 text=True
@@ -80,7 +82,7 @@ def rebuild_dsp():
             raise subprocess.CalledProcessError(process.returncode, script_path)
 
         return jsonify({
-            "message": f"macOS build for branch {branch_name} signing executed successfully!"
+            "message": f"macOS DSP rebuild for branch {branch_name} executed successfully!"
         }), 200
 
     except subprocess.CalledProcessError:
@@ -94,16 +96,18 @@ def rebuild_android_dsp():
     try:
         data = request.json
         branch_name = data.get('branchName')
+        use_dev_analytics = data.get('isUseDevAnalytics', True)
 
         script_path = "./rebuild_android_dsp.sh"
         log_file = "/tmp/build_error_log.txt"
+        use_dev_analytics_flag = "true" if use_dev_analytics else "false"
 
         with open(log_file, "w"):
             pass
 
         with open(log_file, "w") as log:
             process = subprocess.Popen(
-                ["sh", script_path, branch_name],
+                ["sh", script_path, branch_name, use_dev_analytics_flag],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
                 text=True,
@@ -126,7 +130,7 @@ def rebuild_android_dsp():
             }), 500
 
         return jsonify({
-            "message": f"macOS build for branch {branch_name} signing executed successfully!"
+            "message": f"Android DSP rebuild for branch {branch_name} executed successfully!"
         }), 200
 
     except Exception as e:

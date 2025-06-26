@@ -5,7 +5,9 @@ source "/Users/denispopkov/PycharmProjects/AutomateBuildBackend/utils.sh"
 
 PROJECT_DIR="/Users/denispopkov/AndroidStudioProjects/SA_Neuro_Multiplatform"
 HEROKU_PROD="/Users/denispopkov/AndroidStudioProjects/neuro-production/"
+HEROKU_DEV="/Users/denispopkov/AndroidStudioProjects/neuro-test/"
 HEROKU_LIBRARY="/Users/denispopkov/AndroidStudioProjects/neuro-production/files/"
+HEROKU_LIBRARY_DEV="/Users/denispopkov/AndroidStudioProjects/neuro-test/files/"
 SECRET_FILE="/Users/denispopkov/Desktop/secret.txt"
 ERROR_LOG_FILE="/tmp/build_error_log.txt"
 BUILD_PATH="$PROJECT_DIR/androidApp/build"
@@ -32,6 +34,16 @@ while IFS='=' read -r key value; do
 done < "$SECRET_FILE"
 
 BRANCH_NAME=$1
+IS_USE_DEV_ANALYTICS=$2
+
+echo "isUseDevAnalytics param: $IS_USE_DEV_ANALYTICS"
+if [[ "$IS_USE_DEV_ANALYTICS" == "true" ]]; then
+  HEROKU_PATH="$HEROKU_PROD"
+  HEROKU_LIBRARY_PATH="$HEROKU_LIBRARY"
+else
+  HEROKU_PATH="$HEROKU_DEV"
+  HEROKU_LIBRARY_PATH="$HEROKU_LIBRARY_DEV"
+fi
 
 message=":hammer_and_wrench: Start Android DSP library update on \`$BRANCH_NAME\`"
 first_ts=$(post_message "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$message")
@@ -87,15 +99,15 @@ git add .
 git commit -m "add: update dsp lib"
 git push origin "$BRANCH_NAME"
 
-cd "$HEROKU_PROD" || { echo "Project directory not found!"; exit 1; }
+cd "$HEROKU_PATH" || { echo "Project directory not found!"; exit 1; }
 
 sleep 5
 
 git stash push -m "Pre-build stash"
 git fetch && git pull origin "master" --no-rebase
 
-rm -rf "$HEROKU_LIBRARY/libdspandroid.so"
-cp "$PROJECT_DIR/androidApp/build/outputs/apk/release/lib/arm64-v8a/libdspandroid.so" "$HEROKU_LIBRARY"
+rm -rf "$HEROKU_LIBRARY_PATH/libdspandroid.so"
+cp "$PROJECT_DIR/androidApp/build/outputs/apk/release/lib/arm64-v8a/libdspandroid.so" "$HEROKU_LIBRARY_PATH"
 
 git add .
 git commit -m "add: update dsp lib"
@@ -104,5 +116,6 @@ git push origin "master"
 rm -rf "$BUILD_PATH"
 rm -rf "$RELEASE_PATH"
 
-message=":white_check_mark: DSP library successfully updated on \`$BRANCH_NAME\`"
+message=":white_check_mark: DSP library successfully updated on \`$BRANCH_NAME\` (dev: $IS_USE_DEV_ANALYTICS)"
 execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$message" "upload" "${UPDATED_LIB_PATH}"
+delete_message "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$first_ts"
