@@ -45,11 +45,9 @@ echo "isUseDevAnalytics param: $IS_USE_DEV_ANALYTICS"
 if [[ "$IS_USE_DEV_ANALYTICS" == "true" ]]; then
   HEROKU_PATH="$HEROKU_PROD"
   HEROKU_LIBRARY_PATH="$HEROKU_LIBRARY"
-  ENV_LABEL="prod"
 else
   HEROKU_PATH="$HEROKU_DEV"
   HEROKU_LIBRARY_PATH="$HEROKU_LIBRARY_DEV"
-  ENV_LABEL="dev"
 fi
 
 cd "$PROJECT_DIR" || { echo "Project directory not found!"; exit 1; }
