@@ -7,7 +7,9 @@ SECRET_FILE="/c/Users/BlackBricks/Desktop/secret.txt"
 PROJECT_DIR="/c/Users/BlackBricks/StudioProjects/SA_Neuro_Multiplatform"
 CACHE_UPDATED_LIB_PATH="$PROJECT_DIR/desktopApp/resources/common/dsp/Debug/dspmac.dll"
 HEROKU_PROD="/c/Users/BlackBricks/StudioProjects/neuro-production"
+HEROKU_DEV="/c/Users/BlackBricks/StudioProjects/neuro-test"
 HEROKU_LIBRARY="$HEROKU_PROD/files"
+HEROKU_LIBRARY_DEV="$HEROKU_DEV/files"
 ERROR_LOG_FILE="${ERROR_LOG_FILE:-/tmp/build_error_log.txt}"
 
 post_error_message() {
@@ -37,6 +39,16 @@ if [ -z "$TEAM_ID" ] || [ -z "$APPLE_ID" ] || [ -z "$NOTARY_PASSWORD" ] || [ -z 
 fi
 
 BRANCH_NAME=$1
+IS_USE_DEV_ANALYTICS=$2
+
+echo "isUseDevAnalytics param: $IS_USE_DEV_ANALYTICS"
+if [[ "$IS_USE_DEV_ANALYTICS" == "true" ]]; then
+  HEROKU_PATH="$HEROKU_PROD"
+  HEROKU_LIBRARY_PATH="$HEROKU_LIBRARY"
+else
+  HEROKU_PATH="$HEROKU_DEV"
+  HEROKU_LIBRARY_PATH="$HEROKU_LIBRARY_DEV"
+fi
 
 echo "Opening Android Studio..."
 "/c/Program Files/Android/Android Studio/bin/studio64.exe" &
@@ -68,17 +80,17 @@ if ! ./gradlew compileKotlin --stacktrace --info; then
   exit 1
 fi
 
-cd "$HEROKU_PROD" || { echo "Heroku project directory not found!"; exit 1; }
+cd "$HEROKU_PATH" || { echo "Heroku project directory not found!"; exit 1; }
 
 sleep 5
 
 git stash push -m "Pre-build stash"
 git fetch && git pull origin "master" --no-rebase
 
-rm -rf "$HEROKU_LIBRARY/dspmac.dll"
+rm -rf "$HEROKU_LIBRARY_PATH/dspmac.dll"
 
 if [ -f "$CACHE_UPDATED_LIB_PATH" ]; then
-  cp "$CACHE_UPDATED_LIB_PATH" "$HEROKU_LIBRARY"
+  cp "$CACHE_UPDATED_LIB_PATH" "$HEROKU_LIBRARY_PATH"
 else
   echo "Error: DSP library not found at $CACHE_UPDATED_LIB_PATH"
   post_error_message "$BRANCH_NAME"

@@ -13,6 +13,7 @@ def rebuild_dsp():
     try:
         data = request.json
         branch_name = data.get('branchName')
+        is_use_dev_analytics = data.get('isUseDevAnalytics', True)
 
         if not branch_name:
             return jsonify({"error": "Missing required parameter: branchName"}), 400
@@ -27,14 +28,17 @@ def rebuild_dsp():
 
         with open(log_file, 'w') as f:
             f.write(f"Build started at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
-            f.write(f"Branch: {branch_name}\n\n")
+            f.write(f"Branch: {branch_name}\n")
+            f.write(f"isUseDevAnalytics: {is_use_dev_analytics}\n\n")
+
+        is_use_dev_analytics_flag = "true" if is_use_dev_analytics else "false"
 
         command = [
             git_bash_path,
             "-c",
             f"cd {working_dir} && "
             f"ERROR_LOG_FILE='/tmp/build_error_log.txt' "
-            f"./rebuild_dsp.sh {branch_name}"
+            f"./rebuild_dsp.sh {branch_name} {is_use_dev_analytics_flag}"
         ]
 
         with open(log_file, 'a') as log:
