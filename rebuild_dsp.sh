@@ -7,7 +7,9 @@ PROJECT_DIR="/Users/denispopkov/AndroidStudioProjects/SA_Neuro_Multiplatform"
 SECRET_FILE="/Users/denispopkov/Desktop/secret.txt"
 CACHE_UPDATED_DSP_LIB_PATH="$PROJECT_DIR/desktopApp/build/native/libdspmac.dylib"
 HEROKU_PROD="/Users/denispopkov/AndroidStudioProjects/neuro-production/"
+HEROKU_DEV="/Users/denispopkov/AndroidStudioProjects/neuro-test/"
 HEROKU_LIBRARY="/Users/denispopkov/AndroidStudioProjects/neuro-production/files/"
+HEROKU_LIBRARY_DEV="/Users/denispopkov/AndroidStudioProjects/neuro-test/files/"
 ERROR_LOG_FILE="/tmp/build_error_log.txt"
 
 post_error_message() {
@@ -37,6 +39,18 @@ if [ -z "$TEAM_ID" ] || [ -z "$APPLE_ID" ] || [ -z "$NOTARY_PASSWORD" ] || [ -z 
 fi
 
 BRANCH_NAME=$1
+IS_USE_DEV_ANALYTICS=$2
+
+echo "isUseDevAnalytics param: $IS_USE_DEV_ANALYTICS"
+if [[ "$IS_USE_DEV_ANALYTICS" == "true" ]]; then
+  HEROKU_PATH="$HEROKU_PROD"
+  HEROKU_LIBRARY_PATH="$HEROKU_LIBRARY"
+  ENV_LABEL="prod"
+else
+  HEROKU_PATH="$HEROKU_DEV"
+  HEROKU_LIBRARY_PATH="$HEROKU_LIBRARY_DEV"
+  ENV_LABEL="dev"
+fi
 
 cd "$PROJECT_DIR" || { echo "Project directory not found!"; exit 1; }
 
@@ -62,7 +76,7 @@ git add .
 git commit -m "add: update DSP"
 git push origin "$BRANCH_NAME"
 
-cd "$HEROKU_PROD" || { echo "Heroku project directory not found!"; exit 1; }
+cd "$HEROKU_PATH" || { echo "Heroku project directory not found!"; exit 1; }
 
 sleep 5
 
@@ -70,10 +84,10 @@ git stash push -m "Pre-build stash"
 git fetch && git pull origin "master" --no-rebase
 
 # Update DSP lib in Heroku
-rm -rf "$HEROKU_LIBRARY/x86/libdspmac.dylib"
+rm -rf "$HEROKU_LIBRARY_PATH/x86/libdspmac.dylib"
 
 if [ -f "$CACHE_UPDATED_DSP_LIB_PATH" ]; then
-  cp "$CACHE_UPDATED_DSP_LIB_PATH" "$HEROKU_LIBRARY/x86/"
+  cp "$CACHE_UPDATED_DSP_LIB_PATH" "$HEROKU_LIBRARY_PATH/x86/"
 else
   echo "Error: DSP library not found at $CACHE_UPDATED_DSP_LIB_PATH"
   post_error_message "$BRANCH_NAME"
