@@ -12,7 +12,7 @@ SECRET_FILE="/Users/denispopkov/Desktop/secret.txt"
 ERROR_LOG_FILE="/tmp/build_error_log.txt"
 BUILD_PATH="$PROJECT_DIR/androidApp/build"
 RELEASE_PATH="$PROJECT_DIR/androidApp/release"
-UPDATED_LIB_PATH="$PROJECT_DIR/androidApp/src/main/jniLibs/arm64-v8a/libdspandroid.so"
+UPDATED_LIB_PATH="$PROJECT_DIR/androidApp/src/main/lib/arm64-v8a/libdspandroid.so"
 
 post_error_message() {
   local branch_name=$1
