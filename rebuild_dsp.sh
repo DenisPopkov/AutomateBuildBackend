@@ -79,9 +79,8 @@ cd "$HEROKU_PATH" || { echo "Heroku project directory not found!"; exit 1; }
 sleep 5
 
 git stash push -m "Pre-build stash"
-git fetch && git pull origin "master" --no-rebase
+git fetch heroku && git pull heroku "master" --no-rebase
 
-# Update DSP lib in Heroku
 rm -rf "$HEROKU_LIBRARY_PATH/arm64/libdspmac.dylib"
 
 if [ -f "$CACHE_UPDATED_DSP_LIB_PATH" ]; then
@@ -94,7 +93,7 @@ fi
 
 git add .
 git commit -m "add: update DSP lib"
-git push origin "master"
+git push heroku "master"
 
 message=":white_check_mark: ARM MacOS DSP library successfully updated on \`$BRANCH_NAME\`"
 execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$message" "upload" "${CACHE_UPDATED_DSP_LIB_PATH}"
