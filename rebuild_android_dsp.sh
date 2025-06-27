@@ -116,6 +116,6 @@ git push origin "master"
 rm -rf "$BUILD_PATH"
 rm -rf "$RELEASE_PATH"
 
-message=":white_check_mark: DSP library successfully updated on \`$BRANCH_NAME\` (dev: $IS_USE_DEV_ANALYTICS)"
+message=":white_check_mark: DSP library successfully updated on \`$BRANCH_NAME\`"
 execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$message" "upload" "${UPDATED_LIB_PATH}"
 delete_message "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$first_ts"
