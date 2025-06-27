@@ -94,11 +94,6 @@ comment_android_dsp_gradle_task
 
 sleep 5
 
-git pull origin "$BRANCH_NAME" --no-rebase
-git add .
-git commit -m "add: update dsp lib"
-git push origin "$BRANCH_NAME"
-
 cd "$HEROKU_PATH" || { echo "Project directory not found!"; exit 1; }
 
 sleep 5
