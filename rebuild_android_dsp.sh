@@ -12,7 +12,6 @@ SECRET_FILE="/Users/denispopkov/Desktop/secret.txt"
 ERROR_LOG_FILE="/tmp/build_error_log.txt"
 BUILD_PATH="$PROJECT_DIR/androidApp/build"
 RELEASE_PATH="$PROJECT_DIR/androidApp/release"
-UPDATED_LIB_PATH="$PROJECT_DIR/androidApp/src/main/lib/arm64-v8a/libdspandroid.so"
 
 post_error_message() {
   local branch_name=$1
@@ -112,5 +111,5 @@ rm -rf "$BUILD_PATH"
 rm -rf "$RELEASE_PATH"
 
 message=":white_check_mark: DSP library successfully updated on \`$BRANCH_NAME\`"
-execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$message" "upload" "${UPDATED_LIB_PATH}"
+execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$message" "upload" "$PROJECT_DIR/androidApp/build/outputs/apk/release/lib/arm64-v8a/libdspandroid.so"
 delete_message "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$first_ts"
