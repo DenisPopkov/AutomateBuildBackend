@@ -102,14 +102,15 @@ cd "$HEROKU_PATH" || { echo "Project directory not found!"; exit 1; }
 sleep 5
 
 git stash push -m "Pre-build stash"
-git fetch && git pull origin "master" --no-rebase
 
+git fetch heroku && git pull heroku master --no-rebase
 rm -rf "$HEROKU_LIBRARY_PATH/libdspandroid.so"
-cp "$PROJECT_DIR/androidApp/build/outputs/apk/release/lib/arm64-v8a/libdspandroid.so" "$HEROKU_LIBRARY_PATH"
 
+cp "$PROJECT_DIR/androidApp/build/outputs/apk/release/lib/arm64-v8a/libdspandroid.so" "$HEROKU_LIBRARY_PATH"
 git add .
 git commit -m "add: update dsp lib"
-git push origin "master"
+
+git push heroku master
 
 rm -rf "$BUILD_PATH"
 rm -rf "$RELEASE_PATH"
