@@ -109,10 +109,15 @@ git fetch heroku && git pull heroku master --no-rebase
 rm -rf "$HEROKU_LIBRARY_PATH/libdspandroid.so"
 
 cp "$PROJECT_DIR/androidApp/build/outputs/apk/release/lib/arm64-v8a/libdspandroid.so" "$HEROKU_LIBRARY_PATH"
-git add .
-git commit -m "add: update dsp lib"
 
-git push heroku master
+git add .
+
+if ! git diff --cached --quiet; then
+  git commit -m "add: update DSP lib"
+  git push heroku "master"
+else
+  echo "[INFO] No changes to commit"
+fi
 
 rm -rf "$BUILD_PATH"
 rm -rf "$RELEASE_PATH"
