@@ -39,12 +39,14 @@ echo "isUseDevAnalytics param: $IS_USE_DEV_ANALYTICS"
 if [[ "$IS_USE_DEV_ANALYTICS" == "true" ]]; then
   HEROKU_PATH="$HEROKU_PROD"
   HEROKU_LIBRARY_PATH="$HEROKU_LIBRARY"
+  ENV="prod"
 else
   HEROKU_PATH="$HEROKU_DEV"
   HEROKU_LIBRARY_PATH="$HEROKU_LIBRARY_DEV"
+  ENV="dev"
 fi
 
-message=":hammer_and_wrench: Start Android DSP library update on \`$BRANCH_NAME\`"
+message=":hammer_and_wrench: Start Android DSP library update on \`$BRANCH_NAME\` for $ENV"
 first_ts=$(post_message "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$message")
 
 open -a "Android Studio"
@@ -89,7 +91,7 @@ if ! unzip -o "$APK_ZIP_PATH" -d "$PROJECT_DIR/androidApp/build/outputs/apk/rele
   exit 1
 fi
 
-message=":white_check_mark: DSP library successfully updated on \`$BRANCH_NAME\`"
+message=":white_check_mark: DSP library successfully updated on \`$BRANCH_NAME\` for $ENV"
 execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$message" "upload" "$PROJECT_DIR/androidApp/build/outputs/apk/release/lib/arm64-v8a/libdspandroid.so"
 delete_message "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$first_ts"
 
