@@ -37,13 +37,13 @@ IS_USE_DEV_ANALYTICS=$2
 
 echo "isUseDevAnalytics param: $IS_USE_DEV_ANALYTICS"
 if [[ "$IS_USE_DEV_ANALYTICS" == "true" ]]; then
-  HEROKU_PATH="$HEROKU_PROD"
-  HEROKU_LIBRARY_PATH="$HEROKU_LIBRARY"
-  ENV="prod"
-else
   HEROKU_PATH="$HEROKU_DEV"
   HEROKU_LIBRARY_PATH="$HEROKU_LIBRARY_DEV"
   ENV="dev"
+else
+  HEROKU_PATH="$HEROKU_PROD"
+  HEROKU_LIBRARY_PATH="$HEROKU_LIBRARY"
+  ENV="prod"
 fi
 
 message=":hammer_and_wrench: Start Android DSP library update on \`$BRANCH_NAME\` for $ENV"
