@@ -100,8 +100,13 @@ else
 fi
 
 git add .
-git commit -m "add: update DSP lib"
-git push heroku "master"
+
+if ! git diff --cached --quiet; then
+  git commit -m "add: update DSP lib"
+  git push heroku "master"
+else
+  echo "[INFO] No changes to commit"
+fi
 
 message=":white_check_mark: Windows DSP library successfully updated on \`$BRANCH_NAME\` for $ENV"
 execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$message" "upload" "${CACHE_UPDATED_LIB_PATH}"
