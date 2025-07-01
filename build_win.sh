@@ -111,7 +111,6 @@ if [ "$isUseDevAnalytics" == "false" ]; then
     enable_prod_keys || { log "[ERROR] Failed to enable production keys"; post_error_message "$BRANCH_NAME"; exit 1; }
     sleep 5
     powershell -command "Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.SendKeys]::SendWait('^(+o)')" || { log "[ERROR] Failed to send keys"; post_error_message "$BRANCH_NAME"; exit 1; }
-    sleep-protector 50 || { log "[ERROR] Failed in sleep-protector"; post_error_message "$BRANCH_NAME"; exit 1; }
 fi
 
 log "[INFO] Running gradlew packageReleaseMsi..."

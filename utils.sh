@@ -45,18 +45,32 @@ enable_dsp_gradle_task() {
 }
 
 enable_prod_keys() {
-    sed -i '' -e "/name = \"MIXPANEL_API_KEY_WINDOWS\"/,/const = true/s/$DEV_DESKTOP_KEY/$PROD_DESKTOP_KEY/g" "$SHARED_GRADLE"
-    sed -i '' -e "/name = \"MIXPANEL_API_KEY_MACOS\"/,/const = true/s/$DEV_DESKTOP_KEY/$PROD_DESKTOP_KEY/g" "$SHARED_GRADLE"
-    sed -i '' -e "/name = \"MIXPANEL_API_KEY_IOS\"/,/const = true/s/$DEV_MOBILE_KEY/$PROD_MOBILE_KEY/g" "$SHARED_GRADLE"
-    sed -i '' -e "/name = \"MIXPANEL_API_KEY_ANDROID\"/,/const = true/s/$DEV_MOBILE_KEY/$PROD_MOBILE_KEY/g" "$SHARED_GRADLE"
+    if [[ "$(uname)" == "Darwin" ]]; then
+        sed -i '' -e "/name = \"MIXPANEL_API_KEY_WINDOWS\"/,/const = true/s/$DEV_DESKTOP_KEY/$PROD_DESKTOP_KEY/g" "$SHARED_GRADLE"
+        sed -i '' -e "/name = \"MIXPANEL_API_KEY_MACOS\"/,/const = true/s/$DEV_DESKTOP_KEY/$PROD_DESKTOP_KEY/g" "$SHARED_GRADLE"
+        sed -i '' -e "/name = \"MIXPANEL_API_KEY_IOS\"/,/const = true/s/$DEV_MOBILE_KEY/$PROD_MOBILE_KEY/g" "$SHARED_GRADLE"
+        sed -i '' -e "/name = \"MIXPANEL_API_KEY_ANDROID\"/,/const = true/s/$DEV_MOBILE_KEY/$PROD_MOBILE_KEY/g" "$SHARED_GRADLE"
+    else
+        sed -i "/name = \"MIXPANEL_API_KEY_WINDOWS\"/,/const = true/s/$DEV_DESKTOP_KEY/$PROD_DESKTOP_KEY/g" "$SHARED_GRADLE"
+        sed -i "/name = \"MIXPANEL_API_KEY_MACOS\"/,/const = true/s/$DEV_DESKTOP_KEY/$PROD_DESKTOP_KEY/g" "$SHARED_GRADLE"
+        sed -i "/name = \"MIXPANEL_API_KEY_IOS\"/,/const = true/s/$DEV_MOBILE_KEY/$PROD_MOBILE_KEY/g" "$SHARED_GRADLE"
+        sed -i "/name = \"MIXPANEL_API_KEY_ANDROID\"/,/const = true/s/$PROD_MOBILE_KEY/$DEV_MOBILE_KEY/g" "$SHARED_GRADLE"
+    fi
     echo "Production API keys updated."
 }
 
 undo_enable_prod_keys() {
-    sed -i '' -e "/name = \"MIXPANEL_API_KEY_WINDOWS\"/,/const = true/s/$PROD_DESKTOP_KEY/$DEV_DESKTOP_KEY/g" "$SHARED_GRADLE"
-    sed -i '' -e "/name = \"MIXPANEL_API_KEY_MACOS\"/,/const = true/s/$PROD_DESKTOP_KEY/$DEV_DESKTOP_KEY/g" "$SHARED_GRADLE"
-    sed -i '' -e "/name = \"MIXPANEL_API_KEY_IOS\"/,/const = true/s/$PROD_MOBILE_KEY/$DEV_MOBILE_KEY/g" "$SHARED_GRADLE"
-    sed -i '' -e "/name = \"MIXPANEL_API_KEY_ANDROID\"/,/const = true/s/$PROD_MOBILE_KEY/$DEV_MOBILE_KEY/g" "$SHARED_GRADLE"
+    if [[ "$(uname)" == "Darwin" ]]; then
+        sed -i '' -e "/name = \"MIXPANEL_API_KEY_WINDOWS\"/,/const = true/s/$PROD_DESKTOP_KEY/$DEV_DESKTOP_KEY/g" "$SHARED_GRADLE"
+        sed -i '' -e "/name = \"MIXPANEL_API_KEY_MACOS\"/,/const = true/s/$PROD_DESKTOP_KEY/$DEV_DESKTOP_KEY/g" "$SHARED_GRADLE"
+        sed -i '' -e "/name = \"MIXPANEL_API_KEY_IOS\"/,/const = true/s/$PROD_MOBILE_KEY/$DEV_MOBILE_KEY/g" "$SHARED_GRADLE"
+        sed -i '' -e "/name = \"MIXPANEL_API_KEY_ANDROID\"/,/const = true/s/$PROD_MOBILE_KEY/$DEV_MOBILE_KEY/g" "$SHARED_GRADLE"
+    else
+        sed -i "/name = \"MIXPANEL_API_KEY_WINDOWS\"/,/const = true/s/$PROD_DESKTOP_KEY/$DEV_DESKTOP_KEY/g" "$SHARED_GRADLE"
+        sed -i "/name = \"MIXPANEL_API_KEY_MACOS\"/,/const = true/s/$PROD_DESKTOP_KEY/$DEV_DESKTOP_KEY/g" "$SHARED_GRADLE"
+        sed -i "/name = \"MIXPANEL_API_KEY_IOS\"/,/const = true/s/$PROD_MOBILE_KEY/$DEV_MOBILE_KEY/g" "$SHARED_GRADLE"
+        sed -i "/name = \"MIXPANEL_API_KEY_ANDROID\"/,/const = true/s/$PROD_MOBILE_KEY/$DEV_MOBILE_KEY/g" "$SHARED_GRADLE"
+    fi
     echo "Production API keys reverted to dev."
 }
 
