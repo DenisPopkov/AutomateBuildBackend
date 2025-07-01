@@ -50,7 +50,12 @@ git fetch && git checkout "$BRANCH_NAME" && git pull origin "$BRANCH_NAME" --no-
 
 cd "$IOS_APP_PATH" || exit
 
-LAST_BUILD_NUMBER=$(agvtool what-version -terse)
+# Fetch the latest TestFlight build number
+LAST_BUILD_NUMBER=$(fastlane run latest_testflight_build_number | grep "Result:" | awk '{print $2}')
+if [ -z "$LAST_BUILD_NUMBER" ]; then
+  echo "Failed to retrieve TestFlight build number. Falling back to 0."
+  LAST_BUILD_NUMBER=0
+fi
 NEW_VERSION=$((LAST_BUILD_NUMBER + 1))
 
 end_time=$(TZ=Asia/Omsk date -v+15M "+%H:%M")
@@ -59,11 +64,10 @@ first_ts=$(post_message "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" "$message")
 
 # Update project.pbxproj
 if [ -f "$PBXPROJ_PATH" ]; then
-  sed -i '' "s/CURRENT_PROJECT_VERSION = $LAST_BUILD_NUMBER;/CURRENT_PROJECT_VERSION = $NEW_VERSION;/" "$PBXPROJ_PATH"
+  sed -i '' "s/CURRENT_PROJECT_VERSION = [^;]*;/CURRENT_PROJECT_VERSION = $NEW_VERSION;/" "$PBXPROJ_PATH"
 
   MARKETING_VERSION=$(grep -o 'MARKETING_VERSION = [^;]*' "$PBXPROJ_PATH" | sed -E 's/.*= (.*)/\1/' | head -n 1)
   MARKETING_VERSION=$(echo "$MARKETING_VERSION" | xargs)
-  VERSION_NUMBER="$MARKETING_VERSION"
 else
   echo "project.pbxproj not found: $PBXPROJ_PATH"
   post_error_message "$BRANCH_NAME"
@@ -146,7 +150,7 @@ if fastlane testflight_upload; then
   git commit -m "iOS version bump to $NEW_VERSION"
   git push
 
-  execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" ":white_check_mark: iOS build uploaded to TestFlight with v$VERSION_NUMBER ($NEW_VERSION) with ${analyticsMessage} analytics" "message"
+  execute_file_upload "${SLACK_BOT_TOKEN}" "${SLACK_CHANNEL}" ":white_check_mark: iOS build uploaded to TestFlight with v$MARKETING_VERSION ($NEW_VERSION) with ${analyticsMessage} analytics" "message"
 else
   post_error_message "$BRANCH_NAME"
   echo "Fastlane failed. Not committing changes or sending Slack message."
