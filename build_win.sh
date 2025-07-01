@@ -113,6 +113,8 @@ if [ "$isUseDevAnalytics" == "false" ]; then
     powershell -command "Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.SendKeys]::SendWait('^(+o)')" || { log "[ERROR] Failed to send keys"; post_error_message "$BRANCH_NAME"; exit 1; }
 fi
 
+sleep 120
+
 log "[INFO] Running gradlew packageReleaseMsi..."
 ./gradlew packageReleaseMsi || { log "[ERROR] Failed to run gradlew packageReleaseMsi"; post_error_message "$BRANCH_NAME"; exit 1; }
 
